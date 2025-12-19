@@ -65,19 +65,17 @@ export const Album: React.FC<AlbumProps> = ({
         transition={{ type: 'spring', stiffness: 100, damping: 20 }}
       >
         {/* === FRONT SIDE === */}
-        <div className="absolute w-full h-full backface-hidden shadow-2xl rounded-2xl overflow-hidden bg-[#111] group border border-white/10">
+        {/* ====== 可配置项：亮色主题卡片 ====== */}
+        <div className="absolute w-full h-full backface-hidden shadow-xl rounded-2xl overflow-hidden bg-white group border border-gray-200">
           {/* Cover Image */}
           <div className="absolute inset-0">
              <img 
                src={post.coverImage} 
                alt={post.title} 
-               // ====== 可配置项：封面图片效果 ======
-               // opacity-60: 默认透明度, group-hover:opacity-40: 悬停透明度
-               // duration-700: 过渡动画时长(ms), group-hover:scale-105: 悬停缩放比例
-               // grayscale-[20%]: 默认灰度, group-hover:grayscale-0: 悬停时取消灰度
-               className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-all duration-700 ease-out group-hover:scale-105 transform grayscale-[20%] group-hover:grayscale-0" 
+               // ====== 可配置项：亮色主题封面图片效果 ======
+               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 ease-out group-hover:scale-105 transform" 
              />
-             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/90" />
+             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/70" />
           </div>
 
           {/* Content Wrapper */}
@@ -131,21 +129,19 @@ export const Album: React.FC<AlbumProps> = ({
         </div>
 
         {/* === BACK SIDE (背面简介) === */}
-        {/* ====== 可配置项：背面卡片样式 ====== */}
-        {/* p-5 md:p-8: 内边距 (移动端/桌面端)，bg-[#111]: 背景色，rounded-2xl: 圆角大小 */}
+        {/* ====== 可配置项：亮色主题背面卡片 ====== */}
         <div 
-          className="absolute w-full h-full backface-hidden rotate-y-180 bg-[#111] shadow-2xl rounded-2xl p-5 md:p-8 flex flex-col justify-between border border-white/10"
+          className="absolute w-full h-full backface-hidden rotate-y-180 bg-white shadow-xl rounded-2xl p-5 md:p-8 flex flex-col justify-between border border-gray-200"
         >
           <div className="relative z-10">
-            {/* ====== 可配置项：背面标题样式 ====== */}
-            {/* mb-4: 下边距, pb-3: 下内边距, text-xl md:text-2xl: 字号 */}
-            <div className="mb-4 pb-3 border-b border-white/10">
-              <h3 className="text-xl md:text-2xl font-bold text-white tracking-tighter leading-tight">{post.title}</h3>
+            {/* ====== 可配置项：亮色主题背面标题 ====== */}
+            <div className="mb-4 pb-3 border-b border-gray-200">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tighter leading-tight">{post.title}</h3>
             </div>
 
-            {/* ====== 可配置项：背面描述样式 ====== */}
-            {/* text-sm md:text-base: 字号, text-gray-400: 文字颜色, max-w-2xl: 最大宽度 */}
-            <p className="text-gray-400 text-sm md:text-base font-light leading-relaxed max-w-2xl">
+            {/* ====== 可配置项：亮色主题背面描述 ====== */}
+            {/* text-gray-700: 描述文字颜色加深 */}
+            <p className="text-gray-700 text-sm md:text-base font-normal leading-relaxed max-w-2xl">
               {post.description}
             </p>
           </div>
@@ -153,9 +149,9 @@ export const Album: React.FC<AlbumProps> = ({
           <div className="relative z-10 pt-6">
             <button 
               onClick={(e) => { e.stopPropagation(); window.location.href = post.link; }}
-              className="group inline-flex items-center gap-3 text-white text-lg font-medium hover:text-gray-300 transition-colors"
+              className="group inline-flex items-center gap-3 text-gray-900 text-lg font-medium hover:text-blue-600 transition-colors"
             >
-              <span className="border-b border-white pb-1 group-hover:border-gray-300">Read the article</span>
+              <span className="border-b border-gray-900 pb-1 group-hover:border-blue-600">Read the article</span>
               <ArrowUpRight className="group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>

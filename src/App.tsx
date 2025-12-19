@@ -21,7 +21,9 @@ function App() {
   const sortedYears = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden pb-32 selection:bg-white/20">
+    // ====== 可配置项：主页背景 ======
+    // 亮色主题：bg-[#f8f9fa] 浅灰白背景, text-gray-900 深色文字
+    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 overflow-x-hidden pb-32 selection:bg-blue-500/20">
       <div className="fixed inset-0 bg-editions-gradient pointer-events-none z-0" />
       
       <div className="relative z-10">
@@ -35,10 +37,12 @@ function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: index * 0.1 }}
-                className="flex items-end gap-6 mb-12 border-b border-white/10 pb-4"
+                // ====== 可配置项：年份标题样式 ======
+                className="flex items-end gap-6 mb-12 border-b border-gray-200 pb-4"
               >
-                  <h2 className="text-8xl md:text-9xl font-bold tracking-tighter text-white/5">{year}</h2>
-                  <span className="text-sm font-mono text-white/40 uppercase tracking-widest mb-4 ml-[-2rem]">Edition</span>
+                  {/* text-gray-300: 年份颜色加深 */}
+                  <h2 className="text-8xl md:text-9xl font-bold tracking-tighter text-gray-300">{year}</h2>
+                  <span className="text-sm font-mono text-gray-500 uppercase tracking-widest mb-4 ml-[-2rem]">Edition</span>
               </motion.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">

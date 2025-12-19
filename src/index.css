@@ -2,9 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ====== 可配置项：全局主题色 ====== */
+/* 亮色主题 */
 body {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: #f8f9fa;
+  color: #1a1a1a;
   margin: 0;
   font-family: "Inter", sans-serif;
   overflow-x: hidden;
@@ -25,21 +27,24 @@ body {
     transform: rotateY(180deg);
   }
 
-  /* Editions-style Gradients */
+  /* ====== 可配置项：背景渐变 ====== */
+  /* 亮色主题渐变 */
   .bg-editions-gradient {
-    background: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #000000 100%);
+    background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f0f0f0 100%);
   }
 
+  /* 亮色主题文字渐变 */
   .text-gradient {
-    background: linear-gradient(to right, #fff, #999);
+    background: linear-gradient(to right, #333, #666);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
+  /* 亮色主题玻璃面板 */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   /* Scrollbar hide */
@@ -50,4 +55,129 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* ====== Markdown 亮色主题样式覆盖 ====== */
+.markdown-body {
+  --color-canvas-default: transparent !important;
+  --color-fg-default: #1a1a1a !important;
+  --color-fg-muted: #666 !important;
+  color: #1a1a1a !important;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  color: #1a1a1a !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.markdown-body a {
+  color: #0066cc !important;
+}
+
+.markdown-body code {
+  background-color: #f1f3f5 !important;
+  color: #d63384 !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 4px !important;
+}
+
+/* ====== 可配置项：代码块样式 ====== */
+/* 浅灰色背景，保持语法高亮 */
+.markdown-body pre {
+  background-color: #f6f8fa !important;
+  border: 1px solid #e1e4e8 !important;
+  border-radius: 8px !important;
+}
+
+.markdown-body pre code {
+  background-color: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+}
+
+/* 语法高亮颜色 (hljs) */
+.markdown-body .hljs {
+  background: #f6f8fa !important;
+  color: #24292e !important;
+}
+
+.markdown-body .hljs-keyword,
+.markdown-body .hljs-selector-tag,
+.markdown-body .hljs-literal,
+.markdown-body .hljs-section,
+.markdown-body .hljs-link {
+  color: #d73a49 !important;
+}
+
+.markdown-body .hljs-string,
+.markdown-body .hljs-title,
+.markdown-body .hljs-name,
+.markdown-body .hljs-type,
+.markdown-body .hljs-attribute,
+.markdown-body .hljs-symbol,
+.markdown-body .hljs-bullet,
+.markdown-body .hljs-addition,
+.markdown-body .hljs-variable,
+.markdown-body .hljs-template-tag,
+.markdown-body .hljs-template-variable {
+  color: #032f62 !important;
+}
+
+.markdown-body .hljs-comment,
+.markdown-body .hljs-quote,
+.markdown-body .hljs-deletion,
+.markdown-body .hljs-meta {
+  color: #6a737d !important;
+}
+
+.markdown-body .hljs-function,
+.markdown-body .hljs-params {
+  color: #6f42c1 !important;
+}
+
+.markdown-body .hljs-number {
+  color: #005cc5 !important;
+}
+
+.markdown-body .hljs-built_in {
+  color: #e36209 !important;
+}
+
+/* 纯文本代码块 (无语法高亮) */
+.markdown-body pre:not(:has(.hljs)) code,
+.markdown-body pre code.language-text,
+.markdown-body pre code.language-plaintext {
+  color: #24292e !important;
+}
+
+/* ====== 可配置项：引用块样式 ====== */
+.markdown-body blockquote {
+  border-left: 4px solid #0066cc !important;
+  background-color: #e7f3ff !important;
+  color: #1a1a1a !important;
+  padding: 1rem 1.5rem !important;
+  margin: 1rem 0 !important;
+  border-radius: 0 8px 8px 0 !important;
+}
+
+.markdown-body blockquote p {
+  margin: 0 !important;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.markdown-body table tr {
+  background-color: transparent !important;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: rgba(0, 0, 0, 0.02) !important;
 }
