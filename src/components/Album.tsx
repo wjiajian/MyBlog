@@ -33,20 +33,24 @@ export const Album: React.FC<AlbumProps> = ({
     }
   };
 
-  // Dynamic font size calculation based on title length
+  // ====== 可配置项：标题字号 ======
+  // 根据是否展开状态动态计算标题字号
   const getTitleSize = (expanded: boolean) => {
-    if (expanded) return 'text-4xl md:text-6xl';
-    return 'text-2xl md:text-3xl';
+    // 展开状态下的标题字号 (移动端 text-xl / 桌面端 text-3xl)
+    if (expanded) return 'text-3xl md:text-3xl';
+    // 卡片列表状态下的标题字号 (移动端 text-xl / 桌面端 text-xl)
+    return 'text-xl md:text-xl';
   };
 
   return (
     <motion.div 
       layoutId={`album-wrapper-${post.id}`}
+      // ====== 可配置项：卡片宽高比 ======
       className={clsx(
         "relative perspective-1000 z-10 w-full",
         isExpanded 
-          ? "h-auto aspect-[4/3]" // Expanded size ratio
-          : "aspect-square cursor-pointer" // Grid Item size ratio
+          ? "h-auto aspect-[4/3]" // 展开时的宽高比 (4:3)，可调整为 aspect-[16/9] 等
+          : "aspect-square cursor-pointer" // 列表中的宽高比 (1:1 正方形)
       )}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => !isExpanded && setIsHovered(false)}
@@ -56,7 +60,9 @@ export const Album: React.FC<AlbumProps> = ({
         layoutId={`album-container-${post.id}`}
         className="w-full h-full relative preserve-3d"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+        // ====== 可配置项：翻转动画参数 ======
+        // stiffness: 弹簧刚度 (越大翻转越快)，damping: 阻尼 (越大弹跳越少)
+        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
       >
         {/* === FRONT SIDE === */}
         <div className="absolute w-full h-full backface-hidden shadow-2xl rounded-2xl overflow-hidden bg-[#111] group border border-white/10">
@@ -65,6 +71,10 @@ export const Album: React.FC<AlbumProps> = ({
              <img 
                src={post.coverImage} 
                alt={post.title} 
+               // ====== 可配置项：封面图片效果 ======
+               // opacity-60: 默认透明度, group-hover:opacity-40: 悬停透明度
+               // duration-700: 过渡动画时长(ms), group-hover:scale-105: 悬停缩放比例
+               // grayscale-[20%]: 默认灰度, group-hover:grayscale-0: 悬停时取消灰度
                className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-all duration-700 ease-out group-hover:scale-105 transform grayscale-[20%] group-hover:grayscale-0" 
              />
              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/90" />
@@ -120,16 +130,22 @@ export const Album: React.FC<AlbumProps> = ({
            )}
         </div>
 
-        {/* === BACK SIDE === */}
+        {/* === BACK SIDE (背面简介) === */}
+        {/* ====== 可配置项：背面卡片样式 ====== */}
+        {/* p-5 md:p-8: 内边距 (移动端/桌面端)，bg-[#111]: 背景色，rounded-2xl: 圆角大小 */}
         <div 
-          className="absolute w-full h-full backface-hidden rotate-y-180 bg-[#111] shadow-2xl rounded-2xl p-8 md:p-12 flex flex-col justify-between border border-white/10"
+          className="absolute w-full h-full backface-hidden rotate-y-180 bg-[#111] shadow-2xl rounded-2xl p-5 md:p-8 flex flex-col justify-between border border-white/10"
         >
           <div className="relative z-10">
-            <div className="mb-8 pb-4 border-b border-white/10">
-              <h3 className="text-3xl md:text-5xl font-bold text-white tracking-tighter">{post.title}</h3>
+            {/* ====== 可配置项：背面标题样式 ====== */}
+            {/* mb-4: 下边距, pb-3: 下内边距, text-xl md:text-2xl: 字号 */}
+            <div className="mb-4 pb-3 border-b border-white/10">
+              <h3 className="text-xl md:text-2xl font-bold text-white tracking-tighter leading-tight">{post.title}</h3>
             </div>
 
-            <p className="text-gray-400 text-lg md:text-xl font-light leading-relaxed max-w-2xl">
+            {/* ====== 可配置项：背面描述样式 ====== */}
+            {/* text-sm md:text-base: 字号, text-gray-400: 文字颜色, max-w-2xl: 最大宽度 */}
+            <p className="text-gray-400 text-sm md:text-base font-light leading-relaxed max-w-2xl">
               {post.description}
             </p>
           </div>

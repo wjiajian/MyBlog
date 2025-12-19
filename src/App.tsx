@@ -60,21 +60,26 @@ function App() {
       </div>
 
       {/* Full Screen Overlay for Selected Album */}
+      {/* ====== 展开弹窗配置区域 ====== */}
       <AnimatePresence>
         {selectedId && selectedPost && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            {/* Backdrop */}
+            {/* ====== 可配置项：背景遮罩 ====== */}
+            {/* bg-black/40: 背景透明度 (40%), 可调整为 bg-black/60 等 */}
+            {/* backdrop-blur-sm: 模糊程度 (sm/md/lg/xl), 越大越模糊 */}
+            {/* duration: 淡入淡出动画时长 (秒) */}
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
               onClick={() => setSelectedId(null)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             
-            {/* Expanded Album */}
-            <div className="relative z-60 pointer-events-auto w-full max-w-5xl">
+            {/* ====== 可配置项：展开卡片容器 ====== */}
+            {/* max-w-2xl: 最大宽度 (可调整为 max-w-xl/max-w-3xl/max-w-4xl/max-w-5xl) */}
+            <div className="relative z-60 pointer-events-auto w-full max-w-2xl">
               <Album 
                 post={selectedPost} 
                 isExpanded={true} 
