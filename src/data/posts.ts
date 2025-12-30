@@ -9,16 +9,17 @@ import ragStage2Md from '../content/rag-stage2.md';
 import ragStage3Md from '../content/rag-stage3.md';
 
 export interface Post {
-  id: string;
-  title: string;
-  year: number;
-  date: string;
-  description: string;
-  coverImage: string;
-  link: string;
-  content?: string; // Markdown content
-  tags?: string[];
-  categories?: string;
+  id: string;             // 唯一ID，各文章不能重复
+  title: string;          // 标题
+  year: number;           // 年份
+  date: string;           // 日期
+  description: string;    // 简介，展示在卡片背面
+  coverImage: string;     // 封面图，展示在卡片正面（1:1）
+  headerImage?: string;   // 文章头图，可选，未设置时使用 coverImage
+  link: string;           // 网址，格式必须是/posts/{id}
+  content?: string;       // import的标签
+  tags?: string[];        // 标签
+  categories?: string;    // 分类
 }
 
 export const posts: Post[] = [

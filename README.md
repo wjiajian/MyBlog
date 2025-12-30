@@ -94,9 +94,29 @@
 1.  把你的图片放到 `public/` 文件夹里 (例如 `public/my-pic.jpg`)。
 2.  在代码里，路径直接写 `/my-pic.jpg` (注意：不需要写 public)。
 
-> **💡 美观小贴士**: 
-> * 首页卡片最好用 **方形图片 (1:1)**。
-> * 文章详情页的头图最好用 **宽屏图片 (16:9)**。
+### 卡片封面图 & 文章头图
+
+博客支持为**卡片封面**和**文章头图**配置不同的图片：
+
+| 字段 | 用途 | 推荐比例 | 是否必填 |
+|------|------|----------|----------|
+| `coverImage` | 首页卡片封面 | 1:1 (正方形) | ✅ 必填 |
+| `headerImage` | 文章详情页头图 | 16:9 (宽屏) | ❌ 可选 |
+
+**示例配置：**
+```typescript
+{
+  id: 'react-journey',
+  title: 'React 学习之旅',
+  coverImage: '/images/card-cover.png',     // 卡片用 1:1 图片
+  headerImage: '/images/wide-header.jpg',   // 文章头图用宽屏图片（可选）
+  // ...其他字段
+}
+```
+
+**默认头图：**
+- 如果不配置 `headerImage`，文章详情页会使用统一的默认头图
+- 默认头图可在 `src/components/BlogPost.tsx` 顶部的 `DEFAULT_HEADER_IMAGE` 常量修改
 
 ---
 
