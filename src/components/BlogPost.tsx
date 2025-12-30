@@ -9,6 +9,10 @@ import { posts } from '../data/posts';
 import { ArrowLeft, List, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// ====== 可配置项：默认文章头图 ======
+// 当文章未配置 headerImage 时使用此默认头图
+const DEFAULT_HEADER_IMAGE = '/resources/back_1.jpg';
+
 // ====== 自定义 Pre 组件 ======
 // 统一处理代码块外框、标题栏和复制功能
 const PreBlock: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
@@ -215,9 +219,10 @@ export const BlogPost: React.FC = () => {
       {/* Header Image with Title */}
       <div className="relative h-[50vh] w-full overflow-hidden">
         <img 
-          src={post.coverImage} 
+          src={post.headerImage || DEFAULT_HEADER_IMAGE} 
           alt={post.title} 
           // ====== 可配置项：亮色主题封面图片 ======
+          // 优先使用 headerImage，未设置时使用 DEFAULT_HEADER_IMAGE
           className="w-full h-full object-cover opacity-80"
         />
         {/* 亮色主题渐变遮罩 */}
