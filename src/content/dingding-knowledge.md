@@ -3,7 +3,9 @@
 在企业数字化转型的浪潮中，知识库管理已成为组织竞争力的重要组成部分。如何高效同步多源知识库？如何智能化处理文档内容？这两个看似独立的问题，在实际的企业AI助手搭建过程中往往会交织在一起。
 
 > 项目链接:
->[https://github.com/wjiajian/DingDingZhiKuTong](https://github.com/wjiajian/DingDingZhiKuTong)
+>
+> [https://github.com/wjiajian/DingDingZhiKuTong](https://github.com/wjiajian/DingDingZhiKuTong)
+>
 > [https://github.com/wjiajian/LinkContentAI](https://github.com/wjiajian/LinkContentAI)
 
 
