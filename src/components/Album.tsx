@@ -20,11 +20,35 @@ export const Album: React.FC<AlbumProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 展开时自动翻转到背面
   useEffect(() => {
-    if (!isExpanded) setIsFlipped(false);
-  }, [isExpanded]);
+    if (isExpanded && !isClosing) {
+      // 延迟一点翻转，让放大动画先开始
+      const timer = setTimeout(() => {
+        setIsFlipped(true);
+      }, 200);
+      return () => clearTimeout(timer);
+    } else if (!isExpanded) {
+      // 完全关闭后重置状态
+      setIsFlipped(false);
+      setIsClosing(false);
+    }
+  }, [isExpanded, isClosing]);
+
+  // 处理关闭：先翻转回正面，再关闭
+  const handleClose = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setIsFlipped(false);
+    
+    // 等待翻转动画完成后再关闭
+    setTimeout(() => {
+      onClose?.();
+    }, 400); // 与 CSS transition 时长匹配
+  };
 
   // 清理 timeout
   useEffect(() => {
@@ -39,21 +63,23 @@ export const Album: React.FC<AlbumProps> = ({
     e.stopPropagation();
     
     // 防抖：如果正在动画中，忽略点击
-    if (isAnimating) return;
+    if (isAnimating || isClosing) return;
+    
+    // 展开状态下点击不做任何事（移除手动翻转）
+    if (isExpanded) return;
     
     setIsAnimating(true);
     
-    // 设置动画锁定时间（与动画时长匹配）
+    // 设置动画锁定时间
     clickTimeoutRef.current = setTimeout(() => {
       setIsAnimating(false);
-    }, 400); // 400ms 防抖时间
+    }, 400);
     
-    if (isExpanded) {
-      setIsFlipped(!isFlipped);
-    } else if (onExpand) {
+    if (onExpand) {
       onExpand();
     }
   };
+
 
 
   // ====== 可配置项：标题字号 ======
@@ -72,21 +98,19 @@ export const Album: React.FC<AlbumProps> = ({
       className={clsx(
         "relative perspective-1000 z-10 w-full",
         isExpanded 
-          ? "h-auto aspect-[4/3]" // 展开时的宽高比 (4:3)，可调整为 aspect-[16/9] 等
+          ? "h-auto aspect-[4/3]" // 展开时的宽高比 (4:3)
           : "aspect-square cursor-pointer" // 列表中的宽高比 (1:1 正方形)
       )}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => !isExpanded && setIsHovered(false)}
       onClick={handleContainerClick}
     >
-      <motion.div
-        layoutId={`album-container-${post.id}`}
-        className="w-full h-full relative preserve-3d"
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        // ====== 可配置项：翻转动画参数 ======
-        // stiffness: 弹簧刚度 (越大翻转越快)，damping: 阻尼 (越大弹跳越少)
-        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+      {/* 使用 CSS transform + transition 实现翻转，避免与 layout 动画冲突 */}
+      <div
+        className="w-full h-full relative preserve-3d transition-transform duration-500 ease-out"
+        style={{ transform: `rotateY(${isFlipped ? 180 : 0}deg)` }}
       >
+
         {/* === FRONT SIDE === */}
         {/* ====== 可配置项：亮色主题卡片 ====== */}
         <div className="absolute w-full h-full backface-hidden shadow-xl rounded-2xl overflow-hidden bg-white group border border-gray-200">
@@ -137,18 +161,7 @@ export const Album: React.FC<AlbumProps> = ({
             </motion.div>
           )}
 
-           {/* Tap Hint (Only when Expanded) */}
-           {isExpanded && !isFlipped && (
-             <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: 0.5 }}
-               className="absolute bottom-8 right-8 text-white/50 text-sm font-mono pointer-events-none flex items-center gap-2"
-             >
-               <span>Flip for details</span> 
-               <span className="w-4 h-4 rounded-full border border-white/30" />
-             </motion.div>
-           )}
+
         </div>
 
         {/* === BACK SIDE (背面简介) === */}
@@ -182,15 +195,18 @@ export const Album: React.FC<AlbumProps> = ({
            {/* Decorative Grid on Back */}
            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
         </div>
-      </motion.div>
+      </div>
+
 
       {/* Close Button (Only when Expanded) */}
       {isExpanded && (
         <motion.button
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={(e) => { e.stopPropagation(); onClose && onClose(); }}
-          className="fixed top-8 right-8 text-white bg-white/10 hover:bg-white/20 p-4 rounded-full backdrop-blur-md transition-colors border border-white/10 z-50 pointer-events-auto"
+          onClick={(e) => { e.stopPropagation(); handleClose(); }}
+          className="fixed top-4 right-8 text-gray-600 bg-white hover:bg-gray-100 p-3 rounded-full backdrop-blur-md transition-colors border border-gray-300 shadow-lg z-50 pointer-events-auto cursor-pointer"
+
+
         >
           <X size={24} />
         </motion.button>
