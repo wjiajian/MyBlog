@@ -1,16 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { posts } from './data/posts';
 import { Album } from './components/Album';
 import { Header } from './components/Header';
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const selectedPost = posts.find(p => p.id === selectedId);
 
+  // 从 URL 读取分类参数
+  useEffect(() => {
+    const category = searchParams.get('category');
+    setCurrentCategory(category);
+  }, [searchParams]);
+
+  // 处理分类变更
+  const handleCategoryChange = (category: string | null) => {
+    setCurrentCategory(category);
+    if (category) {
+      setSearchParams({ category });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  // 处理搜索选择
+  const handleSearchSelect = (postId: string) => {
+    setSelectedId(postId);
+  };
+
+  // 根据分类筛选文章
+  const filteredPosts = currentCategory 
+    ? posts.filter(post => post.categories === currentCategory)
+    : posts;
+
   // Group posts by year
-  const postsByYear = posts.reduce((acc, post) => {
+  const postsByYear = filteredPosts.reduce((acc, post) => {
     if (!acc[post.year]) {
       acc[post.year] = [];
     }
@@ -27,10 +56,32 @@ function App() {
       <div className="fixed inset-0 bg-editions-gradient pointer-events-none z-0" />
       
       <div className="relative z-10">
-        <Header />
+        <Header 
+          onCategoryChange={handleCategoryChange}
+          onSearchSelect={handleSearchSelect}
+          currentCategory={currentCategory}
+        />
         
         <main className="pt-32 md:pt-40 px-6 max-w-[1600px] mx-auto">
           
+          {/* 当前筛选提示 */}
+          {currentCategory && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 flex items-center gap-2"
+            >
+              <span className="text-gray-500">当前分类：</span>
+              <span className="px-3 py-1 bg-gray-100 rounded-lg text-gray-700 font-medium">{currentCategory}</span>
+              <button 
+                onClick={() => handleCategoryChange(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                清除筛选
+              </button>
+            </motion.div>
+          )}
+
           {sortedYears.map((year, index) => (
             <div key={year} className="mb-32">
               <motion.div 
@@ -59,6 +110,13 @@ function App() {
               </div>
             </div>
           ))}
+
+          {/* 无结果提示 */}
+          {sortedYears.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-gray-500 text-lg">该分类下暂无文章</p>
+            </div>
+          )}
 
         </main>
       </div>

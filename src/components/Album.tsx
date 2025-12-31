@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { Post } from '../data/posts';
 import { ArrowUpRight, X } from 'lucide-react';
@@ -19,19 +19,42 @@ export const Album: React.FC<AlbumProps> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!isExpanded) setIsFlipped(false);
   }, [isExpanded]);
 
+  // 清理 timeout
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleContainerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // 防抖：如果正在动画中，忽略点击
+    if (isAnimating) return;
+    
+    setIsAnimating(true);
+    
+    // 设置动画锁定时间（与动画时长匹配）
+    clickTimeoutRef.current = setTimeout(() => {
+      setIsAnimating(false);
+    }, 400); // 400ms 防抖时间
+    
     if (isExpanded) {
       setIsFlipped(!isFlipped);
     } else if (onExpand) {
       onExpand();
     }
   };
+
 
   // ====== 可配置项：标题字号 ======
   // 根据是否展开状态动态计算标题字号
