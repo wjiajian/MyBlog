@@ -270,19 +270,18 @@ export const BlogPost: React.FC = () => {
 
       {/* Content with TOC */}
       {/* ====== 可配置项：内容区域布局 ====== */}
-      {/* 文章正文居中，目录固定在右侧 */}
       <div className="relative -mt-20 z-10 px-4 lg:px-8">
         {/* 文章正文居中容器 */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+
           {/* Main Content */}
           {/* ====== 可配置项：文章内容区域 ====== */}
-          {/* flex-1: 占据剩余空间, lg:max-w-4xl: 大屏幕最大宽度 */}
           <motion.article 
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             // ====== 可配置项：亮色主题文章卡片 ======
-            className="flex-1 bg-white border border-gray-200 p-6 md:p-10 lg:p-12 rounded-2xl shadow-lg min-h-[50vh]"
+            className="w-full max-w-4xl bg-white border border-gray-200 p-6 md:p-10 lg:p-12 rounded-2xl shadow-lg min-h-[50vh]"
           >
             {/* Markdown 样式在 index.css 中覆盖 */}
             <div className="markdown-body !bg-transparent !font-sans">
@@ -304,62 +303,66 @@ export const BlogPost: React.FC = () => {
               )}
             </div>
           </motion.article>
+
+          {/* Table of Contents - Desktop (Fixed on right side) */}
+          {/* ====== 可配置项：目录栏 ====== */}
+          {toc.length > 0 && (
+            <motion.aside
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              // ====== 目录使用 fixed 定位，始终跟随滚动 ======
+              // 使用 calc 确保在大屏幕上不会与内容重叠
+              className="hidden xl:block fixed top-24 w-56 z-20"
+              style={{ 
+                // 计算位置：页面中心 + 文章半宽 + 间距
+                left: 'calc(50% + 28rem + 2rem)'
+              }}
+            >
+
+                {/* ====== 可配置项：亮色主题目录栏 ====== */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-5 max-h-[70vh] overflow-y-auto scrollbar-hide shadow-lg">
+                  <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <List size={16} />
+                    目录
+                  </h3>
+                  <nav className="space-y-2">
+                    {toc.map((item) => (
+                      <a
+                        key={item.id}
+                        href={`#${item.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const element = document.getElementById(item.id);
+                          if (element) {
+                            // 计算滚动位置，添加顶部偏移量
+                            const offsetTop = element.getBoundingClientRect().top + window.scrollY - 100;
+                            window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+                          }
+                        }}
+                        // ====== 可配置项：目录项样式 ======
+                        className={`block text-sm transition-all duration-200 rounded-lg px-3 py-1.5 ${
+                          item.level === 1 ? 'font-medium' : ''
+                        } ${
+                          item.level === 2 ? 'pl-5' : ''
+                        } ${
+                          item.level === 3 ? 'pl-7 text-xs' : ''
+                        } ${
+                          activeId === item.id
+                            ? 'text-blue-700 bg-blue-50 border-l-2 border-blue-700 font-medium'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        {item.text}
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+            </motion.aside>
+
+          )}
         </div>
       </div>
-
-      {/* Table of Contents - Desktop (Fixed on right side) */}
-      {/* ====== 可配置项：目录栏 ====== */}
-      {toc.length > 0 && (
-        <motion.aside
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-          // ====== 可配置项：目录栏样式 ======
-          // fixed right-8: 固定在页面右侧, top-24: 距顶部距离
-          // w-56: 目录宽度, z-20: 确保在文章容器之上
-          className="hidden xl:block fixed right-8 top-24 w-56 z-20"
-        >
-          {/* ====== 可配置项：亮色主题目录栏 ====== */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 max-h-[70vh] overflow-y-auto scrollbar-hide shadow-lg">
-            <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-              <List size={16} />
-              目录
-            </h3>
-            <nav className="space-y-2">
-              {toc.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const element = document.getElementById(item.id);
-                    if (element) {
-                      // 计算滚动位置，添加顶部偏移量
-                      const offsetTop = element.getBoundingClientRect().top + window.scrollY - 100;
-                      window.scrollTo({ top: offsetTop, behavior: 'smooth' });
-                    }
-                  }}
-                  // ====== 可配置项：目录项样式 ======
-                  // text-gray-400: 默认颜色, hover:text-white: 悬停颜色
-                  className={`block text-sm transition-all duration-200 rounded-lg px-3 py-1.5 ${
-                    item.level === 1 ? 'font-medium' : ''
-                  } ${
-                    item.level === 2 ? 'pl-5' : ''
-                  } ${
-                    item.level === 3 ? 'pl-7 text-xs' : ''
-                  } ${
-                    activeId === item.id
-                      ? 'text-blue-700 bg-blue-50 border-l-2 border-blue-700 font-medium'
-                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  {item.text}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </motion.aside>
-      )}
 
       {/* Mobile TOC Drawer */}
       {toc.length > 0 && isTocOpen && (
