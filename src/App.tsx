@@ -4,10 +4,13 @@ import { useSearchParams } from 'react-router-dom';
 import { posts } from './data/posts';
 import { Album } from './components/Album';
 import { Header } from './components/Header';
+import { ContentTabs } from './components/ContentTabs';
+import type { ContentType } from './components/ContentTabs';
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ContentType>('tech');
   const [searchParams, setSearchParams] = useSearchParams();
   
   const selectedPost = posts.find(p => p.id === selectedId);
@@ -33,10 +36,14 @@ function App() {
     setSelectedId(postId);
   };
 
-  // 根据分类筛选文章
-  const filteredPosts = currentCategory 
-    ? posts.filter(post => post.categories === currentCategory)
-    : posts;
+  // 根据 Tab 和分类筛选文章
+  const filteredPosts = posts.filter(post => {
+    // 先按 Tab 筛选（未设置 type 的视为 tech）
+    const matchesTab = (post.type || 'tech') === activeTab;
+    // 再按分类筛选
+    const matchesCategory = !currentCategory || post.categories === currentCategory;
+    return matchesTab && matchesCategory;
+  });
 
   // Group posts by year
   const postsByYear = filteredPosts.reduce((acc, post) => {
@@ -63,6 +70,9 @@ function App() {
         />
         
         <main className="pt-32 md:pt-40 px-6 max-w-[1600px] mx-auto">
+          
+          {/* Tab 切换 */}
+          <ContentTabs activeTab={activeTab} onTabChange={setActiveTab} />
           
           {/* 当前筛选提示 */}
           {currentCategory && (
