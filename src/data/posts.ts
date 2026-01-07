@@ -27,7 +27,7 @@ export interface Post {
 export const posts: Post[] = [
   // 2026 年文章
   {
-    id: "2025 summary",
+    id: "2025-summary",
     title: "2025年总结",
     year: 2026,
     date: "Jan 07",
