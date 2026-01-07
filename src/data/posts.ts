@@ -7,6 +7,7 @@ import hexoBlogMd from "../content/hexo-blog.md";
 import dingdingKnowledgeMd from "../content/dingding-knowledge.md";
 import ragStage2Md from "../content/rag-stage2.md";
 import ragStage3Md from "../content/rag-stage3.md";
+import summary2025Md from "../content/2025.md";
 
 export interface Post {
   id: string; // 唯一ID，各文章不能重复
@@ -15,7 +16,7 @@ export interface Post {
   date: string; // 日期
   description: string; // 简介，展示在卡片背面
   coverImage: string; // 封面图，展示在卡片正面（1:1）
-  headerImage?: string; // 文章头图，可选，未设置时使用 coverImage
+  headerImage?: string; // 文章头图，可选
   link: string; // 网址，格式必须是/posts/{id}
   content?: string; // import的标签
   tags?: string[]; // 标签
@@ -24,6 +25,19 @@ export interface Post {
 }
 
 export const posts: Post[] = [
+  // 2026 年文章
+  {
+    id: "2025 summary",
+    title: "2025年总结",
+    year: 2026,
+    date: "Jan 07",
+    description: "2025年的流水账",
+    coverImage: "/images/2025summary/coverImage.png",
+    link: "/posts/2025-summary",
+    content: summary2025Md,
+    categories: "生活随笔",
+    type: "life",
+  },
   // 2025 年文章
   {
     id: "rag-stage3",
