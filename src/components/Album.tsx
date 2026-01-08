@@ -26,13 +26,11 @@ export const Album: React.FC<AlbumProps> = ({
   // 展开时自动翻转到背面
   useEffect(() => {
     if (isExpanded && !isClosing) {
-      // 延迟一点翻转，让放大动画先开始
       const timer = setTimeout(() => {
         setIsFlipped(true);
       }, 200);
       return () => clearTimeout(timer);
     } else if (!isExpanded) {
-      // 完全关闭后重置状态
       setIsFlipped(false);
       setIsClosing(false);
     }
@@ -43,11 +41,9 @@ export const Album: React.FC<AlbumProps> = ({
     if (isClosing) return;
     setIsClosing(true);
     setIsFlipped(false);
-    
-    // 等待翻转动画完成后再关闭
     setTimeout(() => {
       onClose?.();
-    }, 400); // 与 CSS transition 时长匹配
+    }, 400);
   };
 
   // 清理 timeout
@@ -61,16 +57,10 @@ export const Album: React.FC<AlbumProps> = ({
 
   const handleContainerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    // 防抖：如果正在动画中，忽略点击
     if (isAnimating || isClosing) return;
-    
-    // 展开状态下点击不做任何事（移除手动翻转）
     if (isExpanded) return;
     
     setIsAnimating(true);
-    
-    // 设置动画锁定时间
     clickTimeoutRef.current = setTimeout(() => {
       setIsAnimating(false);
     }, 400);
@@ -80,137 +70,123 @@ export const Album: React.FC<AlbumProps> = ({
     }
   };
 
-
-
-  // ====== 可配置项：标题字号 ======
-  // 根据是否展开状态动态计算标题字号
-  const getTitleSize = (expanded: boolean) => {
-    // 展开状态下的标题字号 (移动端 text-xl / 桌面端 text-3xl)
-    if (expanded) return 'text-3xl md:text-3xl';
-    // 卡片列表状态下的标题字号 (移动端 text-xl / 桌面端 text-xl)
-    return 'text-xl md:text-xl';
+  // 日期格式化：将 "Jan 07" + 2026 转换为 "2026年1月7日"
+  const formatDate = (dateStr: string, year: number): string => {
+    const monthMap: Record<string, number> = {
+      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+    };
+    const parts = dateStr.split(' ');
+    const month = monthMap[parts[0]] || 1;
+    const day = parseInt(parts[1]) || 1;
+    return `${year}年${month}月${day}日`;
   };
 
   return (
-    <motion.div 
-      layoutId={`album-wrapper-${post.id}`}
-      // ====== 可配置项：卡片宽高比 ======
-      className={clsx(
-        "relative perspective-1000 z-10 w-full",
-        isExpanded 
-          ? "h-auto aspect-[4/3]" // 展开时的宽高比 (4:3)
-          : "aspect-square cursor-pointer" // 列表中的宽高比 (1:1 正方形)
-      )}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => !isExpanded && setIsHovered(false)}
-      onClick={handleContainerClick}
-    >
-      {/* 使用 CSS transform + transition 实现翻转，避免与 layout 动画冲突 */}
-      <div
-        className="w-full h-full relative preserve-3d transition-transform duration-500 ease-out"
-        style={{ transform: `rotateY(${isFlipped ? 180 : 0}deg)` }}
+    <div className="flex flex-col">
+      {/* 卡片图片区域 */}
+      <motion.div 
+        layoutId={`album-wrapper-${post.id}`}
+        className={clsx(
+          "relative perspective-1000 z-10 w-full",
+          isExpanded 
+            ? "h-auto aspect-[4/3]"
+            : "aspect-square cursor-pointer"
+        )}
+        onMouseEnter={() => !isExpanded && setIsHovered(true)}
+        onMouseLeave={() => !isExpanded && setIsHovered(false)}
+        onClick={handleContainerClick}
       >
-
-        {/* === FRONT SIDE === */}
-        {/* ====== 可配置项：亮色主题卡片 ====== */}
-        <div className="absolute w-full h-full backface-hidden shadow-xl rounded-2xl overflow-hidden bg-white group border border-gray-200">
-          {/* Cover Image */}
-          <div className="absolute inset-0">
-             <img 
-               src={post.coverImage} 
-               alt={post.title} 
-               // ====== 可配置项：亮色主题封面图片效果 ======
-               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700 ease-out group-hover:scale-105 transform" 
-             />
-             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/70" />
-          </div>
-
-          {/* Content Wrapper */}
-          <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
-            <motion.div layoutId={`album-header-${post.id}`} className="flex justify-between items-start">
-               <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/20 text-white/50 text-xs hover:bg-white hover:text-black transition-colors">
-                  {post.year.toString().slice(-2)}
-               </span>
-            </motion.div>
-            
-            <div className="flex flex-col gap-2">
-              <span className="text-white/60 font-mono text-xs uppercase tracking-widest">{post.date}</span>
-              <motion.h2 
-                layoutId={`album-title-${post.id}`} 
-                className={clsx(
-                  "font-bold text-white tracking-tighter leading-none",
-                  getTitleSize(isExpanded)
-                )}
-              >
-                {post.title}
-              </motion.h2>
+        {/* CSS transform 翻转 */}
+        <div
+          className="w-full h-full relative preserve-3d transition-transform duration-500 ease-out"
+          style={{ transform: `rotateY(${isFlipped ? 180 : 0}deg)` }}
+        >
+          {/* === FRONT SIDE === */}
+          <div className="absolute w-full h-full backface-hidden shadow-xl rounded-2xl overflow-hidden bg-white group border border-gray-200">
+            {/* Cover Image */}
+            <div className="absolute inset-0">
+              <img 
+                src={post.coverImage} 
+                alt={post.title} 
+                className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-700 ease-out group-hover:scale-105 transform" 
+              />
+              {/* 底部轻微渐变 */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
-          </div>
 
-          {/* Hover Overlay (Only when NOT expanded) */}
-          {!isExpanded && (
-            <motion.div 
-              className="absolute top-6 right-6"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="bg-white text-black p-3 rounded-full">
-                <ArrowUpRight size={20} />
+            {/* 左下角日期标签 */}
+            {!isExpanded && (
+              <div className="absolute bottom-4 left-4">
+                <span className="px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-lg text-gray-700 text-sm font-medium shadow-sm">
+                  {formatDate(post.date, post.year)}
+                </span>
               </div>
-            </motion.div>
-          )}
+            )}
 
+            {/* Hover 箭头 */}
+            {!isExpanded && (
+              <motion.div 
+                className="absolute top-4 right-4"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="bg-white text-black p-2.5 rounded-full shadow-md">
+                  <ArrowUpRight size={18} />
+                </div>
+              </motion.div>
+            )}
+          </div>
 
-        </div>
-
-        {/* === BACK SIDE (背面简介) === */}
-        {/* ====== 可配置项：亮色主题背面卡片 ====== */}
-        <div 
-          className="absolute w-full h-full backface-hidden rotate-y-180 bg-white shadow-xl rounded-2xl p-5 md:p-8 flex flex-col justify-between border border-gray-200"
-        >
-          <div className="relative z-10">
-            {/* ====== 可配置项：亮色主题背面标题 ====== */}
-            <div className="mb-4 pb-3 border-b border-gray-200">
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tighter leading-tight">{post.title}</h3>
+          {/* === BACK SIDE === */}
+          <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-white shadow-xl rounded-2xl p-5 md:p-8 flex flex-col justify-between border border-gray-200">
+            <div className="relative z-10">
+              <div className="mb-4 pb-3 border-b border-gray-200">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tighter leading-tight">{post.title}</h3>
+              </div>
+              <p className="text-gray-700 text-sm md:text-base font-normal leading-relaxed max-w-2xl">
+                {post.description}
+              </p>
             </div>
 
-            {/* ====== 可配置项：亮色主题背面描述 ====== */}
-            {/* text-gray-700: 描述文字颜色加深 */}
-            <p className="text-gray-700 text-sm md:text-base font-normal leading-relaxed max-w-2xl">
-              {post.description}
-            </p>
+            <div className="relative z-10 pt-6">
+              <button 
+                onClick={(e) => { e.stopPropagation(); window.location.href = post.link; }}
+                className="group inline-flex items-center gap-3 text-gray-900 text-lg font-medium hover:text-blue-600 transition-colors"
+              >
+                <span className="border-b border-gray-900 pb-1 group-hover:border-blue-600">Read the article</span>
+                <ArrowUpRight className="group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+            
+            {/* 装饰性网格 */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
           </div>
-
-          <div className="relative z-10 pt-6">
-            <button 
-              onClick={(e) => { e.stopPropagation(); window.location.href = post.link; }}
-              className="group inline-flex items-center gap-3 text-gray-900 text-lg font-medium hover:text-blue-600 transition-colors"
-            >
-              <span className="border-b border-gray-900 pb-1 group-hover:border-blue-600">Read the article</span>
-              <ArrowUpRight className="group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-          
-           {/* Decorative Grid on Back */}
-           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
         </div>
-      </div>
 
+        {/* 关闭按钮 */}
+        {isExpanded && (
+          <motion.button
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            className="fixed top-4 right-8 text-gray-600 bg-white hover:bg-gray-100 p-3 rounded-full backdrop-blur-md transition-colors border border-gray-300 shadow-lg z-50 pointer-events-auto cursor-pointer"
+          >
+            <X size={24} />
+          </motion.button>
+        )}
+      </motion.div>
 
-      {/* Close Button (Only when Expanded) */}
-      {isExpanded && (
-        <motion.button
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={(e) => { e.stopPropagation(); handleClose(); }}
-          className="fixed top-4 right-8 text-gray-600 bg-white hover:bg-gray-100 p-3 rounded-full backdrop-blur-md transition-colors border border-gray-300 shadow-lg z-50 pointer-events-auto cursor-pointer"
-
-
+      {/* 卡片外部标题（仅在非展开状态显示） */}
+      {!isExpanded && (
+        <motion.h2 
+          layoutId={`album-title-${post.id}`}
+          className="mt-4 text-lg font-semibold text-gray-900 tracking-tight leading-snug line-clamp-2"
         >
-          <X size={24} />
-        </motion.button>
+          {post.title}
+        </motion.h2>
       )}
-    </motion.div>
+    </div>
   );
 };
