@@ -5,7 +5,9 @@ import { posts } from './data/posts';
 import { Album } from './components/Album';
 import { Header } from './components/Header';
 import { ContentTabs } from './components/ContentTabs';
+import { Timeline } from './components/Timeline';
 import type { ContentType } from './components/ContentTabs';
+
 
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -56,6 +58,37 @@ function App() {
 
   const sortedYears = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
 
+  // 生成时间线数据
+  const timelineItems = sortedYears.map(year => {
+    const yearPosts = postsByYear[year];
+    const monthMap: Record<number, number> = {};
+    
+    yearPosts.forEach(post => {
+      // 从 date 字段解析月份 ("Jan 07" -> 1)
+      const monthNames: Record<string, number> = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+        'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+      };
+      const monthStr = post.date.split(' ')[0];
+      const month = monthNames[monthStr] || 1;
+      monthMap[month] = (monthMap[month] || 0) + 1;
+    });
+
+    const months = Object.entries(monthMap)
+      .map(([m, count]) => ({ month: Number(m), count }))
+      .sort((a, b) => b.month - a.month);
+
+    return { year, months };
+  });
+
+  // 点击时间线年份跳转
+  const handleTimelineYearClick = (year: number) => {
+    const element = document.getElementById(`year-${year}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     // ====== 可配置项：主页背景 ======
     // 亮色主题：bg-[#f8f9fa] 浅灰白背景, text-gray-900 深色文字
@@ -67,6 +100,13 @@ function App() {
           onCategoryChange={handleCategoryChange}
           onSearchSelect={handleSearchSelect}
           currentCategory={currentCategory}
+        />
+
+        {/* 左侧时间线导航 */}
+        <Timeline 
+          items={timelineItems} 
+          activeYear={sortedYears[0] || null}
+          onYearClick={handleTimelineYearClick}
         />
         
         <main className="pt-32 md:pt-40 px-6 max-w-[1600px] mx-auto">
@@ -93,31 +133,50 @@ function App() {
           )}
 
           {sortedYears.map((year, index) => (
-            <div key={year} className="mb-32">
+            <div key={year} id={`year-${year}`} className="mb-32 scroll-mt-40">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: index * 0.1 }}
-                // ====== 可配置项：年份标题样式 ======
                 className="flex items-end gap-6 mb-12 border-b border-gray-200 pb-4"
               >
-                  {/* text-gray-300: 年份颜色加深 */}
-                  <h2 className="text-8xl md:text-9xl font-bold tracking-tighter text-gray-300">{year}</h2>
-                  <span className="text-sm font-mono text-gray-500 uppercase tracking-widest mb-4 ml-[-2rem]">Edition</span>
+                  <h2 className="text-7xl md:text-8xl font-bold tracking-tighter text-gray-300">{year}</h2>
               </motion.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {postsByYear[year].map((post) => (
-                  <div key={post.id} className="relative group">
-                     <div style={{ opacity: selectedId === post.id ? 0 : 1 }}>
-                        <Album 
-                          post={post} 
-                          onExpand={() => setSelectedId(post.id)}
-                        />
-                     </div>
-                  </div>
-                ))}
+                {postsByYear[year].map((post, postIndex) => {
+                  // 解析当前文章的月份
+                  const monthNames: Record<string, number> = {
+                    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+                  };
+                  const currentMonth = monthNames[post.date.split(' ')[0]] || 1;
+                  
+                  // 检查是否是该月份的第一篇文章
+                  const isFirstOfMonth = postIndex === 0 || (() => {
+                    const prevPost = postsByYear[year][postIndex - 1];
+                    const prevMonth = monthNames[prevPost.date.split(' ')[0]] || 1;
+                    return prevMonth !== currentMonth;
+                  })();
+
+                  return (
+                    <div 
+                      key={post.id} 
+                      id={isFirstOfMonth ? `year-${year}-month-${currentMonth}` : undefined}
+                      className="relative group scroll-mt-40"
+                    >
+                       <div style={{ opacity: selectedId === post.id ? 0 : 1 }}>
+                          <Album 
+                            post={post} 
+                            onExpand={() => setSelectedId(post.id)}
+                          />
+                       </div>
+                    </div>
+                  );
+                })}
               </div>
+
+
             </div>
           ))}
 
