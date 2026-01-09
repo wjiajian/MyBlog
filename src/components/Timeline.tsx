@@ -34,7 +34,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
   };
 
   return (
-    <nav className="hidden lg:block fixed left-8 top-1/2 -translate-y-1/2 z-30">
+    <nav className="hidden 2xl:block fixed left-8 top-1/2 -translate-y-1/2 z-30">
       <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-lg p-4 max-h-[60vh] overflow-y-auto scrollbar-hide">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">时间线</h3>
         <ul className="space-y-2">
