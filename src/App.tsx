@@ -109,7 +109,18 @@ function App() {
           onYearClick={handleTimelineYearClick}
         />
         
-        <main className="pt-32 md:pt-40 px-6 max-w-[1600px] mx-auto">
+        {/* 个性文本 - 随页面滚动 */}
+        <div className="pt-8 px-6">
+          <div className="bg-white/80 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 shadow-sm inline-block">
+            <h1 className="text-gray-600 text-lg font-semibold leading-relaxed tracking-wide">
+              Everything I've built, written, and learned.
+              <br />
+              <span className="text-gray-900 font-bold text-xl">Archived in time.</span>
+            </h1>
+          </div>
+        </div>
+        
+        <main className="pt-8 md:pt-12 px-6 max-w-[1600px] mx-auto">
           
           {/* Tab 切换 */}
           <ContentTabs activeTab={activeTab} onTabChange={setActiveTab} />
