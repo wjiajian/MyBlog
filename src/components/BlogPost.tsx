@@ -313,11 +313,8 @@ export const BlogPost: React.FC = () => {
               transition={{ delay: 0.4 }}
               // ====== 目录使用 fixed 定位，始终跟随滚动 ======
               // 使用 calc 确保在大屏幕上不会与内容重叠
-              className="hidden xl:block fixed top-24 w-56 z-20"
-              style={{ 
-                // 计算位置：页面中心 + 文章半宽 + 间距
-                left: 'calc(50% + 28rem + 2rem)'
-              }}
+              className="hidden 2xl:block fixed top-24 w-56 z-20"
+              style={{ right: '2rem' }}
             >
 
                 {/* ====== 可配置项：亮色主题目录栏 ====== */}
