@@ -133,7 +133,7 @@ function extractToc(content: string): TocItem[] {
   return (() => {
       const result: TocItem[] = [];
       const counts: Record<string, number> = {};
-      const regex = /^(#{1,3})\s+(.+)$/gm;
+      const regex = /^(#{1,2})\s+(.+)$/gm;
       let m;
   
       while ((m = regex.exec(contentWithoutCodeBlocks)) !== null) {
@@ -168,6 +168,7 @@ export const BlogPost: React.FC = () => {
   const post = posts.find(p => p.id === id);
   const [activeId, setActiveId] = useState<string>('');
   const [isTocOpen, setIsTocOpen] = useState(false);
+  const [views, setViews] = useState<number | null>(null);
 
   // 提取目录
   const toc = useMemo(() => {
@@ -180,6 +181,20 @@ export const BlogPost: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
+
+  // 获取并增加浏览量
+  useEffect(() => {
+    if (post?.id) {
+      fetch(`/api/pageview?id=${post.id}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.views !== undefined) {
+            setViews(data.views);
+          }
+        })
+        .catch(err => console.error('Failed to fetch views:', err));
+    }
+  }, [post?.id]);
 
   // 监听滚动，高亮当前标题
   useEffect(() => {
@@ -247,6 +262,7 @@ export const BlogPost: React.FC = () => {
             className="flex gap-4 text-gray-600 font-mono text-sm uppercase tracking-widest bg-white/80 px-4 py-2 rounded-full backdrop-blur-sm border border-gray-200 shadow-sm"
           >
             <span>{post.date}, {post.year}</span>
+            {views !== null && <span>· {views} 次阅读</span>}
           </motion.div>
         </div>
 
