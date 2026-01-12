@@ -6,7 +6,7 @@ import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 import 'github-markdown-css/github-markdown-dark.css';
 import { posts } from '../data/posts';
-import { ArrowLeft, List, Copy, Check } from 'lucide-react';
+import { ArrowLeft, List, Copy, Check, ArrowUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // ====== 可配置项：默认文章头图 ======
@@ -169,6 +169,7 @@ export const BlogPost: React.FC = () => {
   const [activeId, setActiveId] = useState<string>('');
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [views, setViews] = useState<number | null>(null);
+  const [readProgress, setReadProgress] = useState(0);
 
   // 提取目录
   const toc = useMemo(() => {
@@ -196,7 +197,7 @@ export const BlogPost: React.FC = () => {
     }
   }, [post?.id]);
 
-  // 监听滚动，高亮当前标题
+  // 监听滚动，高亮当前标题并计算阅读进度
   useEffect(() => {
     const handleScroll = () => {
       const headings = document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3');
@@ -210,9 +211,16 @@ export const BlogPost: React.FC = () => {
       });
       
       setActiveId(currentId);
+
+      // 计算阅读进度
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
+      setReadProgress(Math.min(100, Math.max(0, progress)));
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // 初始化进度
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -327,10 +335,11 @@ export const BlogPost: React.FC = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
-              // ====== 目录使用 fixed 定位，始终跟随滚动 ======
-              // 使用 calc 确保在大屏幕上不会与内容重叠
+              // ====== 目录使用 fixed 定位，紧贴正文右侧 ======
+              // 正文最大宽度 max-w-4xl = 896px，居中后左边距 = (100vw - 896px) / 2
+              // 目录起始位置 = 左边距 + 正文宽度 + 间隙
               className="hidden 2xl:block fixed top-24 w-56 z-20"
-              style={{ right: '2rem' }}
+              style={{ left: 'calc(50% + 448px + 1.5rem)' }}
             >
 
                 {/* ====== 可配置项：亮色主题目录栏 ====== */}
@@ -370,6 +379,38 @@ export const BlogPost: React.FC = () => {
                       </a>
                     ))}
                   </nav>
+
+                  {/* 分隔线 */}
+                  <hr className="my-4 border-gray-200" />
+
+                  {/* 阅读进度和回到顶部 */}
+                  <div className="space-y-3">
+                    {/* 阅读进度 */}
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" className="text-gray-200" />
+                        <circle 
+                          cx="12" 
+                          cy="12" 
+                          r="10" 
+                          className="text-blue-500"
+                          strokeDasharray={`${readProgress * 0.628} 62.8`}
+                          strokeLinecap="round"
+                          transform="rotate(-90 12 12)"
+                        />
+                      </svg>
+                      <span>{readProgress}%</span>
+                    </div>
+
+                    {/* 回到顶部 */}
+                    <button
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    >
+                      <ArrowUp size={16} />
+                      <span>回到顶部</span>
+                    </button>
+                  </div>
                 </div>
             </motion.aside>
 
