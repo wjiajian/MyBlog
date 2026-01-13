@@ -8,6 +8,7 @@ import 'github-markdown-css/github-markdown-dark.css';
 import { posts } from '../data/posts';
 import { ArrowLeft, List, Copy, Check, ArrowUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { CommentSection } from './CommentSection';
 
 // ====== 可配置项：默认文章头图 ======
 // 当文章未配置 headerImage 时使用此默认头图
@@ -326,6 +327,9 @@ export const BlogPost: React.FC = () => {
                 </p>
               )}
             </div>
+
+            {/* 评论区 */}
+            <CommentSection postId={post.id} />
           </motion.article>
 
           {/* Table of Contents - Desktop (Fixed on right side) */}
