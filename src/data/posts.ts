@@ -1,13 +1,14 @@
 import mcpMd from "../content/mcp.md";
-import geminiCliMd from "../content/gemini-cli.md";
+// import geminiCliMd from "../content/gemini-cli.md";
 import koishiMd from "../content/koishi.md";
-import opencodeMd from "../content/opencode.md";
-import unstructuredMd from "../content/unstructured.md";
+// import opencodeMd from "../content/opencode.md";
+// import unstructuredMd from "../content/unstructured.md";
 import hexoBlogMd from "../content/hexo-blog.md";
 import dingdingKnowledgeMd from "../content/dingding-knowledge.md";
 import ragStage2Md from "../content/rag-stage2.md";
 import ragStage3Md from "../content/rag-stage3.md";
 import summary2025Md from "../content/2025.md";
+import ccGitWorktreeMd from "../content/CC-Gitworktree.md";
 
 export interface Post {
   id: string; // 唯一ID，各文章不能重复
@@ -37,6 +38,19 @@ export const posts: Post[] = [
     content: summary2025Md,
     categories: "生活随笔",
     type: "life",
+  },
+  {
+    id: "cc-gitworktree",
+    title: "Claude Code + Git Worktree",
+    year: 2026,
+    date: "Jan 14",
+    description: "结合 Claude Code 与 Git Worktree，实现主控-代理开发模式。",
+    coverImage: "/images/CC-Gitworktree/coverImage.png",
+    link: "/posts/cc-gitworktree",
+    content: ccGitWorktreeMd,
+    tags: ["Claude Code", "Git Worktree"],
+    categories: "笔记",
+    type: "tech",
   },
   // 2025 年文章
   {
@@ -81,6 +95,7 @@ export const posts: Post[] = [
     tags: ["钉钉", "文档解析"],
     categories: "项目记录",
   },
+  /*
   {
     id: "opencode",
     title: "Windows 上安装 OpenCode 并接入 Minimax M2",
@@ -88,12 +103,14 @@ export const posts: Post[] = [
     date: "Nov 21",
     description:
       "OpenCode是一款在终端中运行的CLI+TUI AI编程代理工具，支持快速代码生成、调试和项目分析。本文详细介绍通过curl/npm安装OpenCode、配置MiniMax M2 API Key接入大模型，以及使用winget安装Oh My Posh美化终端显示Git状态等信息。",
-    coverImage: "/images/OpenCode/OpenCode.png",
+    coverImage: "/images/OpenCode/coverImage.png",
     link: "/posts/opencode",
     content: opencodeMd,
     tags: ["Terminal", "OpenCode", "Claude Code"],
     categories: "笔记",
   },
+  */
+ /*
   {
     id: "unstructured",
     title: "Unstructured 及其使用入门",
@@ -101,12 +118,13 @@ export const posts: Post[] = [
     date: "Nov 21",
     description:
       "Unstructured是一个强大的开源文档解析库，无论PDF、Word、PPT、HTML还是图片，都可以用同一个partition()函数提取结构化数据。本文介绍其核心优势（归一化接口、语义分块、元数据保留），并提供Windows下使用Scoop安装Tesseract OCR和Poppler以支持中文PDF解析的完整指南。",
-    coverImage: "/images/Unstructured/Unstructured.png",
+    coverImage: "/images/Unstructured/coverImage.png",
     link: "/posts/unstructured",
     content: unstructuredMd,
     tags: ["Python", "Scoop", "文档解析", "Unstructured"],
     categories: "笔记",
   },
+  */
   {
     id: "koishi",
     title: "通过 Docker+Koishi+NapCat 搭建 QQ 机器人",
@@ -114,7 +132,7 @@ export const posts: Post[] = [
     date: "Nov 12",
     description:
       "在Ubuntu服务器上搞定一个稳定高效的QQ机器人。本文包含完整流程：使用国内镜像安装Docker、持久化部署Koishi机器人框架、一键安装NapCat并用screen后台运行、配置OneBot正向WebSocket连接，还附带常用Docker命令参考。",
-    coverImage: "/images/Koishi/Docker&Koishi&NapCat.png",
+    coverImage: "/images/Koishi/coverImage.png",
     link: "/posts/koishi",
     content: koishiMd,
     tags: ["聊天机器人", "Docker"],
@@ -127,12 +145,13 @@ export const posts: Post[] = [
     date: "Oct 30",
     description:
       "MCP是为AI应用提供标准化连接的开放协议，就像USB-C接口一样让模型连接各种数据源和工具。本文以天气查询服务为例，详解MCP Server开发：使用FastMCP定义Tools、调用外部API、配置uv环境，并展示如何在VS Code的mcp.json中集成使用。",
-    coverImage: "/images/mcp/mcp.png",
+    coverImage: "/images/mcp/coverImage.png",
     link: "/posts/mcp",
     content: mcpMd,
     tags: ["MCP", "LLM", "VS Code"],
     categories: "笔记",
   },
+  /*
   {
     id: "gemini-cli",
     title: "Gemini CLI 配置",
@@ -140,12 +159,13 @@ export const posts: Post[] = [
     date: "Oct 30",
     description:
       "Gemini CLI完整安装配置指南。包括Windows/macOS/Linux下使用nvm安装Node.js、npm全局安装@google/gemini-cli、创建Google Cloud项目并启用Gemini API、配置GOOGLE_CLOUD_PROJECT环境变量，即可开启命令行AI交互体验。",
-    coverImage: "/images/Gemini CLI/gemini.png",
+    coverImage: "/images/Gemini CLI/coverImage.png",
     link: "/posts/gemini-cli",
     content: geminiCliMd,
     tags: ["Gemini CLI", "VS Code"],
     categories: "笔记",
   },
+  */
   {
     id: "hexo-blog",
     title: "使用 Hexo 通过 GitHub Pages 搭建博客",
@@ -153,7 +173,7 @@ export const posts: Post[] = [
     date: "Oct 30",
     description:
       "使用Hexo快速搭建个人博客的完整教程。从Node.js环境准备开始，依次介绍hexo-cli安装、hexo init初始化项目、hexo server本地预览、配置hexo-deployer-git插件和_config.yml，最后通过hexo deploy一键部署到GitHub Pages，开启你的博客之旅。",
-    coverImage: "/images/Blogs/hexo&github.jpg",
+    coverImage: "/images/Blogs/coverImage.jpg",
     link: "/posts/hexo-blog",
     content: hexoBlogMd,
     tags: ["blogs", "Hexo", "Github Pages"],
