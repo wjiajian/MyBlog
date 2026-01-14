@@ -33,7 +33,7 @@ export const posts: Post[] = [
     year: 2026,
     date: "Jan 07",
     description: "2025年的流水账",
-    coverImage: "/images/2025summary/coverImage.png",
+    coverImage: "/images/2025-summary/coverImage.png",
     link: "/posts/2025-summary",
     content: summary2025Md,
     categories: "生活随笔",
