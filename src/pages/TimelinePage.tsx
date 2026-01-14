@@ -12,8 +12,6 @@ const categoryColors: Record<string, string> = {
   '技术笔记': 'text-emerald-600',
 };
 
-// 月份名称
-const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const TimelinePage: React.FC = () => {
   // 按年份分组文章
