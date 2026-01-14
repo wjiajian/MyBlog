@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FolderOpen, Search, User, X, ChevronDown, Menu } from 'lucide-react';
+import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock } from 'lucide-react';
 import { posts } from '../data/posts';
 
 interface NavigationProps {
@@ -215,6 +215,16 @@ export const Navigation: React.FC<NavigationProps> = ({
         )}
       </div>
 
+      {/* 时间线 */}
+      <Link
+        to="/timeline"
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer
+          ${isActive('/timeline') ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+      >
+        <Clock size={18} />
+        <span className="text-sm font-medium">时间线</span>
+      </Link>
+
       {/* 关于 */}
       <Link
         to="/about"
@@ -301,6 +311,17 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <div className="mt-2 text-sm text-gray-500 text-center py-2">未找到相关文章</div>
               )}
             </div>
+
+            {/* 时间线 */}
+            <Link
+              to="/timeline"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 border-t border-gray-100 transition-colors cursor-pointer
+                ${isActive('/timeline') ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+            >
+              <Clock size={18} />
+              <span className="text-sm font-medium">时间线</span>
+            </Link>
 
             {/* 关于 */}
             <Link
