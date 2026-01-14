@@ -14,6 +14,7 @@ function App() {
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ContentType>('tech');
   const [searchParams, setSearchParams] = useSearchParams();
+  const [activeYear, setActiveYear] = useState<number | null>(null);
   
   const selectedPost = posts.find(p => p.id === selectedId);
 
@@ -57,6 +58,60 @@ function App() {
   }, {} as Record<number, typeof posts>);
 
   const sortedYears = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
+
+  // 监听年份区块滚动，更新时间线高亮
+  // 将 sortedYears 转换为字符串，避免数组引用变化触发无限循环
+  const sortedYearsKey = sortedYears.join(',');
+  
+  // 初始化 activeYear
+  useEffect(() => {
+    if (activeYear === null && sortedYears.length > 0) {
+      setActiveYear(sortedYears[0]);
+    }
+  }, [sortedYears.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  useEffect(() => {
+    // 解析年份列表
+    const years = sortedYearsKey.split(',').filter(Boolean).map(Number);
+    if (years.length === 0) return;
+
+    // 使用 IntersectionObserver 监听年份区块
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 找出当前在视口中可见的年份
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const yearId = entry.target.id;
+            const yearMatch = yearId.match(/^year-(\d+)$/);
+            if (yearMatch) {
+              setActiveYear(Number(yearMatch[1]));
+              break;
+            }
+          }
+        }
+      },
+      {
+        root: null, // viewport
+        rootMargin: '-20% 0px -60% 0px', // 上方留20%，下方留60%，中间区域触发
+        threshold: 0.1,
+      }
+    );
+
+    // 需要稍微延迟以确保 DOM 元素已渲染
+    const timeoutId = setTimeout(() => {
+      years.forEach((year) => {
+        const element = document.getElementById(`year-${year}`);
+        if (element) {
+          observer.observe(element);
+        }
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [sortedYearsKey]);
 
   // 生成时间线数据
   const timelineItems = sortedYears.map(year => {
@@ -105,7 +160,7 @@ function App() {
         {/* 左侧时间线导航 */}
         <Timeline 
           items={timelineItems} 
-          activeYear={sortedYears[0] || null}
+          activeYear={activeYear}
           onYearClick={handleTimelineYearClick}
         />
         
