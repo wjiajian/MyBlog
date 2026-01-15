@@ -102,6 +102,37 @@ body {
   padding: 0 !important;
 }
 
+/* ====== 代码块滚动条美化 ====== */
+.markdown-body pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.markdown-body pre::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.markdown-body pre::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.markdown-body pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.markdown-body pre::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox 滚动条样式 */
+.markdown-body pre {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
 /* 语法高亮颜色 (hljs) */
 .markdown-body .hljs {
   background: #f6f8fa !important;
