@@ -8,10 +8,10 @@ import imagesMetadata from '../../public/photowall/images-metadata.json';
 export const GalleryPage: React.FC = () => {
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
-  // 主题状态：默认暗色（照片墙页面）
+  // 主题状态：默认亮色
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('gallery-theme');
-    return saved !== 'light'; // 默认暗色
+    return saved === 'dark'; // 默认亮色
   });
 
   // 保存主题偏好到localStorage
@@ -111,7 +111,7 @@ export const GalleryPage: React.FC = () => {
 
             {/* 标题 */}
             <h1 className="text-xl font-bold tracking-tight">
-            📸 Photo Wall
+            Photo Wall
             </h1>
 
             {/* 右侧控制区 */}
