@@ -60,7 +60,7 @@ export const posts: Post[] = [
     date: "Jan 16",
     description: "厌倦了在两套键盘鼠标间来回切换？使用微软官方神器 Mouse Without Borders (无界鼠标)！无需购买额外硬件，只需通过局域网，即可用一套键鼠无缝控制多台 Windows 电脑，甚至实现跨设备复制粘贴和文件拖拽，彻底释放你的桌面空间与生产力。",
     coverImage: "/images/Mouse-Without-Borders/coverImage.png",
-    link: "/posts/Mouse-Without-Borders",
+    link: "/posts/mouse-without-borders",
     content: mouseWithoutBordersMd,
     categories: "技巧",
     type: "tech",
