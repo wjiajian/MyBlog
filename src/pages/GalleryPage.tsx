@@ -1,109 +1,61 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PhotoWall } from '../components/PhotoWall';
 import type { PhotoItem } from '../components/PhotoWall';
 import { ArrowLeft, Grid3X3, LayoutGrid, Rows3, Film } from 'lucide-react';
-
-// 从 photowall 目录加载的图片列表
-const imageModules = import.meta.glob('/public/photowall/*.(jpg|png|jpeg|webp)', { 
-  eager: true, 
-  query: '?url',
-  import: 'default' 
-});
-
-// 从 photowall 目录加载的视频列表 (Live Photo)
-const videoModules = import.meta.glob('/public/photowall/*.(mov|mp4|webm)', { 
-  eager: true, 
-  query: '?url',
-  import: 'default' 
-});
-
-// 预定义的文件大小映射 (实际项目中可通过构建时脚本生成)
-// 由于浏览器无法直接获取静态文件大小，这里提供一个近似值
-const fileSizeMap: Record<string, number> = {
-  '-明日方舟主题地铁站-能天使.jpg': 2878538,
-  '上海-明日方舟地铁站.jpg': 4300162,
-  '公司环境1.png': 15105483,
-  '公司环境2.png': 12730212,
-  '养了几天.png': 14645983,
-  '凤凰湖.png': 7856857,
-  '别墅.jpg': 6600499,
-  '又养了几天.png': 11374600,
-  '同事结婚.png': 10003895,
-  '同济大学.jpg': 2822476,
-  '团建烧烤.png': 14696895,
-  '团建聚餐.jpg': 6844093,
-  '外滩看陆家嘴.jpg': 3290718,
-  '徐家汇.jpg': 5076147,
-  '新电脑1.png': 12285623,
-  '新电脑2.png': 13860347,
-  '明日方舟立牌.jpg': 4636537,
-  '明日方舟立牌2.jpg': 4127301,
-  '明日方舟立牌3.jpg': 3878363,
-  '朋友送的礼物.jpg': 2377991,
-  '植物园玻璃房.jpg': 4292915,
-  '灵隐寺.jpg': 5867968,
-  '猫刚领养.png': 5563378,
-  '谷子店.jpg': 4707620,
-  '陆家嘴2.jpg': 256174,
-  '非洲之心.png': 14657115,
-};
+import imagesMetadata from '../../public/photowall/images-metadata.json';
 
 export const GalleryPage: React.FC = () => {
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 构建视频文件名映射 (不含扩展名 -> 视频路径)
-  const videoMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const path in videoModules) {
-      const filename = path.split('/').pop() || '';
-      const baseName = filename.replace(/\.(mov|mp4|webm)$/i, '');
-      const src = path.replace('/public', '');
-      map.set(baseName, src);
-    }
-    return map;
-  }, []);
-
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
-    const result: PhotoItem[] = [];
+    const result = imagesMetadata.map((meta) => {
+      const filename = meta.filename;
+      const baseName = filename.replace(/\.(jpg|jpeg|png|webp|heic)$/i, '');
+      // Use optimized full-size thumbnail for main display (handles HEIC/PNG conversion & compression)
+      const src = `/photowall/thumbnails/full/${baseName}.jpg`;
+      
+      // Thumbnail paths
+      const srcMedium = `/photowall/thumbnails/medium/${baseName}.jpg`;
+      const srcTiny = `/photowall/thumbnails/tiny/${baseName}.jpg`;
+      
+      return {
+        src,
+        srcMedium,
+        srcTiny,
+        alt: baseName.replace(/[-_]/g, ' '),
+        filename,
+        format: meta.format,
+        width: meta.width,
+        height: meta.height,
+        size: meta.size,
+        // @ts-ignore - videoSrc exists in generated json but might not be in type definition yet if not updated
+        videoSrc: (meta as any).videoSrc,
+        date: (meta as any).date,
+      };
+    });
     
-    for (const path in imageModules) {
-      const filename = path.split('/').pop() || '';
-      const src = path.replace('/public', '');
-      const alt = filename.replace(/\.(jpg|png|jpeg|webp)$/i, '').replace(/[-_]/g, ' ');
-      const format = filename.split('.').pop()?.toUpperCase() || 'JPG';
-      const baseName = filename.replace(/\.(jpg|png|jpeg|webp)$/i, '');
-      
-      // 查找是否有对应的 Live Photo 视频
-      const videoSrc = videoMap.get(baseName);
-      
-      // 获取文件大小
-      const size = fileSizeMap[filename];
-      
-      result.push({ 
-        src, 
-        alt, 
-        filename, 
-        format,
-        size,
-        videoSrc,
-      });
-    }
-    
-    // 按文件名排序
-    return result.sort((a, b) => a.filename.localeCompare(b.filename, 'zh-CN'));
-  }, [videoMap]);
+    // Sort by date descending (newest first)
+    return result.sort((a, b) => {
+      // @ts-ignore
+      if (a.date && b.date) {
+        // @ts-ignore
+        return b.date.localeCompare(a.date);
+      }
+      return a.filename.localeCompare(b.filename, 'zh-CN');
+    });
+  }, []);
 
   // 统计 Live Photo 数量
   const livePhotoCount = useMemo(() => {
     return images.filter(img => img.videoSrc).length;
   }, [images]);
 
+  // 模拟加载延迟仅用于平滑过渡
   useEffect(() => {
-    // 模拟加载延迟
-    const timer = setTimeout(() => setIsLoading(false), 300);
+    const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, []);
 
