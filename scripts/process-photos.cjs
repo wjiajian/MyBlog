@@ -38,57 +38,82 @@ async function processPhotos() {
     }
     const existingMap = new Map(existingMetadata.map(item => [item.filename, item]));
 
-    const files = fs.readdirSync(ORIGIN_DIR).filter(file => EXTENSIONS.test(file));
-    console.log(`Found ${files.length} images in origin.`);
+    // 2. Scan both origin and full directory (for converted files)
+    // We prioritize origin files. If a file exists in full but not origin, it's a converted file we should keep.
+    const originFiles = fs.existsSync(ORIGIN_DIR) ? fs.readdirSync(ORIGIN_DIR).filter(file => EXTENSIONS.test(file)) : [];
+    const fullFiles = fs.existsSync(FULL_DIR) ? fs.readdirSync(FULL_DIR).filter(file => EXTENSIONS.test(file)) : [];
+    
+    // Create a map of baseName -> { origin: file, full: file }
+    const fileMap = new Map();
+    
+    originFiles.forEach(file => {
+        const ext = path.extname(file).toLowerCase();
+        const base = path.basename(file, ext);
+        if (!fileMap.has(base)) fileMap.set(base, {});
+        fileMap.get(base).origin = file;
+    });
 
+    fullFiles.forEach(file => {
+        const ext = path.extname(file).toLowerCase();
+        const base = path.basename(file, ext);
+        if (!fileMap.has(base)) fileMap.set(base, {});
+        fileMap.get(base).full = file;
+    });
+
+    console.log(`Found ${fileMap.size} unique images.`);
+    
     const newMetadata = [];
 
-    for (const file of files) {
-        const filePath = path.join(ORIGIN_DIR, file);
-        const stats = fs.statSync(filePath);
-        const ext = path.extname(file).toLowerCase();
-        const baseName = path.basename(file, ext); // filename without ext
+    for (const [baseName, locations] of fileMap) {
+        // Determine source file: use origin if available (master), else full (converted)
+        // If origin is HEIC, we will convert and optionally delete it.
         
-        console.log(`Processing: ${file}`);
+        let sourcePath = '';
+        let file = '';
+        let isOrigin = false;
+
+        if (locations.origin) {
+            sourcePath = path.join(ORIGIN_DIR, locations.origin);
+            file = locations.origin;
+            isOrigin = true;
+        } else if (locations.full) {
+            sourcePath = path.join(FULL_DIR, locations.full);
+            file = locations.full;
+            isOrigin = false;
+        } else {
+            continue;
+        }
+
+        const stats = fs.statSync(sourcePath);
+        const ext = path.extname(file).toLowerCase();
+        
+        console.log(`Processing: ${baseName} (${ext})`);
 
         let date = null;
         let width = 0;
         let height = 0;
         let finalFormat = 'JPEG';
         
-        // Paths for generated files
-        // Full: Only for HEIC converted, or logic described by user. 
-        // User: "When uploaded is JPEG use origin... when heic use full"
-        // But for consistency of filenames in 'full' dir, let's see.
-        // Actually, let's keep it simple: 
-        // 1. Convert HEIC to JPG in 'full'.
-        // 2. JPG in origin is just referenced.
-        // 3. To make frontend easy, 'src' property will point to the right place.
-        
         const isHeic = ext === '.heic';
-        let fullSrcPath = ''; // Relative path for frontend
+        let fullSrcPath = ''; 
         let mediumPathDisplay = `/photowall/thumbnails/medium/${baseName}.jpg`;
         let tinyPathDisplay = `/photowall/thumbnails/tiny/${baseName}.jpg`;
 
         try {
-            // 1. EXTRACT DATA & PREPARE BUFFER
-            let inputBuffer = fs.readFileSync(filePath);
+            let inputBuffer = fs.readFileSync(sourcePath);
             let sharpInstance;
 
-            // Extract Date using exifr (handles HEIC and JPEG)
+            // Extract Date using exifr
             try {
-                // We parse metadata from original file
                 const meta = await exifr.parse(inputBuffer);
                 if (meta && (meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate)) {
                     date = formatDate(meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate);
                 }
-            } catch (err) {
-                console.warn(`  Warning: Could not extract EXIF from ${file}`, err.message);
-            }
+            } catch (err) {}
 
             // Fallback Date
-            if (!date && existingMap.has(file)) {
-                date = existingMap.get(file).date;
+            if (!date && existingMap.has(locations.origin || locations.full)) {
+                date = existingMap.get(locations.origin || locations.full).date;
             }
             if (!date) {
                 date = formatDate(stats.mtime);
@@ -96,38 +121,48 @@ async function processPhotos() {
 
             // 2. CONVERT / PREPARE IMAGE
             if (isHeic) {
-                // Convert HEIC to JPEG
+                // Convert HEIC to JPEG in FULL_DIR
                 const outputFullCjs = path.join(FULL_DIR, `${baseName}.jpg`);
                 
-                // If full image doesn't exist or is older, convert
-                // Note: heic-convert gives raw/jpeg/png.
                 if (!fs.existsSync(outputFullCjs)) {
                     console.log(`  Converting HEIC to JPEG...`);
                     const jpegBuffer = await convert({
                         buffer: inputBuffer,
                         format: 'JPEG',
-                        quality: 0.9 // High quality for full image
+                        quality: 0.9
                     });
                     fs.writeFileSync(outputFullCjs, jpegBuffer);
-                    
-                    // Update input buffer for thumbnail generation to use the converted JPEG version 
-                    // (Sharp might handle HEIC but using the converted buffer is safer if Sharp lacks libheif)
                     inputBuffer = jpegBuffer; 
                 } else {
-                     // Load the converted jpeg for thumbnail processing just in case sharp needs it
                     inputBuffer = fs.readFileSync(outputFullCjs);
                 }
                 
                 fullSrcPath = `/photowall/thumbnails/full/${baseName}.jpg`;
                 finalFormat = 'JPEG';
+
+                // DELETE HEIC FROM ORIGIN (User Request)
+                try {
+                    console.log(`  Deleting original HEIC file: ${file}`);
+                    fs.unlinkSync(sourcePath);
+                } catch (e) {
+                    console.error('  Failed to delete HEIC:', e.message);
+                }
+
             } else {
                 // JPEG / PNG
-                fullSrcPath = `/photowall/origin/${file}`;
+                if (isOrigin) {
+                    // It's in origin, so we use it as is (reference it)
+                    // BUT: user structure says "full" has converted. 
+                    // If it's already jpg in origin, we can just ref it.
+                    fullSrcPath = `/photowall/origin/${file}`;
+                } else {
+                    // It's in full (already converted previously)
+                    fullSrcPath = `/photowall/thumbnails/full/${file}`;
+                }
                 finalFormat = ext.substring(1).toUpperCase();
             }
 
             // 3. GENERATE THUMBNAILS
-            // Always generate thumbnails as .jpg for consistency and size
             const mediumFsPath = path.join(MEDIUM_DIR, `${baseName}.jpg`);
             const tinyFsPath = path.join(TINY_DIR, `${baseName}.jpg`);
 
@@ -136,9 +171,8 @@ async function processPhotos() {
             width = metadata.width;
             height = metadata.height;
 
-            // Medium Thumbnail
             if (!fs.existsSync(mediumFsPath)) {
-                console.log(`  Generating Medium Thumbnail...`);
+                // console.log(`  Generating Medium Thumbnail...`);
                 await sharpInstance
                     .clone()
                     .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
@@ -146,9 +180,8 @@ async function processPhotos() {
                     .toFile(mediumFsPath);
             }
 
-            // Tiny Thumbnail
             if (!fs.existsSync(tinyFsPath)) {
-                console.log(`  Generating Tiny Thumbnail...`);
+                // console.log(`  Generating Tiny Thumbnail...`);
                 await sharpInstance
                     .clone()
                     .resize(50, 50, { fit: 'inside', withoutEnlargement: true })
@@ -157,16 +190,17 @@ async function processPhotos() {
             }
 
             // 4. ADD TO METADATA
-            // Preserve videoSrc if exists
             let videoSrc = undefined;
-            if (existingMap.has(file)) {
-                videoSrc = existingMap.get(file).videoSrc;
+            // Try to find videoSrc from existing meta
+            // Check keys for both origin and full filename
+            const key = locations.origin || locations.full;
+            if (existingMap.has(key)) {
+                videoSrc = existingMap.get(key).videoSrc;
             }
 
             newMetadata.push({
-                filename: file,
-                // Helper mainly for debug, frontend uses src/srcMedium/srcTiny
-                originalSrc: `/photowall/origin/${file}`, 
+                filename: key, // Use the filename we found (origin preferred)
+                originalSrc: fullSrcPath, // effectively the source we use for lightbox
                 src: fullSrcPath,
                 srcMedium: mediumPathDisplay,
                 srcTiny: tinyPathDisplay,
@@ -179,7 +213,7 @@ async function processPhotos() {
             });
 
         } catch (err) {
-            console.error(`  Error processing ${file}:`, err);
+            console.error(`  Error processing ${baseName}:`, err);
         }
     }
 
