@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { BlogPost } from './components/BlogPost.tsx'
 import { About } from './pages/About.tsx'
 import { TimelinePage } from './pages/TimelinePage.tsx'
+import { GalleryPage } from './pages/GalleryPage.tsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
          <Route path="/posts/:id" element={<BlogPost />} />
          <Route path="/about" element={<About />} />
          <Route path="/timeline" element={<TimelinePage />} />
+         <Route path="/gallery" element={<GalleryPage />} />
        </Routes>
     </BrowserRouter>
   </React.StrictMode>,

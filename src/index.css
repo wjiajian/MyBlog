@@ -214,3 +214,44 @@ body {
 .markdown-body table tr:nth-child(2n) {
   background-color: rgba(0, 0, 0, 0.02) !important;
 }
+
+/* ====== Photo Wall 照片墙样式 ====== */
+.photowall-grid {
+  /* 瀑布流布局优化 */
+  column-fill: balance;
+}
+
+.photowall-item {
+  /* 防止图片被拆分到多列 */
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* 响应式列数 */
+@media (max-width: 640px) {
+  .photowall-grid {
+    column-count: 2 !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .photowall-grid {
+    column-count: 3 !important;
+  }
+}
+
+/* 图片加载动画 */
+@keyframes photowall-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.photowall-item .animate-pulse {
+  background: linear-gradient(90deg, #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
+  background-size: 200px 100%;
+  animation: photowall-shimmer 1.5s ease-in-out infinite;
+}
