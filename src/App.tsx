@@ -15,6 +15,31 @@ function App() {
   const [activeTab, setActiveTab] = useState<ContentType>('tech');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeYear, setActiveYear] = useState<number | null>(null);
+  // 主题状态：默认亮色
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('blog-theme');
+    return saved === 'dark';
+  });
+
+  // 保存主题偏好到localStorage
+  useEffect(() => {
+    localStorage.setItem('blog-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  // 主题相关样式
+  const theme = {
+    page: darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900',
+    yearTitle: darkMode ? 'text-white/30' : 'text-gray-300',
+    yearBorder: darkMode ? 'border-white/10' : 'border-gray-200',
+    tagline: darkMode ? 'bg-[#1a1a1a]/80 border-white/10' : 'bg-white/80 border-gray-200',
+    taglineText: darkMode ? 'text-white/60' : 'text-gray-600',
+    taglineHighlight: darkMode ? 'text-white' : 'text-gray-900',
+    filterBadge: darkMode ? 'bg-white/10 text-white/70' : 'bg-gray-100 text-gray-700',
+    filterText: darkMode ? 'text-white/50' : 'text-gray-500',
+    filterClear: darkMode ? 'text-white/40 hover:text-white/60' : 'text-gray-400 hover:text-gray-600',
+    emptyText: darkMode ? 'text-white/50' : 'text-gray-500',
+    overlay: darkMode ? 'bg-black/60' : 'bg-black/40',
+  };
   
   const selectedPost = posts.find(p => p.id === selectedId);
 
@@ -145,16 +170,17 @@ function App() {
   };
 
   return (
-    // ====== 可配置项：主页背景 ======
-    // 亮色主题：bg-[#f8f9fa] 浅灰白背景, text-gray-900 深色文字
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 overflow-x-hidden pb-32 selection:bg-blue-500/20">
-      <div className="fixed inset-0 bg-editions-gradient pointer-events-none z-0" />
+    // ====== 可配置项：主页背景 - 支持主题切换 ======
+    <div className={`min-h-screen overflow-x-hidden pb-32 selection:bg-blue-500/20 ${theme.page}`}>
+      <div className={`fixed inset-0 pointer-events-none z-0 ${darkMode ? '' : 'bg-editions-gradient'}`} />
       
       <div className="relative z-10">
         <Header 
           onCategoryChange={handleCategoryChange}
           onSearchSelect={handleSearchSelect}
           currentCategory={currentCategory}
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode(!darkMode)}
         />
 
         {/* 左侧时间线导航 */}
@@ -162,15 +188,16 @@ function App() {
           items={timelineItems} 
           activeYear={activeYear}
           onYearClick={handleTimelineYearClick}
+          darkMode={darkMode}
         />
         
         {/* 个性文本 - 随页面滚动 */}
         <div className="pt-8 px-6">
-          <div className="bg-white/80 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 shadow-sm inline-block">
-            <h1 className="text-gray-600 text-lg font-semibold leading-relaxed tracking-wide">
+          <div className={`backdrop-blur-md px-4 py-3 rounded-xl border shadow-sm inline-block ${theme.tagline}`}>
+            <h1 className={`text-lg font-semibold leading-relaxed tracking-wide ${theme.taglineText}`}>
               Everything I've built, written, and learned.
               <br />
-              <span className="text-gray-900 font-bold text-xl">Archived in time.</span>
+              <span className={`font-bold text-xl ${theme.taglineHighlight}`}>Archived in time.</span>
             </h1>
           </div>
         </div>
@@ -178,7 +205,7 @@ function App() {
         <main className="pt-8 md:pt-12 px-6 max-w-[1600px] mx-auto">
           
           {/* Tab 切换 */}
-          <ContentTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <ContentTabs activeTab={activeTab} onTabChange={setActiveTab} darkMode={darkMode} />
           
           {/* 当前筛选提示 */}
           {currentCategory && (
@@ -187,11 +214,11 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               className="mb-8 flex items-center gap-2"
             >
-              <span className="text-gray-500">当前分类：</span>
-              <span className="px-3 py-1 bg-gray-100 rounded-lg text-gray-700 font-medium">{currentCategory}</span>
+              <span className={theme.filterText}>当前分类：</span>
+              <span className={`px-3 py-1 rounded-lg font-medium ${theme.filterBadge}`}>{currentCategory}</span>
               <button 
                 onClick={() => handleCategoryChange(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                className={`transition-colors cursor-pointer ${theme.filterClear}`}
               >
                 清除筛选
               </button>
@@ -204,9 +231,9 @@ function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: index * 0.1 }}
-                className="flex items-end gap-6 mb-12 border-b border-gray-200 pb-4"
+                className={`flex items-end gap-6 mb-12 border-b pb-4 ${theme.yearBorder}`}
               >
-                  <h2 className="text-7xl md:text-8xl font-bold tracking-tighter text-gray-300">{year}</h2>
+                  <h2 className={`text-7xl md:text-8xl font-bold tracking-tighter ${theme.yearTitle}`}>{year}</h2>
               </motion.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -235,6 +262,7 @@ function App() {
                           <Album 
                             post={post} 
                             onExpand={() => setSelectedId(post.id)}
+                            darkMode={darkMode}
                           />
                        </div>
                     </div>
@@ -249,7 +277,7 @@ function App() {
           {/* 无结果提示 */}
           {sortedYears.length === 0 && (
             <div className="text-center py-20">
-              <p className="text-gray-500 text-lg">该分类下暂无文章</p>
+              <p className={`text-lg ${theme.emptyText}`}>该分类下暂无文章</p>
             </div>
           )}
 
@@ -271,7 +299,7 @@ function App() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
               onClick={() => setSelectedId(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className={`absolute inset-0 backdrop-blur-sm ${theme.overlay}`}
             />
             
             {/* ====== 可配置项：展开卡片容器 ====== */}

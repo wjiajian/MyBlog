@@ -10,6 +10,7 @@ interface TimelineProps {
   items: TimelineItem[];
   activeYear: number | null;
   onYearClick: (year: number) => void;
+  darkMode?: boolean;
 }
 
 // 月份名称映射
@@ -18,9 +19,25 @@ const monthNames = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月', 
 /**
  * 左侧时间线导航组件
  */
-export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearClick }) => {
+export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearClick, darkMode = false }) => {
   const [expandedYear, setExpandedYear] = useState<number | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // 主题样式
+  const theme = {
+    button: darkMode 
+      ? 'bg-white/10 border-white/10 text-white/60 hover:text-white hover:bg-white/15' 
+      : 'bg-white/80 border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-white',
+    container: darkMode 
+      ? 'bg-white/10 border-white/10' 
+      : 'bg-white/80 border-gray-200',
+    title: darkMode ? 'text-white/40' : 'text-gray-400',
+    yearActive: darkMode ? 'bg-white text-black' : 'bg-gray-900 text-white',
+    yearInactive: darkMode ? 'text-white/70 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100',
+    monthBorder: darkMode ? 'border-white/20' : 'border-gray-200',
+    monthText: darkMode ? 'text-white/60 hover:text-white' : 'text-gray-500 hover:text-gray-900',
+    monthCount: darkMode ? 'text-white/40' : 'text-gray-400',
+  };
 
   // 当 activeYear 变化时展开对应年份
   useEffect(() => {
@@ -39,7 +56,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
       {/* 收起/展开按钮 - 固定居中，位置永不变化 */}
       <motion.button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="hidden 2xl:flex fixed left-8 top-1/3 z-30 bg-white/80 backdrop-blur-md rounded-xl border border-gray-200 shadow-lg p-2.5 text-gray-500 hover:text-gray-900 hover:bg-white transition-colors cursor-pointer"
+        className={`hidden 2xl:flex fixed left-8 top-1/3 z-30 backdrop-blur-md rounded-xl border shadow-lg p-2.5 transition-colors cursor-pointer ${theme.button}`}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         title={isCollapsed ? "展开时间线" : "收起时间线"}
@@ -69,10 +86,10 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="hidden 2xl:block fixed left-8 z-30 bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-lg p-4 max-h-[50vh] overflow-y-auto scrollbar-hide"
+            className={`hidden 2xl:block fixed left-8 z-30 backdrop-blur-md rounded-2xl border shadow-lg p-4 max-h-[50vh] overflow-y-auto scrollbar-hide ${theme.container}`}
             style={{ top: 'calc(33.33% + 48px)' }}
           >
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">时间线</h3>
+            <h3 className={`text-xs font-semibold uppercase tracking-wider mb-4 px-2 ${theme.title}`}>时间线</h3>
             <ul className="space-y-2">
               {items.map((item) => (
                 <li key={item.year}>
@@ -80,8 +97,8 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
                     onClick={() => handleYearClick(item.year)}
                     className={`w-full text-left px-3 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
                       activeYear === item.year
-                        ? 'bg-gray-900 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? theme.yearActive
+                        : theme.yearInactive
                     }`}
                   >
                     <span className="font-bold text-lg">{item.year}</span>
@@ -94,7 +111,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 pl-3"
+                      className={`ml-4 mt-1 space-y-1 border-l-2 pl-3 ${theme.monthBorder}`}
                     >
                       {item.months.map((m) => (
                         <li key={m.month}>
@@ -105,9 +122,9 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
                                 element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                               }
                             }}
-                            className="text-sm text-gray-500 hover:text-gray-900 transition-colors block py-1 cursor-pointer text-left w-full"
+                            className={`text-sm transition-colors block py-1 cursor-pointer text-left w-full ${theme.monthText}`}
                           >
-                            {monthNames[m.month]} <span className="text-xs text-gray-400">({m.count})</span>
+                            {monthNames[m.month]} <span className={`text-xs ${theme.monthCount}`}>({m.count})</span>
                           </button>
                         </li>
                       ))}
