@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { Post } from '../data/posts';
 import { ArrowUpRight, X } from 'lucide-react';
 import clsx from 'clsx';
+import { ProgressiveImage } from './ProgressiveImage';
 
 interface AlbumProps {
   post: Post;
@@ -106,10 +107,11 @@ export const Album: React.FC<AlbumProps> = ({
           <div className="absolute w-full h-full backface-hidden shadow-xl rounded-2xl overflow-hidden bg-white group border border-gray-200">
             {/* Cover Image */}
             <div className="absolute inset-0">
-              <img 
+              <ProgressiveImage 
                 src={post.coverImage} 
                 alt={post.title} 
-                className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-700 ease-out group-hover:scale-105 transform" 
+                className="w-full h-full opacity-90 group-hover:opacity-100 transition-all duration-700 ease-out group-hover:scale-105"
+                placeholderColor="#f3f4f6"
               />
               {/* 底部轻微渐变 */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />

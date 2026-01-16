@@ -9,6 +9,7 @@ import { posts } from '../data/posts';
 import { ArrowLeft, List, Copy, Check, ArrowUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CommentSection } from './CommentSection';
+import { ProgressiveImage } from './ProgressiveImage';
 
 // ====== 可配置项：默认文章头图 ======
 // 当文章未配置 headerImage 时使用此默认头图
@@ -242,12 +243,13 @@ export const BlogPost: React.FC = () => {
     <div className="min-h-screen bg-[#f8f9fa] pb-20 selection:bg-blue-500/20">
       {/* Header Image with Title */}
       <div className="relative h-[50vh] w-full overflow-hidden">
-        <img 
+        {/* ====== 可配置项：亮色主题封面图片 ====== */}
+        {/* 优先使用 headerImage，未设置时使用 DEFAULT_HEADER_IMAGE */}
+        <ProgressiveImage 
           src={post.headerImage || DEFAULT_HEADER_IMAGE} 
           alt={post.title} 
-          // ====== 可配置项：亮色主题封面图片 ======
-          // 优先使用 headerImage，未设置时使用 DEFAULT_HEADER_IMAGE
-          className="w-full h-full object-cover opacity-80"
+          className="w-full h-full opacity-80"
+          placeholderColor="#e0e0e0"
         />
         {/* 亮色主题渐变遮罩 */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-[#f8f9fa]" />
@@ -317,6 +319,16 @@ export const BlogPost: React.FC = () => {
                   components={{
                     // 自定义代码块组件：只替换 pre，因为我们的 PreBlock 内部处理了 code 的显示
                     pre: PreBlock,
+                    // 自定义图片组件：添加懒加载支持
+                    img: ({ src, alt, ...props }) => (
+                      <img 
+                        src={src} 
+                        alt={alt || ''} 
+                        loading="lazy"
+                        className="rounded-lg"
+                        {...props}
+                      />
+                    ),
                   }}
                 >
                   {post.content}
