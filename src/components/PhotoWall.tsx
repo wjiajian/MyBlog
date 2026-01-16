@@ -14,6 +14,7 @@ export interface PhotoItem {
   height?: number;
   size?: number; // bytes
   videoSrc?: string; // Live Photo 视频源
+  date?: string; // EXIF Shooting Date
 }
 
 
@@ -431,8 +432,15 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                         <span className="text-white text-sm">{formatFileSize(selectedImage.size)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-white/60 text-sm">像素</span>
                         <span className="text-white text-sm">{formatMegapixels(fullImageDimensions?.w || selectedImage.width, fullImageDimensions?.h || selectedImage.height)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60 text-sm">拍摄日期</span>
+                        <span className="text-white text-sm tabular-nums">
+                          {selectedImage.date 
+                            ? selectedImage.date.split(' ')[0].replace(/:/g, '-')
+                            : '-'}
+                        </span>
                       </div>
                     </div>
                   </div>
