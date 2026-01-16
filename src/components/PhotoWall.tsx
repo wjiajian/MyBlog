@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Camera, Aperture, Clock, Film } from 'lucide-react';
-import EXIF from 'exif-js';
+import { X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
 
 // 扩展的图片信息接口
 export interface PhotoItem {
-  src: string;
+  src: string;           // Full resolution (original)
+  srcMedium?: string;    // Medium thumbnail (400px) for grid
+  srcTiny?: string;      // Tiny thumbnail (50px) for list
   alt: string;
   filename: string;
   format?: string;
@@ -15,19 +16,6 @@ export interface PhotoItem {
   videoSrc?: string; // Live Photo 视频源
 }
 
-// EXIF 数据接口
-interface ExifData {
-  make?: string;
-  model?: string;
-  software?: string;
-  dateTime?: string;
-  focalLength?: string;
-  aperture?: string;
-  exposureTime?: string;
-  iso?: string;
-  colorSpace?: string;
-  artist?: string;
-}
 
 interface PhotoWallProps {
   images: PhotoItem[];
@@ -62,10 +50,15 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
   const [imageDimensions, setImageDimensions] = useState<Map<number, {w: number, h: number}>>(new Map());
-  const [exifData, setExifData] = useState<ExifData | null>(null);
-  const [isLoadingExif, setIsLoadingExif] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
+  
+  // States for enhanced UI
+  const [activeTab, setActiveTab] = useState<'info' | 'rating'>('info');
+  const [imageLoadProgress, setImageLoadProgress] = useState(0);
+  const [imageLoadedBytes, setImageLoadedBytes] = useState(0);
+  const [isFullImageLoaded, setIsFullImageLoaded] = useState(false);
+  const [fullImageDimensions, setFullImageDimensions] = useState<{w: number, h: number} | null>(null);
 
   // 处理键盘导航
   useEffect(() => {
@@ -105,49 +98,84 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
     };
   }, [selectedIndex]);
 
-  // 加载 EXIF 数据
+  // Load full resolution image with progress tracking
   useEffect(() => {
     if (selectedIndex === null) {
-      setExifData(null);
+      setImageLoadProgress(0);
+      setImageLoadedBytes(0);
+      setIsFullImageLoaded(false);
       return;
     }
 
-    setIsLoadingExif(true);
+    const image = images[selectedIndex];
+    const totalSize = image.size || 0;
+    
+    // Reset states
+    setImageLoadProgress(0);
+    setImageLoadedBytes(0);
+    setIsFullImageLoaded(false);
+
+    // Fetch image with progress tracking
+    const controller = new AbortController();
+    
+    fetch(image.src, { signal: controller.signal })
+      .then(response => {
+        const reader = response.body?.getReader();
+        const contentLength = parseInt(response.headers.get('Content-Length') || '0') || totalSize;
+        
+        if (!reader) {
+          setIsFullImageLoaded(true);
+          setImageLoadProgress(100);
+          return;
+        }
+
+        let receivedLength = 0;
+        const chunks: Uint8Array[] = [];
+
+        const read = (): Promise<void> => {
+          return reader.read().then(({ done, value }) => {
+            if (done) {
+              setIsFullImageLoaded(true);
+              setImageLoadProgress(100);
+              return;
+            }
+            
+            chunks.push(value);
+            receivedLength += value.length;
+            
+            const progress = contentLength > 0 ? Math.round((receivedLength / contentLength) * 100) : 0;
+            setImageLoadProgress(progress);
+            setImageLoadedBytes(receivedLength);
+            
+            return read();
+          });
+        };
+
+        return read();
+      })
+      .catch(() => {
+        // On error, just mark as loaded
+        setIsFullImageLoaded(true);
+        setImageLoadProgress(100);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedIndex, images]);
+
+  // Load full image dimensions
+  useEffect(() => {
+    if (selectedIndex === null) {
+      setFullImageDimensions(null);
+      return;
+    }
+
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.src = images[selectedIndex].src;
     
     img.onload = () => {
-      try {
-        // @ts-expect-error exif-js types are incomplete
-        EXIF.getData(img, function(this: HTMLImageElement) {
-          const allExif = EXIF.getAllTags(this);
-          
-          const data: ExifData = {
-            make: allExif.Make,
-            model: allExif.Model,
-            software: allExif.Software,
-            dateTime: allExif.DateTimeOriginal || allExif.DateTime,
-            focalLength: allExif.FocalLength ? `${allExif.FocalLength}mm` : undefined,
-            aperture: allExif.FNumber ? `f/${allExif.FNumber}` : undefined,
-            exposureTime: allExif.ExposureTime ? 
-              (allExif.ExposureTime < 1 ? `1/${Math.round(1/allExif.ExposureTime)}s` : `${allExif.ExposureTime}s`) 
-              : undefined,
-            iso: allExif.ISOSpeedRatings ? `ISO ${allExif.ISOSpeedRatings}` : undefined,
-            colorSpace: allExif.ColorSpace === 1 ? 'sRGB' : (allExif.ColorSpace === 2 ? 'Adobe RGB' : undefined),
-            artist: allExif.Artist,
-          };
-          
-          setExifData(data);
-          setIsLoadingExif(false);
-        });
-      } catch {
-        setIsLoadingExif(false);
-      }
-    };
-
-    img.onerror = () => {
-      setIsLoadingExif(false);
+      setFullImageDimensions({ w: img.naturalWidth, h: img.naturalHeight });
     };
   }, [selectedIndex, images]);
 
@@ -190,7 +218,6 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
   }, [images.length]);
 
   const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
-  const selectedDimensions = selectedIndex !== null ? imageDimensions.get(selectedIndex) : null;
 
   return (
     <>
@@ -199,7 +226,7 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
         className="photowall-grid"
         style={{
           columnCount: columns,
-          columnGap: '12px',
+          columnGap: '6px',
         }}
       >
         {images.map((image, index) => {
@@ -212,14 +239,14 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.03 }}
-              className="photowall-item group relative mb-3 break-inside-avoid cursor-pointer overflow-hidden rounded-lg"
+              className="photowall-item group relative mb-1.5 break-inside-avoid cursor-pointer overflow-hidden"
               onClick={() => setSelectedIndex(index)}
               onMouseEnter={() => handleMouseEnter(index)}
               onMouseLeave={() => handleMouseLeave(index)}
             >
-              {/* 图片 */}
+              {/* 图片 - 使用中等质量缩略图 */}
               <img
-                src={image.src}
+                src={image.srcMedium || image.src}
                 alt={image.alt}
                 loading="lazy"
                 onLoad={(e) => handleImageLoad(index, e)}
@@ -274,7 +301,7 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   <div className="flex items-center gap-2 text-white/70 text-xs">
                     <span className="uppercase">{image.format || image.filename.split('.').pop()}</span>
                     <span className="text-white/40">·</span>
-                    <span>{formatResolution(dims?.w || image.width, dims?.h || image.height)}</span>
+                    <span>{formatResolution(image.width || dims?.w, image.height || dims?.h)}</span>
                     <span className="text-white/40">·</span>
                     <span>{formatFileSize(image.size)}</span>
                   </div>
@@ -293,29 +320,42 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex bg-black/95 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex"
             onClick={() => setSelectedIndex(null)}
           >
-            {/* 关闭按钮 */}
-            <button
-              onClick={() => setSelectedIndex(null)}
-              className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            >
-              <X size={24} className="text-white" />
-            </button>
+            {/* Current image blur background */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ 
+                backgroundImage: `url(${selectedImage.srcTiny || selectedImage.src})`,
+                filter: 'blur(50px) brightness(0.6)',
+                transform: 'scale(1.2)',
+              }}
+            />
+            {/* Dark overlay */}
+            <div className="absolute inset-0 bg-black/60" />
 
             {/* 左箭头 */}
             <button
               onClick={(e) => { e.stopPropagation(); navigatePrev(); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
             >
               <ChevronLeft size={28} className="text-white" />
             </button>
 
             {/* 主内容区 - 图片 + EXIF面板 */}
-            <div className="flex-1 flex" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-1 flex relative z-10" onClick={(e) => e.stopPropagation()}>
               {/* 图片区域 */}
-              <div className="flex-1 flex items-center justify-center p-8">
+              <div className="flex-1 flex items-center justify-center p-0 relative h-full">
+                {/* 关闭按钮 - 在图片区域内 */}
+                <button
+                  onClick={() => setSelectedIndex(null)}
+                  className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer"
+                >
+                  <X size={24} className="text-white" />
+                </button>
+
+                {/* Main image */}
                 <motion.img
                   key={selectedIndex}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -324,13 +364,52 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   transition={{ duration: 0.3 }}
                   src={selectedImage.src}
                   alt={selectedImage.alt}
-                  className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                  className="max-w-full max-h-screen object-contain shadow-2xl"
                 />
+
+                {/* Load progress indicator */}
+                {!isFullImageLoaded && imageLoadProgress < 100 && (
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="text-white text-sm font-medium">
+                      {imageLoadProgress}%
+                    </span>
+                    <span className="text-white/60 text-sm">
+                      {formatFileSize(imageLoadedBytes)} / {formatFileSize(selectedImage.size)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* EXIF 信息面板 - 按照参考图2样式 */}
               <div className="w-80 bg-[#1a1a1a] border-l border-white/10 flex flex-col h-screen">
                 <div className="p-4 flex flex-col flex-1 min-h-0 overflow-hidden">
+                  {/* Tab switcher */}
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setActiveTab('info')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                        ${activeTab === 'info' 
+                          ? 'bg-white/15 text-white' 
+                          : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
+                        }`}
+                    >
+                      信息
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('rating')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                        ${activeTab === 'rating' 
+                          ? 'bg-white/15 text-white' 
+                          : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
+                        }`}
+                    >
+                      评价
+                    </button>
+                  </div>
+
+                  {activeTab === 'info' ? (
+                  <>
                   {/* 基本信息 */}
                   <div className="mb-6">
                     <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">基本信息</h3>
@@ -345,7 +424,7 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-white/60 text-sm">尺寸</span>
-                        <span className="text-white text-sm">{formatResolution(selectedDimensions?.w || selectedImage.width, selectedDimensions?.h || selectedImage.height)}</span>
+                        <span className="text-white text-sm">{formatResolution(fullImageDimensions?.w || selectedImage.width, fullImageDimensions?.h || selectedImage.height)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-white/60 text-sm">文件大小</span>
@@ -353,104 +432,10 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-white/60 text-sm">像素</span>
-                        <span className="text-white text-sm">{formatMegapixels(selectedDimensions?.w || selectedImage.width, selectedDimensions?.h || selectedImage.height)}</span>
+                        <span className="text-white text-sm">{formatMegapixels(fullImageDimensions?.w || selectedImage.width, fullImageDimensions?.h || selectedImage.height)}</span>
                       </div>
-                      {exifData?.colorSpace && (
-                        <div className="flex justify-between">
-                          <span className="text-white/60 text-sm">色彩空间</span>
-                          <span className="text-white text-sm">{exifData.colorSpace}</span>
-                        </div>
-                      )}
-                      {exifData?.dateTime && (
-                        <div className="flex justify-between">
-                          <span className="text-white/60 text-sm">拍摄时间</span>
-                          <span className="text-white text-sm">{exifData.dateTime.replace(/:/g, '/').replace(' ', ' ')}</span>
-                        </div>
-                      )}
-                      {exifData?.artist && (
-                        <div className="flex justify-between">
-                          <span className="text-white/60 text-sm">艺术家</span>
-                          <span className="text-white text-sm">{exifData.artist}</span>
-                        </div>
-                      )}
                     </div>
                   </div>
-
-                  {/* 拍摄参数 */}
-                  {(exifData?.focalLength || exifData?.aperture || exifData?.exposureTime || exifData?.iso) && (
-                    <div className="mb-6">
-                      <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">拍摄参数</h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        {exifData?.focalLength && (
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <div className="text-white/50 text-xs mb-1">焦距</div>
-                            <div className="text-white text-sm font-medium">{exifData.focalLength}</div>
-                          </div>
-                        )}
-                        {exifData?.aperture && (
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <div className="flex items-center gap-1 text-white/50 text-xs mb-1">
-                              <Aperture size={10} />
-                              <span>光圈</span>
-                            </div>
-                            <div className="text-white text-sm font-medium">{exifData.aperture}</div>
-                          </div>
-                        )}
-                        {exifData?.exposureTime && (
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <div className="flex items-center gap-1 text-white/50 text-xs mb-1">
-                              <Clock size={10} />
-                              <span>快门</span>
-                            </div>
-                            <div className="text-white text-sm font-medium">{exifData.exposureTime}</div>
-                          </div>
-                        )}
-                        {exifData?.iso && (
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <div className="text-white/50 text-xs mb-1">ISO</div>
-                            <div className="text-white text-sm font-medium">{exifData.iso}</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 设备信息 */}
-                  {(exifData?.make || exifData?.model || exifData?.software) && (
-                    <div className="mb-6">
-                      <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">设备信息</h3>
-                      <div className="space-y-2">
-                        {(exifData?.make || exifData?.model) && (
-                          <div className="flex items-start gap-2">
-                            <Camera size={14} className="text-white/50 mt-0.5" />
-                            <div>
-                              <div className="text-white text-sm">{exifData.make} {exifData.model}</div>
-                            </div>
-                          </div>
-                        )}
-                        {exifData?.software && (
-                          <div className="flex justify-between">
-                            <span className="text-white/60 text-sm">软件</span>
-                            <span className="text-white text-sm text-right">{exifData.software}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 加载状态 */}
-                  {isLoadingExif && (
-                    <div className="text-white/40 text-sm text-center py-4">
-                      正在读取 EXIF 数据...
-                    </div>
-                  )}
-
-                  {/* 无 EXIF 数据提示 */}
-                  {!isLoadingExif && !exifData?.make && !exifData?.focalLength && (
-                    <div className="text-white/30 text-sm text-center py-4 border-t border-white/10 mt-4">
-                      未检测到 EXIF 拍摄数据
-                    </div>
-                  )}
 
                   {/* 底部索引 */}
                   <div className="text-white/40 text-xs text-center pt-4 border-t border-white/10 mt-4">
@@ -462,6 +447,9 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                     <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">快速预览</h3>
                     <div className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-hide">
                       {images.map((image, i) => {
+                        // Only show thumbnails within +/- 10 range
+                        if (Math.abs(i - selectedIndex) > 10) return null;
+                        
                         const isActive = i === selectedIndex;
                         return (
                           <div
@@ -479,10 +467,10 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                               }
                             `}
                           >
-                            {/* 缩略图 */}
+                            {/* 缩略图 - 使用最小质量缩略图 */}
                             <div className="relative w-14 h-14 flex-shrink-0 rounded-md overflow-hidden">
                               <img
-                                src={image.src}
+                                src={image.srcTiny || image.src}
                                 alt={image.alt}
                                 className="w-full h-full object-cover"
                               />
@@ -513,6 +501,16 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                       })}
                     </div>
                   </div>
+                  </>
+                  ) : (
+                  /* Rating tab content */
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                    <div className="text-white/30 text-sm">
+                      <p className="mb-2">评价功能即将推出</p>
+                      <p className="text-xs text-white/20">敬请期待</p>
+                    </div>
+                  </div>
+                  )}
                 </div>
               </div>
             </div>
