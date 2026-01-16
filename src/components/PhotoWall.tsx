@@ -357,14 +357,14 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   <X size={24} className="text-white" />
                 </button>
 
-                {/* Medium Thumbnail Placeholder (Pre-display) */}
-                {/* Displayed underneath the main image until main image loads (or covering blank space) */}
-                <img
-                  src={selectedImage.srcMedium || selectedImage.srcTiny}
-                  alt={selectedImage.alt}
-                  className="absolute max-w-full max-h-screen object-contain opacity-100" // Always visible behind, main image covers it
-                  style={{ filter: isFullImageLoaded ? 'none' : 'blur(5px)' }} // Optional: slight blur if medium is too low res, but 800px is fine. Let's remove blur.
-                />
+                {/* Medium Thumbnail Placeholder - 仅在主图加载前显示 */}
+                {!isFullImageLoaded && (
+                  <img
+                    src={selectedImage.srcMedium || selectedImage.srcTiny}
+                    alt={selectedImage.alt}
+                    className="absolute max-w-full max-h-screen object-contain"
+                  />
+                )}
 
                 {/* Main image */}
                 <motion.img
@@ -465,7 +465,7 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   {/* 缩略图预览栏 - 显示所有图片 */}
                   <div className="mt-4 pt-4 border-t border-white/10 flex flex-col flex-1 min-h-0">
                     <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">快速预览</h3>
-                    <div className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-hide">
+                    <div className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-hide pr-1">
                       {images.map((image, i) => {
                         // Only show thumbnails within +/- 10 range
                         if (Math.abs(i - selectedIndex) > 10) return null;
@@ -487,10 +487,10 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                               }
                             `}
                           >
-                            {/* 缩略图 - 使用最小质量缩略图 */}
-                            <div className="relative w-14 h-14 flex-shrink-0 rounded-md overflow-hidden">
+                            {/* 缩略图 - 使用中等质量缩略图提高清晰度 */}
+                            <div className="relative w-12 h-12 flex-shrink-0 rounded-md overflow-hidden">
                               <img
-                                src={image.srcTiny || image.src}
+                                src={image.srcMedium || image.srcTiny || image.src}
                                 alt={image.alt}
                                 className="w-full h-full object-cover"
                               />

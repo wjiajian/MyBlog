@@ -10,6 +10,7 @@ interface AlbumProps {
   isExpanded?: boolean;
   onExpand?: () => void;
   onClose?: () => void;
+  darkMode?: boolean;
 }
 
 export const Album: React.FC<AlbumProps> = ({ 
@@ -17,6 +18,7 @@ export const Album: React.FC<AlbumProps> = ({
   isExpanded = false, 
   onExpand, 
   onClose,
+  darkMode = false,
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -184,7 +186,7 @@ export const Album: React.FC<AlbumProps> = ({
       {!isExpanded && (
         <motion.h2 
           layoutId={`album-title-${post.id}`}
-          className="mt-4 text-lg font-semibold text-gray-900 tracking-tight leading-snug line-clamp-2"
+          className={`mt-4 text-lg font-semibold tracking-tight leading-snug line-clamp-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}
         >
           {post.title}
         </motion.h2>
