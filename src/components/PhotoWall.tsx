@@ -328,7 +328,8 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{ 
-                backgroundImage: `url(${selectedImage.srcTiny || selectedImage.src})`,
+                // Prioritize medium thumbnail for better quality blur, fallback to tiny or src
+                backgroundImage: `url(${selectedImage.srcMedium || selectedImage.srcTiny || selectedImage.src})`,
                 filter: 'blur(50px) brightness(0.6)',
                 transform: 'scale(1.2)',
               }}
@@ -356,16 +357,26 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   <X size={24} className="text-white" />
                 </button>
 
+                {/* Medium Thumbnail Placeholder (Pre-display) */}
+                {/* Displayed underneath the main image until main image loads (or covering blank space) */}
+                <img
+                  src={selectedImage.srcMedium || selectedImage.srcTiny}
+                  alt={selectedImage.alt}
+                  className="absolute max-w-full max-h-screen object-contain opacity-100" // Always visible behind, main image covers it
+                  style={{ filter: isFullImageLoaded ? 'none' : 'blur(5px)' }} // Optional: slight blur if medium is too low res, but 800px is fine. Let's remove blur.
+                />
+
                 {/* Main image */}
                 <motion.img
                   key={selectedIndex}
                   initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: isFullImageLoaded ? 1 : 0, scale: 1 }} // Only show when loaded to prevent partial rendering? Or standard fade in.
+                  // Better UX: Fade in ON TOP of the placeholder.
                   transition={{ duration: 0.3 }}
                   src={selectedImage.src}
                   alt={selectedImage.alt}
-                  className="max-w-full max-h-screen object-contain shadow-2xl"
+                  onLoad={() => setIsFullImageLoaded(true)}
+                  className="relative max-w-full max-h-screen object-contain shadow-2xl z-10"
                 />
 
                 {/* Load progress indicator */}
