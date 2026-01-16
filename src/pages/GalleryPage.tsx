@@ -11,27 +11,22 @@ export const GalleryPage: React.FC = () => {
 
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
+    // @ts-ignore
     const result = imagesMetadata.map((meta) => {
       const filename = meta.filename;
       const baseName = filename.replace(/\.(jpg|jpeg|png|webp|heic)$/i, '');
-      // Use optimized full-size thumbnail for main display (handles HEIC/PNG conversion & compression)
-      const src = `/photowall/thumbnails/full/${baseName}.jpg`;
-      
-      // Thumbnail paths
-      const srcMedium = `/photowall/thumbnails/medium/${baseName}.jpg`;
-      const srcTiny = `/photowall/thumbnails/tiny/${baseName}.jpg`;
       
       return {
-        src,
-        srcMedium,
-        srcTiny,
+        src: (meta as any).src,
+        srcMedium: (meta as any).srcMedium,
+        srcTiny: (meta as any).srcTiny,
         alt: baseName.replace(/[-_]/g, ' '),
         filename,
         format: meta.format,
         width: meta.width,
         height: meta.height,
         size: meta.size,
-        // @ts-ignore - videoSrc exists in generated json but might not be in type definition yet if not updated
+        // @ts-ignore
         videoSrc: (meta as any).videoSrc,
         date: (meta as any).date,
       };
@@ -39,9 +34,7 @@ export const GalleryPage: React.FC = () => {
     
     // Sort by date descending (newest first)
     return result.sort((a, b) => {
-      // @ts-ignore
       if (a.date && b.date) {
-        // @ts-ignore
         return b.date.localeCompare(a.date);
       }
       return a.filename.localeCompare(b.filename, 'zh-CN');
