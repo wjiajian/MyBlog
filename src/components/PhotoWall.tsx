@@ -121,7 +121,6 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
       try {
         // @ts-expect-error exif-js types are incomplete
         EXIF.getData(img, function(this: HTMLImageElement) {
-          // @ts-expect-error exif-js types are incomplete
           const allExif = EXIF.getAllTags(this);
           
           const data: ExifData = {
