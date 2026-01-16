@@ -36,13 +36,13 @@
 
 1.  打开 Mouse Without Borders。
 2.  第一次安装使用该软件的话，先点击 NO。
-![alt text](images/Mouse-Without-Borders/host_1.png)
+![alt text](/images/Mouse-Without-Borders/host_1.png)
 3.  点击左上角的 Skip 跳过，我们去设置自定义密钥。
-![alt text](images/Mouse-Without-Borders/host_2.png)
+![alt text](/images/Mouse-Without-Borders/host_2.png)
 4.  点击 是。
-![alt text](images/Mouse-Without-Borders/host_3.png)
+![alt text](/images/Mouse-Without-Borders/host_3.png)
 5.  进入到如下界面，我们勾选 Show text 之后，密钥就显示出来，我们设置一个长度至少为 16 位的比较好输入的密钥，然后点击下方的 Apply 按钮
-![alt text](images/Mouse-Without-Borders/host_4.png)
+![alt text](/images/Mouse-Without-Borders/host_4.png)
 
 ---
 
@@ -52,15 +52,15 @@
 
 1.  同样打开 Mouse Without Borders。
 2.  这一次先点击 Yes。
-![alt text](images/Mouse-Without-Borders/client_1.png)
+![alt text](/images/Mouse-Without-Borders/client_1.png)
 3.  输入刚才在主控机上生成的密钥，然后点击 Link。
-![alt text](images/Mouse-Without-Borders/client_2.png)
+![alt text](/images/Mouse-Without-Borders/client_2.png)
 4.  然后点击 Next。
-![alt text](images/Mouse-Without-Borders/client_3.png)
+![alt text](/images/Mouse-Without-Borders/client_3.png)
 5.  然后点击 Done。
-![alt text](images/Mouse-Without-Borders/client_4.png)
+![alt text](/images/Mouse-Without-Borders/client_4.png)
 6.  进入如下界面，点击 Apply。
-![alt text](images/Mouse-Without-Borders/client_5.png)
+![alt text](/images/Mouse-Without-Borders/client_5.png)
 
 > **注意：** 这里的逻辑是“共享密钥”。只要两台电脑处于同一局域网，且 **安全密钥** 完全一致，它们就会自动建立连接。
 
@@ -88,7 +88,7 @@
 
 > **设置提示：** 确保勾选 **"传输文件" (Transfer File)**，且文件大小在限制范围内（默认限制 100MB，可在设置里调整）。
 
-![alt text](images/Mouse-Without-Borders/settings.png)
+![alt text](/images/Mouse-Without-Borders/settings.png)
 
 ---
 
