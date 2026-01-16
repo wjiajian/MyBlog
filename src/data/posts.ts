@@ -9,6 +9,7 @@ import ragStage2Md from "../content/rag-stage2.md";
 import ragStage3Md from "../content/rag-stage3.md";
 import summary2025Md from "../content/2025.md";
 import ccGitWorktreeMd from "../content/CC-Gitworktree.md";
+import mouseWithoutBordersMd from "../content/Mouse-Without-Borders.md";
 
 export interface Post {
   id: string; // 唯一ID，各文章不能重复
@@ -29,14 +30,14 @@ export const posts: Post[] = [
   // 2026 年文章
   {
     id: "2025-summary",
-    title: "2025年总结",
+    title: "2025年度总结",
     year: 2026,
     date: "Jan 07",
     description: "2025年的流水账",
     coverImage: "/images/2025-summary/coverImage.png",
     link: "/posts/2025-summary",
     content: summary2025Md,
-    categories: "生活随笔",
+    categories: "年度总结",
     type: "life",
   },
   {
@@ -49,7 +50,19 @@ export const posts: Post[] = [
     link: "/posts/cc-gitworktree",
     content: ccGitWorktreeMd,
     tags: ["Claude Code", "Git Worktree"],
-    categories: "笔记",
+    categories: "技巧",
+    type: "tech",
+  },
+  {
+    id: "mouse-without-borders",
+    title: "Mouse Without Borders",
+    year: 2026,
+    date: "Jan 16",
+    description: "厌倦了在两套键盘鼠标间来回切换？使用微软官方神器 Mouse Without Borders (无界鼠标)！无需购买额外硬件，只需通过局域网，即可用一套键鼠无缝控制多台 Windows 电脑，甚至实现跨设备复制粘贴和文件拖拽，彻底释放你的桌面空间与生产力。",
+    coverImage: "/images/Mouse-Without-Borders/coverImage.png",
+    link: "/posts/Mouse-Without-Borders",
+    content: mouseWithoutBordersMd,
+    categories: "技巧",
     type: "tech",
   },
   // 2025 年文章
@@ -66,6 +79,7 @@ export const posts: Post[] = [
     content: ragStage3Md,
     tags: ["Agent", "RAG", "文本切分", "混合检索"],
     categories: "笔记",
+    type: "tech",
   },
   {
     id: "rag-stage2",
@@ -80,6 +94,7 @@ export const posts: Post[] = [
     content: ragStage2Md,
     tags: ["Agent", "RAG", "文本切分", "向量化"],
     categories: "笔记",
+    type: "tech",
   },
   {
     id: "dingding-knowledge",
@@ -94,6 +109,7 @@ export const posts: Post[] = [
     content: dingdingKnowledgeMd,
     tags: ["钉钉", "文档解析"],
     categories: "项目记录",
+    type: "tech",
   },
   /*
   {
@@ -137,6 +153,7 @@ export const posts: Post[] = [
     content: koishiMd,
     tags: ["聊天机器人", "Docker"],
     categories: "笔记",
+    type: "tech",
   },
   {
     id: "mcp",
@@ -150,6 +167,7 @@ export const posts: Post[] = [
     content: mcpMd,
     tags: ["MCP", "LLM", "VS Code"],
     categories: "笔记",
+    type: "tech",
   },
   /*
   {
@@ -178,5 +196,6 @@ export const posts: Post[] = [
     content: hexoBlogMd,
     tags: ["blogs", "Hexo", "Github Pages"],
     categories: "笔记",
+    type: "tech",
   },
 ];
