@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock } from 'lucide-react';
+import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock, Image } from 'lucide-react';
 import { posts } from '../data/posts';
 
 interface NavigationProps {
@@ -225,6 +225,16 @@ export const Navigation: React.FC<NavigationProps> = ({
         <span className="text-sm font-medium">时间线</span>
       </Link>
 
+      {/* 照片墙 */}
+      <Link
+        to="/gallery"
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer
+          ${isActive('/gallery') ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+      >
+        <Image size={18} />
+        <span className="text-sm font-medium">照片墙</span>
+      </Link>
+
       {/* 关于 */}
       <Link
         to="/about"
@@ -321,6 +331,17 @@ export const Navigation: React.FC<NavigationProps> = ({
             >
               <Clock size={18} />
               <span className="text-sm font-medium">时间线</span>
+            </Link>
+
+            {/* 照片墙 */}
+            <Link
+              to="/gallery"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 border-t border-gray-100 transition-colors cursor-pointer
+                ${isActive('/gallery') ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+            >
+              <Image size={18} />
+              <span className="text-sm font-medium">照片墙</span>
             </Link>
 
             {/* 关于 */}
