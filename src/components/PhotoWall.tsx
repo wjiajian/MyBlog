@@ -465,7 +465,7 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   {/* 缩略图预览栏 - 显示所有图片 */}
                   <div className="mt-4 pt-4 border-t border-white/10 flex flex-col flex-1 min-h-0">
                     <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">快速预览</h3>
-                    <div className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-hide pr-1">
+                    <div className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-hide">
                       {images.map((image, i) => {
                         // Only show thumbnails within +/- 10 range
                         if (Math.abs(i - selectedIndex) > 10) return null;
@@ -479,11 +479,11 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                               setSelectedIndex(i);
                             }}
                             className={`
-                              relative flex items-center gap-3 p-2 rounded-lg cursor-pointer
+                              relative flex items-center gap-3 py-2 pl-2 pr-0 rounded-lg cursor-pointer
                               transition-all duration-200
                               ${isActive 
-                                ? 'bg-white/15 ring-2 ring-white/50' 
-                                : 'bg-white/5 hover:bg-white/10'
+                                ? 'bg-white/15' 
+                                : 'hover:bg-white/10'
                               }
                             `}
                           >
@@ -514,7 +514,7 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                             
                             {/* 当前选中指示器 */}
                             {isActive && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0 mr-2" />
                             )}
                           </div>
                         );
