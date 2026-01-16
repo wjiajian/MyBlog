@@ -1,5 +1,3 @@
-# Gemini CLI 安装指南
-
 ## 1. 安装 Node.js
 
 Gemini CLI 需要 Node.js 运行环境。推荐使用 `nvm` (Node Version Manager) 来安装和管理 Node.js 版本。
