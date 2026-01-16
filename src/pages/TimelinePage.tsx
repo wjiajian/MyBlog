@@ -4,12 +4,27 @@ import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { posts } from '../data/posts';
 
-// 分类标签颜色映射
-const categoryColors: Record<string, string> = {
-  '笔记': 'text-blue-600',
-  '项目记录': 'text-purple-600',
-  '生活随笔': 'text-pink-500',
-  '技术笔记': 'text-emerald-600',
+// 预定义颜色池（Tailwind 颜色类）
+const colorPool = [
+  'text-blue-600',
+  'text-purple-600',
+  'text-pink-500',
+  'text-emerald-600',
+  'text-orange-500',
+  'text-cyan-600',
+  'text-rose-500',
+  'text-indigo-600',
+  'text-teal-600',
+  'text-amber-600',
+];
+
+// 根据分类名称自动生成颜色（基于字符串哈希）
+const getCategoryColor = (category: string): string => {
+  if (!category) return 'text-gray-500';
+  
+  // 简单哈希：计算字符 ASCII 码之和
+  const hash = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return colorPool[hash % colorPool.length];
 };
 
 
@@ -109,7 +124,7 @@ export const TimelinePage: React.FC = () => {
                       })
                       .map((post, postIndex) => {
                       const { month, day } = parseDate(post.date);
-                      const categoryColor = categoryColors[post.categories || ''] || 'text-gray-500';
+                      const categoryColor = getCategoryColor(post.categories || '');
                       
                       return (
                         <motion.div
