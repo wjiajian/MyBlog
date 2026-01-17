@@ -16,25 +16,11 @@ interface FriendLink {
 const friends: FriendLink[] = [
   {
     id: '1',
-    name: '示例博客',
-    description: '这是一个示例友链',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=example1',
-    url: 'https://example.com',
-  },
-  {
-    id: '2',
-    name: '示例博客',
-    description: '这是一个示例友链',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=example2',
-    url: 'https://example.com',
-  },
-  {
-    id: '3',
-    name: '示例博客',
-    description: '这是一个示例友链',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=example3',
-    url: 'https://example.com',
-  },
+    name: 'Sotr',
+    description: '这里是Sotr，比较熟的人也会叫咱常务。至于昵称的由来嘛，是因为很久以前在一个Minecraft服务器里面担任常务这个职务啦。',
+    avatar: '/avatar/sotr.jpg',
+    url: 'https://kira.moe/',
+  }
 ];
 
 export const FriendsPage: React.FC = () => {
