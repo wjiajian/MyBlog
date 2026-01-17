@@ -120,9 +120,11 @@ export const About: React.FC = () => {
                   }}
                 />
                 {/* 主头像 */}
-                <div className="relative w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-lg border-4 border-white">
-                  <span className="text-5xl font-bold text-white">J</span>
-                </div>
+                <img 
+                  src="/resources/touxiang.jpg" 
+                  alt="JiaJian's Avatar"
+                  className="relative w-full h-full rounded-full object-cover shadow-lg border-4 border-white"
+                />
               </div>
 
               {/* 名字 */}
