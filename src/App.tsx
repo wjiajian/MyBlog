@@ -237,7 +237,23 @@ function App() {
               </motion.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {postsByYear[year].map((post, postIndex) => {
+                {postsByYear[year]
+                  .slice()
+                  .sort((a, b) => {
+                    const monthNames: Record<string, number> = {
+                      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+                    };
+                    const parseDate = (dateStr: string) => {
+                      const parts = dateStr.split(' ');
+                      return { month: monthNames[parts[0]] || 1, day: parseInt(parts[1]) || 1 };
+                    };
+                    const dateA = parseDate(a.date);
+                    const dateB = parseDate(b.date);
+                    if (dateB.month !== dateA.month) return dateB.month - dateA.month;
+                    return dateB.day - dateA.day;
+                  })
+                  .map((post, postIndex) => {
                   // 解析当前文章的月份
                   const monthNames: Record<string, number> = {
                     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,

@@ -10,13 +10,13 @@ export const GalleryPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   // 主题状态：默认亮色
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('gallery-theme');
+    const saved = localStorage.getItem('blog-theme');
     return saved === 'dark'; // 默认亮色
   });
 
   // 保存主题偏好到localStorage
   useEffect(() => {
-    localStorage.setItem('gallery-theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('blog-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   // 解析图片列表

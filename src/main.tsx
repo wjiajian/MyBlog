@@ -6,6 +6,7 @@ import { BlogPost } from './components/BlogPost.tsx'
 import { About } from './pages/About.tsx'
 import { TimelinePage } from './pages/TimelinePage.tsx'
 import { GalleryPage } from './pages/GalleryPage.tsx'
+import { FriendsPage } from './pages/FriendsPage.tsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
          <Route path="/about" element={<About />} />
          <Route path="/timeline" element={<TimelinePage />} />
          <Route path="/gallery" element={<GalleryPage />} />
+         <Route path="/friends" element={<FriendsPage />} />
        </Routes>
     </BrowserRouter>
   </React.StrictMode>,

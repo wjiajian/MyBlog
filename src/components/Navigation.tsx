@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock, Image } from 'lucide-react';
+import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock, Image, Users } from 'lucide-react';
 import { posts } from '../data/posts';
 
 interface NavigationProps {
@@ -242,8 +242,17 @@ export const Navigation: React.FC<NavigationProps> = ({
         to="/gallery"
         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${theme.navItem(isActive('/gallery'))}`}
       >
-        <Image size={18} />
-        <span className="text-sm font-medium">照片墙</span>
+        <Image size={18} className="text-blue-500" />
+        <span className="text-sm font-bold text-blue-500">照片墙</span>
+      </Link>
+
+      {/* 友链 */}
+      <Link
+        to="/friends"
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${theme.navItem(isActive('/friends'))}`}
+      >
+        <Users size={18} />
+        <span className="text-sm font-medium">友链</span>
       </Link>
 
       {/* 关于 */}
@@ -345,8 +354,18 @@ export const Navigation: React.FC<NavigationProps> = ({
               onClick={() => setIsMobileMenuOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 border-t transition-colors cursor-pointer ${theme.borderColor} ${theme.navItem(isActive('/gallery'))}`}
             >
-              <Image size={18} />
-              <span className="text-sm font-medium">照片墙</span>
+              <Image size={18} className="text-blue-500" />
+              <span className="text-sm font-bold text-blue-500">照片墙</span>
+            </Link>
+
+            {/* 友链 */}
+            <Link
+              to="/friends"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 border-t transition-colors cursor-pointer ${theme.borderColor} ${theme.navItem(isActive('/friends'))}`}
+            >
+              <Users size={18} />
+              <span className="text-sm font-medium">友链</span>
             </Link>
 
             {/* 关于 */}
