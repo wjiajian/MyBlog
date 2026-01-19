@@ -34,22 +34,26 @@ MyBlog/
 │   └── pageview.ts         # 页面浏览量 API
 ├── public/
 │   ├── images/             # 文章图片资源
-│   └── resources/          # 网站资源（背景/头像等）
+│   ├── resources/          # 网站资源（背景/头像等）
+│   ├── photowall/          # 照片墙专用资源
+│   └── avatar/             # 默认头像资源
+├── scripts/
+│   └── process-photos.cjs  # 照片墙数据处理脚本
 ├── src/
 │   ├── components/         # React 组件
-│   │   ├── Album.tsx       # 首页文章卡片（翻转动画）
-│   │   ├── BlogPost.tsx    # 文章详情页
+│   │   ├── BlogPost/       # 文章详情页组件集
+│   │   ├── PhotoWall/      # 照片墙组件集
+│   │   ├── Album.tsx       # 首页文章卡片
 │   │   ├── CommentSection.tsx  # 评论区组件
-│   │   ├── ContentTabs.tsx # 内容分类 Tab
-│   │   ├── Header.tsx      # 网站标题
-│   │   ├── Navigation.tsx  # 导航栏（搜索/分类）
-│   │   ├── ProgressiveImage.tsx  # 渐进式图片加载
-│   │   └── Timeline.tsx    # 时间线组件
+│   │   ├── Navigation.tsx  # 导航栏
+│   │   ├── Skeleton.tsx    # 骨架屏组件
+│   │   └── ...
 │   ├── content/            # Markdown 文章内容
 │   ├── data/posts.ts       # 文章数据配置
-│   ├── pages/
-│   │   ├── About.tsx       # 关于页面
-│   │   └── TimelinePage.tsx # 时间线页面
+│   ├── hooks/              # 自定义 Hooks
+│   ├── pages/              # 页面级组件
+│   ├── utils/              # 工具函数 (日期/存储/主题)
+│   ├── types/              # TypeScript 类型定义
 │   └── App.tsx             # 主应用入口
 └── README.md
 ```
@@ -105,6 +109,8 @@ MyBlog/
 | **懒加载** | 原生 `loading="lazy"` | 首屏加载提速 30-50% |
 | **CDN 加速** | Vercel + Cloudflare | 全球访问提速 50-70% |
 | **渐进式加载** | `ProgressiveImage` 组件 | Shimmer 动画 + 淡入效果 |
+| **骨架屏** | `Skeleton` 组件 | 消除内容布局偏移，提升感知速度 |
+| **事件防抖** | `useDebounce` Hook | 优化 Resize 等高频事件性能 |
 
 ### 代码优化
 - **代码高亮** - 使用 `highlight.js` 语法高亮

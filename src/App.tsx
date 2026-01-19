@@ -9,6 +9,11 @@ import { Timeline } from './components/Timeline';
 import type { ContentType } from './components/ContentTabs';
 
 
+import { safeGetItem, safeSetItem } from './utils/storage';
+import { parseMonthFromDate, parseDate } from './utils/date';
+
+import { getAppTheme } from './utils/theme';
+
 function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
@@ -17,29 +22,17 @@ function App() {
   const [activeYear, setActiveYear] = useState<number | null>(null);
   // 主题状态：默认亮色
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('blog-theme');
+    const saved = safeGetItem('blog-theme');
     return saved === 'dark';
   });
 
   // 保存主题偏好到localStorage
   useEffect(() => {
-    localStorage.setItem('blog-theme', darkMode ? 'dark' : 'light');
+    safeSetItem('blog-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   // 主题相关样式
-  const theme = {
-    page: darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900',
-    yearTitle: darkMode ? 'text-white/30' : 'text-gray-300',
-    yearBorder: darkMode ? 'border-white/10' : 'border-gray-200',
-    tagline: darkMode ? 'bg-[#1a1a1a]/80 border-white/10' : 'bg-white/80 border-gray-200',
-    taglineText: darkMode ? 'text-white/60' : 'text-gray-600',
-    taglineHighlight: darkMode ? 'text-white' : 'text-gray-900',
-    filterBadge: darkMode ? 'bg-white/10 text-white/70' : 'bg-gray-100 text-gray-700',
-    filterText: darkMode ? 'text-white/50' : 'text-gray-500',
-    filterClear: darkMode ? 'text-white/40 hover:text-white/60' : 'text-gray-400 hover:text-gray-600',
-    emptyText: darkMode ? 'text-white/50' : 'text-gray-500',
-    overlay: darkMode ? 'bg-black/60' : 'bg-black/40',
-  };
+  const theme = getAppTheme(darkMode);
   
   const selectedPost = posts.find(p => p.id === selectedId);
 
@@ -145,12 +138,7 @@ function App() {
     
     yearPosts.forEach(post => {
       // 从 date 字段解析月份 ("Jan 07" -> 1)
-      const monthNames: Record<string, number> = {
-        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-        'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
-      };
-      const monthStr = post.date.split(' ')[0];
-      const month = monthNames[monthStr] || 1;
+      const month = parseMonthFromDate(post.date);
       monthMap[month] = (monthMap[month] || 0) + 1;
     });
 
@@ -240,14 +228,6 @@ function App() {
                 {postsByYear[year]
                   .slice()
                   .sort((a, b) => {
-                    const monthNames: Record<string, number> = {
-                      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
-                    };
-                    const parseDate = (dateStr: string) => {
-                      const parts = dateStr.split(' ');
-                      return { month: monthNames[parts[0]] || 1, day: parseInt(parts[1]) || 1 };
-                    };
                     const dateA = parseDate(a.date);
                     const dateB = parseDate(b.date);
                     if (dateB.month !== dateA.month) return dateB.month - dateA.month;
@@ -255,16 +235,12 @@ function App() {
                   })
                   .map((post, postIndex) => {
                   // 解析当前文章的月份
-                  const monthNames: Record<string, number> = {
-                    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-                    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
-                  };
-                  const currentMonth = monthNames[post.date.split(' ')[0]] || 1;
+                  const currentMonth = parseMonthFromDate(post.date);
                   
                   // 检查是否是该月份的第一篇文章
                   const isFirstOfMonth = postIndex === 0 || (() => {
                     const prevPost = postsByYear[year][postIndex - 1];
-                    const prevMonth = monthNames[prevPost.date.split(' ')[0]] || 1;
+                    const prevMonth = parseMonthFromDate(prevPost.date);
                     return prevMonth !== currentMonth;
                   })();
 

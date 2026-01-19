@@ -5,6 +5,7 @@ export const config = {
 };
 
 // 评论数据类型
+// Note: Shared type kept local for Vercel Edge Runtime compatibility without complex alias config
 interface Comment {
   id: number;
   post_id: string;
