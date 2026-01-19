@@ -19,7 +19,7 @@ const excludeApiDir = (): Plugin => {
   return {
     name: 'exclude-api-dir',
     enforce: 'pre',
-    resolveId(source, importer) {
+    resolveId(source, _importer) {
       // Skip resolution for api directory files
       if (source.includes('/api/') || source.startsWith('api/')) {
         return { id: source, external: true }
