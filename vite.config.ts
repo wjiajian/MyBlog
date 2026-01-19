@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 
 // Custom plugin to load markdown files as raw strings
-const markdownLoader = () => {
+const markdownLoader = (): Plugin => {
   return {
     name: 'markdown-loader',
     transform(code: string, id: string) {
@@ -13,7 +14,49 @@ const markdownLoader = () => {
   }
 }
 
+// Plugin to exclude api directory from Vite processing
+const excludeApiDir = (): Plugin => {
+  return {
+    name: 'exclude-api-dir',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      // Skip resolution for api directory files
+      if (source.includes('/api/') || source.startsWith('api/')) {
+        return { id: source, external: true }
+      }
+    },
+    load(id) {
+      // Don't load files from api directory
+      if (id.includes('\\api\\') || id.includes('/api/')) {
+        return ''
+      }
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), markdownLoader()],
+  plugins: [excludeApiDir(), react(), markdownLoader()],
+  // Exclude api directory from Vite processing
+  server: {
+    watch: {
+      ignored: ['**/api/**'],
+    },
+  },
+  // Fix esbuild loader configuration
+  esbuild: {
+    loader: 'tsx',
+  },
+  optimizeDeps: {
+    exclude: ['@vercel/postgres'],
+    esbuildOptions: {
+      loader: {
+        '.ts': 'ts',
+        '.tsx': 'tsx',
+        '.js': 'js',
+        '.jsx': 'jsx',
+      },
+    },
+  },
 })
+

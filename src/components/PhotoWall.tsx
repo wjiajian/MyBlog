@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
+import { PhotoCommentSection } from './PhotoCommentSection';
 
 // 扩展的图片信息接口
 export interface PhotoItem {
@@ -523,12 +524,9 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
                   </div>
                   </>
                   ) : (
-                  /* Rating tab content */
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                    <div className="text-white/30 text-sm">
-                      <p className="mb-2">评价功能即将推出</p>
-                      <p className="text-xs text-white/20">敬请期待</p>
-                    </div>
+                  /* Comment tab content */
+                  <div className="flex-1 overflow-hidden p-4">
+                    <PhotoCommentSection photoId={selectedImage.filename} />
                   </div>
                   )}
                 </div>
