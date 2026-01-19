@@ -21,6 +21,8 @@ const exactMatch = (text: string, query: string): boolean => {
   return keywords.every(keyword => lowerText.includes(keyword));
 };
 
+import { getNavTheme } from '../utils/theme';
+
 export const Navigation: React.FC<NavigationProps> = ({ 
   onCategoryChange, 
   onSearchSelect,
@@ -39,19 +41,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // 主题相关样式
-  const theme = {
-    navItem: (active: boolean) => active
-      ? (darkMode ? 'text-white bg-white/15' : 'text-gray-900 bg-gray-100')
-      : (darkMode ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'),
-    dropdown: darkMode ? 'bg-[#1a1a1a]/95 border-white/10' : 'bg-white/95 border-gray-200',
-    dropdownItem: (active: boolean) => active
-      ? (darkMode ? 'text-white bg-white/15' : 'text-gray-900 bg-gray-100')
-      : (darkMode ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'),
-    searchInput: darkMode ? 'bg-[#1a1a1a] border-white/10 text-white placeholder-white/40' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400',
-    mobileSearchBg: darkMode ? 'bg-white/10' : 'bg-gray-100',
-    borderColor: darkMode ? 'border-white/10' : 'border-gray-100',
-    mutedText: darkMode ? 'text-white/50' : 'text-gray-500',
-  };
+  const theme = getNavTheme(darkMode);
 
   // 获取所有唯一分类
   const categories = Array.from(new Set(posts.map(p => p.categories).filter(Boolean))) as string[];

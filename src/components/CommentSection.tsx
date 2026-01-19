@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, Send, Reply, User, ChevronDown, ChevronUp } from 'lucide-react';
 
-// 评论数据类型
-interface Comment {
-  id: number;
-  post_id: string;
-  parent_id: number | null;
-  nickname: string;
-  content: string;
-  created_at: string;
-  replies?: Comment[];
-}
+import type { Comment } from '../types';
 
 interface CommentSectionProps {
   postId: string;
@@ -105,6 +96,8 @@ const CommentItem: React.FC<{
   );
 };
 
+import { safeGetItem, safeSetItem } from '../utils/storage';
+
 // 评论表单组件
 const CommentForm: React.FC<{
   postId: string;
@@ -120,7 +113,7 @@ const CommentForm: React.FC<{
 
   // 从 localStorage 读取上次使用的昵称
   useEffect(() => {
-    const savedNickname = localStorage.getItem('comment_nickname');
+    const savedNickname = safeGetItem('comment_nickname');
     if (savedNickname) {
       setNickname(savedNickname);
     }
@@ -156,7 +149,7 @@ const CommentForm: React.FC<{
       }
 
       // 保存昵称到 localStorage
-      localStorage.setItem('comment_nickname', nickname.trim());
+      safeSetItem('comment_nickname', nickname.trim());
       
       onSubmit(data.comment);
       setContent('');

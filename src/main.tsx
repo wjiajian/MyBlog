@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App.tsx'
-import { BlogPost } from './components/BlogPost.tsx'
+import { BlogPost } from './components/BlogPost';
 import { About } from './pages/About.tsx'
 import { TimelinePage } from './pages/TimelinePage.tsx'
 import { GalleryPage } from './pages/GalleryPage.tsx'

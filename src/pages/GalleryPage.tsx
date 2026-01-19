@@ -5,40 +5,48 @@ import type { PhotoItem } from '../components/PhotoWall';
 import { ArrowLeft, Grid3X3, LayoutGrid, Rows3, Film, Sun, Moon } from 'lucide-react';
 import imagesMetadata from '../../public/photowall/images-metadata.json';
 
+import type { ImageMetadata } from '../types';
+
+import { safeGetItem, safeSetItem } from '../utils/storage';
+
+import { getGalleryTheme } from '../utils/theme';
+
+import { useDebouncedCallback } from '../hooks/useDebounce';
+import { GallerySkeleton } from '../components/Skeleton';
+
 export const GalleryPage: React.FC = () => {
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
   // 主题状态：默认亮色
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('blog-theme');
+    const saved = safeGetItem('blog-theme');
     return saved === 'dark'; // 默认亮色
   });
 
   // 保存主题偏好到localStorage
   useEffect(() => {
-    localStorage.setItem('blog-theme', darkMode ? 'dark' : 'light');
+    safeSetItem('blog-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
-    // @ts-ignore
-    const result = imagesMetadata.map((meta) => {
+    const metadata = imagesMetadata as ImageMetadata[];
+    const result = metadata.map((meta) => {
       const filename = meta.filename;
       const baseName = filename.replace(/\.(jpg|jpeg|png|webp|heic)$/i, '');
       
       return {
-        src: (meta as any).src,
-        srcMedium: (meta as any).srcMedium,
-        srcTiny: (meta as any).srcTiny,
+        src: meta.src,
+        srcMedium: meta.srcMedium,
+        srcTiny: meta.srcTiny,
         alt: baseName.replace(/[-_]/g, ' '),
         filename,
         format: meta.format,
         width: meta.width,
         height: meta.height,
         size: meta.size,
-        // @ts-ignore
-        videoSrc: (meta as any).videoSrc,
-        date: (meta as any).date,
+        videoSrc: meta.videoSrc,
+        date: meta.date,
       };
     });
     
@@ -56,43 +64,29 @@ export const GalleryPage: React.FC = () => {
     return images.filter(img => img.videoSrc).length;
   }, [images]);
 
-  // 模拟加载延迟仅用于平滑过渡
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+    // 移除人工延迟，改为立即完成加载
+    setIsLoading(false);
   }, []);
 
-  // 响应式列数
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width < 640) setColumns(2);
-      else if (width < 1024) setColumns(3);
-      else if (width < 1536) setColumns(4);
-      else setColumns(5);
-    };
+  // 响应式列数 - 使用防抖
+  const handleResize = useDebouncedCallback(() => {
+    const width = window.innerWidth;
+    if (width < 640) setColumns(2);
+    else if (width < 1024) setColumns(3);
+    else if (width < 1536) setColumns(4);
+    else setColumns(5);
+  }, 200);
 
-    handleResize();
+  useEffect(() => {
+    // 初始化列数
+    handleResize(); 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [handleResize]);
 
   // 主题样式
-  const theme = {
-    page: darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900',
-    header: darkMode ? 'bg-[#0a0a0a]/80 border-white/10' : 'bg-white/80 border-gray-200',
-    backLink: darkMode ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900',
-    controlBg: darkMode ? 'bg-white/5' : 'bg-gray-100',
-    controlBtn: (active: boolean) => active 
-      ? (darkMode ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-900')
-      : (darkMode ? 'text-white/50 hover:text-white' : 'text-gray-400 hover:text-gray-600'),
-    stats: darkMode ? 'text-white/50' : 'text-gray-500',
-    statsHighlight: darkMode ? 'text-white' : 'text-gray-900',
-    spinner: darkMode ? 'border-white/20 border-t-white' : 'border-gray-200 border-t-gray-600',
-    footer: darkMode ? 'border-white/10' : 'border-gray-200',
-    footerText: darkMode ? 'text-white/40' : 'text-gray-500',
-    kbd: darkMode ? 'bg-white/10' : 'bg-gray-200',
-  };
+  const theme = getGalleryTheme(darkMode);
 
   return (
     <div className={`min-h-screen ${theme.page}`}>
@@ -179,12 +173,11 @@ export const GalleryPage: React.FC = () => {
 
         {/* 照片墙 */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className={`animate-spin rounded-full h-8 w-8 border-2 ${theme.spinner}`}></div>
-          </div>
+          <GallerySkeleton columns={columns} />
         ) : (
           <PhotoWall images={images} columns={columns} />
         )}
+
       </main>
 
       {/* Footer */}
