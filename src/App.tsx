@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import { posts } from './data/posts';
 import { Album } from './components/Album';
 import { Header } from './components/Header';
@@ -20,6 +21,10 @@ function App() {
   const [activeTab, setActiveTab] = useState<ContentType>('tech');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeYear, setActiveYear] = useState<number | null>(null);
+  // 每年显示的文章数量
+  const [postsPerYear, setPostsPerYear] = useState<Record<number, number>>({});
+  // 已加载的年份数量
+  const [visibleYearsCount, setVisibleYearsCount] = useState(2);
   // 主题状态：默认亮色
   const [darkMode, setDarkMode] = useState(() => {
     const saved = safeGetItem('blog-theme');
@@ -76,6 +81,25 @@ function App() {
   }, {} as Record<number, typeof posts>);
 
   const sortedYears = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
+
+  // 获取当前年份应显示的文章数
+  const getVisiblePostsCount = (year: number) => postsPerYear[year] || 4;
+
+  // 加载更多某年的文章
+  const loadMorePostsForYear = (year: number) => {
+    setPostsPerYear(prev => ({
+      ...prev,
+      [year]: (prev[year] || 4) + 4
+    }));
+  };
+
+  // 加载更多年份
+  const loadMoreYears = () => {
+    setVisibleYearsCount(prev => prev + 1);
+  };
+
+  // 可见的年份列表
+  const visibleYears = sortedYears.slice(0, visibleYearsCount);
 
   // 监听年份区块滚动，更新时间线高亮
   // 将 sortedYears 转换为字符串，避免数组引用变化触发无限循环
@@ -213,7 +237,20 @@ function App() {
             </motion.div>
           )}
 
-          {sortedYears.map((year, index) => (
+          {visibleYears.map((year, index) => {
+            const yearPosts = postsByYear[year]
+              .slice()
+              .sort((a, b) => {
+                const dateA = parseDate(a.date);
+                const dateB = parseDate(b.date);
+                if (dateB.month !== dateA.month) return dateB.month - dateA.month;
+                return dateB.day - dateA.day;
+              });
+            const visibleCount = getVisiblePostsCount(year);
+            const visiblePosts = yearPosts.slice(0, visibleCount);
+            const hasMorePosts = yearPosts.length > visibleCount;
+
+            return (
             <div key={year} id={`year-${year}`} className="mb-32 scroll-mt-40">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -225,30 +262,25 @@ function App() {
               </motion.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {postsByYear[year]
-                  .slice()
-                  .sort((a, b) => {
-                    const dateA = parseDate(a.date);
-                    const dateB = parseDate(b.date);
-                    if (dateB.month !== dateA.month) return dateB.month - dateA.month;
-                    return dateB.day - dateA.day;
-                  })
-                  .map((post, postIndex) => {
+                {visiblePosts.map((post, postIndex) => {
                   // 解析当前文章的月份
                   const currentMonth = parseMonthFromDate(post.date);
                   
                   // 检查是否是该月份的第一篇文章
                   const isFirstOfMonth = postIndex === 0 || (() => {
-                    const prevPost = postsByYear[year][postIndex - 1];
+                    const prevPost = visiblePosts[postIndex - 1];
                     const prevMonth = parseMonthFromDate(prevPost.date);
                     return prevMonth !== currentMonth;
                   })();
 
                   return (
-                    <div 
+                    <motion.div 
                       key={post.id} 
                       id={isFirstOfMonth ? `year-${year}-month-${currentMonth}` : undefined}
                       className="relative group scroll-mt-40"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: postIndex * 0.05 }}
                     >
                        <div style={{ opacity: selectedId === post.id ? 0 : 1 }}>
                           <Album 
@@ -257,14 +289,57 @@ function App() {
                             darkMode={darkMode}
                           />
                        </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
 
+              {/* 加载更多文章按钮 */}
+              {hasMorePosts && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex justify-center mt-8"
+                >
+                  <button
+                    onClick={() => loadMorePostsForYear(year)}
+                    className={`px-6 py-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                      darkMode 
+                        ? 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:border-gray-600' 
+                        : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-sm font-medium">更多文章</span>
+                    <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      (+{Math.min(4, yearPosts.length - visibleCount)})
+                    </span>
+                  </button>
+                </motion.div>
+              )}
 
             </div>
-          ))}
+          )})}
+
+          {/* 加载更多年份按钮 */}
+          {visibleYearsCount < sortedYears.length && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center py-8"
+            >
+              <button
+                onClick={loadMoreYears}
+                className={`flex flex-col items-center gap-2 px-8 py-4 rounded-2xl border transition-all cursor-pointer ${
+                  darkMode 
+                    ? 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:border-gray-600' 
+                    : 'bg-white/80 border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
+                }`}
+              >
+                <span className="text-sm font-medium">加载更多年份</span>
+                <ChevronDown size={20} className="animate-bounce" />
+              </button>
+            </motion.div>
+          )}
 
           {/* 无结果提示 */}
           {sortedYears.length === 0 && (

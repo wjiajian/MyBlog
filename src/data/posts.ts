@@ -1,15 +1,15 @@
-import mcpMd from "../content/mcp.md";
-// import geminiCliMd from "../content/gemini-cli.md";
-import koishiMd from "../content/koishi.md";
-// import opencodeMd from "../content/opencode.md";
-// import unstructuredMd from "../content/unstructured.md";
-import hexoBlogMd from "../content/hexo-blog.md";
-import dingdingKnowledgeMd from "../content/dingding-knowledge.md";
-import ragStage2Md from "../content/rag-stage2.md";
-import ragStage3Md from "../content/rag-stage3.md";
-import summary2025Md from "../content/2025.md";
-import ccGitWorktreeMd from "../content/CC-Gitworktree.md";
-import mouseWithoutBordersMd from "../content/Mouse-Without-Borders.md";
+import mcpMd from "../content/tech/mcp.md";
+// import geminiCliMd from "../content/tech/gemini-cli.md";
+import koishiMd from "../content/tech/koishi.md";
+// import opencodeMd from "../content/tech/opencode.md";
+// import unstructuredMd from "../content/tech/unstructured.md";
+import hexoBlogMd from "../content/tech/hexo-blog.md";
+import dingdingKnowledgeMd from "../content/tech/dingding-knowledge.md";
+import ragStage2Md from "../content/tech/rag-stage2.md";
+import ragStage3Md from "../content/tech/rag-stage3.md";
+import summary2025Md from "../content/life/2025.md";
+import ccGitWorktreeMd from "../content/tech/CC-Gitworktree.md";
+import mouseWithoutBordersMd from "../content/tech/Mouse-Without-Borders.md";
 
 export interface Post {
   id: string; // 唯一ID，各文章不能重复

@@ -10,6 +10,10 @@ import {
   Code,
   Brain,
   Sparkles,
+  Target,
+  Wrench,
+  Heart,
+  Send,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -20,13 +24,9 @@ import "github-markdown-css/github-markdown-dark.css";
 
 // 技能标签数据
 const focusAreas = [
-  { icon: Code, label: "Python 开发", color: "from-blue-500 to-cyan-500" },
-  { icon: Brain, label: "AI 应用", color: "from-purple-500 to-pink-500" },
-  {
-    icon: Sparkles,
-    label: "自动化工具",
-    color: "from-amber-500 to-orange-500",
-  },
+  { icon: Code, label: "Python 开发" },
+  { icon: Brain, label: "AI 应用" },
+  { icon: Sparkles, label: "自动化工具" },
 ];
 
 const techStack = [
@@ -108,13 +108,13 @@ export const About: React.FC = () => {
               <div className="relative w-36 h-36 mx-auto mb-6">
                 {/* 光晕动画 */}
                 <motion.div
-                  className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 blur-xl opacity-60"
+                  className="absolute inset-0 rounded-full bg-gray-300 blur-xl opacity-40"
                   animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.4, 0.6, 0.4],
+                    scale: [1, 1.05, 1],
+                    opacity: [0.3, 0.5, 0.3],
                   }}
                   transition={{
-                    duration: 3,
+                    duration: 4,
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
@@ -157,7 +157,7 @@ export const About: React.FC = () => {
               className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
             >
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-xl">🎯</span> 专注领域
+                <Target size={20} className="text-gray-600" /> 专注领域
               </h2>
               <div className="flex flex-wrap gap-3">
                 {focusAreas.map((area, index) => (
@@ -166,9 +166,9 @@ export const About: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${area.color} text-white shadow-sm hover:shadow-md transition-shadow cursor-default`}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-default"
                   >
-                    <area.icon size={18} />
+                    <area.icon size={18} className="text-gray-500" />
                     <span className="font-medium text-sm">{area.label}</span>
                   </motion.div>
                 ))}
@@ -181,7 +181,7 @@ export const About: React.FC = () => {
               className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
             >
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-xl">🛠️</span> 技术栈
+                <Wrench size={20} className="text-gray-600" /> 技术栈
               </h2>
               <div className="flex flex-wrap gap-2">
                 {techStack.map((tech, index) => (
@@ -204,7 +204,7 @@ export const About: React.FC = () => {
               className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
             >
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-xl">✨</span> 兴趣爱好
+                <Heart size={20} className="text-gray-600" /> 兴趣爱好
               </h2>
               <div className="grid grid-cols-3 gap-3">
                 {interests.map((interest, index) => (
@@ -248,7 +248,7 @@ export const About: React.FC = () => {
               className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
             >
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-xl">📬</span> 联系方式
+                <Send size={20} className="text-gray-600" /> 联系方式
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <a
@@ -267,12 +267,12 @@ export const About: React.FC = () => {
                 </a>
                 <a
                   href="mailto:jiajian2233@gmail.com"
-                  className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all cursor-pointer group"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
                 >
-                  <Mail size={20} />
+                  <Mail size={20} className="text-gray-600" />
                   <div>
                     <div className="font-medium text-sm">Email</div>
-                    <div className="text-xs text-blue-200 group-hover:text-blue-100">
+                    <div className="text-xs text-gray-500 group-hover:text-gray-600">
                       jiajian2233@gmail.com
                     </div>
                   </div>
@@ -283,11 +283,11 @@ export const About: React.FC = () => {
             {/* 底部引用 */}
             <motion.div variants={itemVariants} className="text-center">
               <div className="inline-block relative">
-                <span className="absolute -left-4 -top-2 text-4xl text-blue-200 font-serif">
+                <span className="absolute -left-4 -top-2 text-4xl text-gray-300 font-serif">
                   "
                 </span>
                 <p className="text-gray-500 italic text-sm px-6">{quoteText}</p>
-                <span className="absolute -right-4 -bottom-2 text-4xl text-blue-200 font-serif">
+                <span className="absolute -right-4 -bottom-2 text-4xl text-gray-300 font-serif">
                   "
                 </span>
               </div>
