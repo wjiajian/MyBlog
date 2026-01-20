@@ -49,6 +49,8 @@ MyBlog/
 │   │   ├── Skeleton.tsx    # 骨架屏组件
 │   │   └── ...
 │   ├── content/            # Markdown 文章内容
+│   │   ├── tech/           # 技术类文章
+│   │   └── life/           # 生活类文章
 │   ├── data/posts.ts       # 文章数据配置
 │   ├── hooks/              # 自定义 Hooks
 │   ├── pages/              # 页面级组件
@@ -102,6 +104,15 @@ MyBlog/
 
 ## 🚀 4. 性能优化
 
+### 文章列表懒加载
+
+首页文章列表支持按需加载，提升首屏渲染性能：
+
+| 功能 | 说明 |
+|------|------|
+| **年内分页** | 每年默认显示 4 篇文章，点击「更多文章」按钮加载更多 |
+| **年份分段** | 默认显示最近 2 年，点击「加载更多年份」展开历史内容 |
+
 ### 图片加载优化
 
 | 优化项 | 实现方式 | 效果 |
@@ -122,15 +133,17 @@ MyBlog/
 ## ✍️ 5. 教你发一篇新文章
 
 ### 第一步：写内容
-1.  进入 `src/content/` 文件夹。
+1.  进入 `src/content/` 文件夹，根据文章类型选择子目录：
+    - 技术文章 → `src/content/tech/`
+    - 生活随笔 → `src/content/life/`
 2.  新建一个文件，命名为 `my-react-journey.md`。
 3.  在里面用 Markdown 写你的内容。
 
 ### 第二步：上架 (注册文章)
 1.  打开 `src/data/posts.ts`。
-2.  在文件最上面导入你的文章：
+2.  在文件最上面导入你的文章（注意路径包含子目录）：
     ```typescript
-    import myJourney from '../content/my-react-journey.md'; 
+    import myJourney from '../content/tech/my-react-journey.md'; 
     ```
 3.  在 `posts` 列表中添加配置：
     ```typescript
