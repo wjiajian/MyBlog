@@ -30,20 +30,51 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+const allowedOrigins = new Set(
+  (typeof process !== 'undefined' && process.env && process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS
+    : '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
+
+function getCorsHeaders(request: Request): { headers: Record<string, string>; isAllowed: boolean } {
+  const url = new URL(request.url);
+  const origin = request.headers.get('origin') || '';
+  const isAllowed = !origin || origin === url.origin || allowedOrigins.has(origin);
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+    'Vary': 'Origin',
+  };
+
+  if (isAllowed && origin) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  } else if (isAllowed) {
+    headers['Access-Control-Allow-Origin'] = url.origin;
+  }
+
+  return { headers, isAllowed };
+}
+
 export default async function handler(request: Request) {
   const url = new URL(request.url);
   
   // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
+  const { headers: corsHeaders, isAllowed } = getCorsHeaders(request);
 
   // Handle OPTIONS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: isAllowed ? 204 : 403, headers: corsHeaders });
+  }
+
+  if (!isAllowed) {
+    return new Response(
+      JSON.stringify({ error: 'Origin not allowed' }),
+      { status: 403, headers: corsHeaders }
+    );
   }
 
   try {
@@ -107,7 +138,8 @@ export default async function handler(request: Request) {
     // POST: 提交新评论
     if (request.method === 'POST') {
       // 频率限制
-      const ip = request.headers.get('x-forwarded-for') || 'unknown';
+      const forwardedFor = request.headers.get('x-forwarded-for') || 'unknown';
+      const ip = forwardedFor.split(',')[0].trim();
       if (!checkRateLimit(ip)) {
         return new Response(
           JSON.stringify({ error: '评论太频繁，请稍后再试' }),
@@ -139,6 +171,27 @@ export default async function handler(request: Request) {
           JSON.stringify({ error: '评论内容长度应在 1-1000 字符之间' }),
           { status: 400, headers: corsHeaders }
         );
+      }
+
+      // 验证 parentId 归属：如果是回复评论，确保父评论存在且属于同一 postId
+      if (parentId) {
+        const { rows: parentRows } = await sql`
+          SELECT id, post_id FROM comments WHERE id = ${parentId}
+        `;
+        
+        if (parentRows.length === 0) {
+          return new Response(
+            JSON.stringify({ error: '回复的父评论不存在' }),
+            { status: 400, headers: corsHeaders }
+          );
+        }
+        
+        if (parentRows[0].post_id !== postId) {
+          return new Response(
+            JSON.stringify({ error: '不能跨文章回复评论' }),
+            { status: 400, headers: corsHeaders }
+          );
+        }
       }
 
       // 插入评论

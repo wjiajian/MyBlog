@@ -33,10 +33,11 @@ export const Lightbox: React.FC<LightboxProps> = ({
   const [imageLoadedBytes, setImageLoadedBytes] = useState(0);
   const [isFullImageLoaded, setIsFullImageLoaded] = useState(false);
   const [fullImageDimensions, setFullImageDimensions] = useState<{w: number, h: number} | null>(null);
+  const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
 
   const selectedImage = images[selectedIndex];
 
-  // Load full resolution image with progress tracking
+  // Load full resolution image with progress tracking using single fetch + blob
   useEffect(() => {
     if (!selectedImage) return;
 
@@ -46,6 +47,13 @@ export const Lightbox: React.FC<LightboxProps> = ({
     setImageLoadProgress(0);
     setImageLoadedBytes(0);
     setIsFullImageLoaded(false);
+    setFullImageDimensions(null);
+    
+    // Revoke previous blob URL to avoid memory leak
+    if (fullImageUrl) {
+      URL.revokeObjectURL(fullImageUrl);
+      setFullImageUrl(null);
+    }
 
     // Fetch image with progress tracking
     const controller = new AbortController();
@@ -56,6 +64,8 @@ export const Lightbox: React.FC<LightboxProps> = ({
         const contentLength = parseInt(response.headers.get('Content-Length') || '0') || totalSize;
         
         if (!reader) {
+          // Fallback: directly use src URL if reader is unavailable
+          setFullImageUrl(selectedImage.src);
           setIsFullImageLoaded(true);
           setImageLoadProgress(100);
           return;
@@ -67,8 +77,24 @@ export const Lightbox: React.FC<LightboxProps> = ({
         const read = (): Promise<void> => {
           return reader.read().then(({ done, value }) => {
             if (done) {
-              setIsFullImageLoaded(true);
-              setImageLoadProgress(100);
+              // Create blob from collected chunks
+              const blob = new Blob(chunks as any);
+              const blobUrl = URL.createObjectURL(blob);
+              setFullImageUrl(blobUrl);
+              
+              // Get image dimensions from blob
+              const img = new Image();
+              img.src = blobUrl;
+              img.onload = () => {
+                setFullImageDimensions({ w: img.naturalWidth, h: img.naturalHeight });
+                setIsFullImageLoaded(true);
+                setImageLoadProgress(100);
+              };
+              img.onerror = () => {
+                // Still mark as loaded even if dimension fetch fails
+                setIsFullImageLoaded(true);
+                setImageLoadProgress(100);
+              };
               return;
             }
             
@@ -86,7 +112,8 @@ export const Lightbox: React.FC<LightboxProps> = ({
         return read();
       })
       .catch(() => {
-        // On error, just mark as loaded
+        // On error, fallback to direct src
+        setFullImageUrl(selectedImage.src);
         setIsFullImageLoaded(true);
         setImageLoadProgress(100);
       });
@@ -94,21 +121,17 @@ export const Lightbox: React.FC<LightboxProps> = ({
     return () => {
       controller.abort();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedImage]);
 
-  // Load full image dimensions
+  // Cleanup blob URL on unmount
   useEffect(() => {
-    if (!selectedImage) {
-      setFullImageDimensions(null);
-      return;
-    }
-
-    const img = new Image();
-    img.src = selectedImage.src;
-    img.onload = () => {
-      setFullImageDimensions({ w: img.naturalWidth, h: img.naturalHeight });
+    return () => {
+      if (fullImageUrl && fullImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(fullImageUrl);
+      }
     };
-  }, [selectedImage]);
+  }, [fullImageUrl]);
 
   if (!selectedImage) return null;
 
@@ -168,7 +191,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: isFullImageLoaded ? 1 : 0, scale: 1 }}
             transition={{ duration: 0.3 }}
-            src={selectedImage.src}
+            src={fullImageUrl || selectedImage.src}
             alt={selectedImage.alt}
             onLoad={() => setIsFullImageLoaded(true)}
             className="relative max-w-full max-h-screen object-contain shadow-2xl z-10"
