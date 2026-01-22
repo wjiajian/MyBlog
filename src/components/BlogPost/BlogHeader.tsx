@@ -15,6 +15,7 @@ interface BlogHeaderProps {
     year: string | number;
   };
   views: number | null;
+  viewsError?: string | null;
   showTocToggle: boolean;
   onTocToggle: () => void;
 }
@@ -22,6 +23,7 @@ interface BlogHeaderProps {
 export const BlogHeader: React.FC<BlogHeaderProps> = ({ 
   post, 
   views, 
+  viewsError,
   showTocToggle, 
   onTocToggle 
 }) => {
@@ -57,7 +59,8 @@ export const BlogHeader: React.FC<BlogHeaderProps> = ({
           className="flex gap-4 text-gray-600 font-mono text-sm uppercase tracking-widest bg-white/80 px-4 py-2 rounded-full backdrop-blur-sm border border-gray-200 shadow-sm"
         >
           <span>{post.date}, {post.year}</span>
-          {views !== null && <span>· {views} 次阅读</span>}
+          {views !== null && !viewsError && <span>· {views} 次阅读</span>}
+          {viewsError && <span className="text-red-500">· {viewsError}</span>}
         </motion.div>
       </div>
 

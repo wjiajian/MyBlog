@@ -12,6 +12,7 @@ export const BlogPost: React.FC = () => {
   const [activeId, setActiveId] = useState<string>('');
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [views, setViews] = useState<number | null>(null);
+  const [viewsError, setViewsError] = useState<string | null>(null);
   const [readProgress, setReadProgress] = useState(0);
 
   // 提取目录
@@ -28,16 +29,31 @@ export const BlogPost: React.FC = () => {
 
   // 获取并增加浏览量
   useEffect(() => {
-    if (post?.id) {
-      fetch(`/api/pageview?id=${post.id}`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          if (data.views !== undefined) {
-            setViews(data.views);
-          }
-        })
-        .catch(err => console.error('Failed to fetch views:', err));
-    }
+    if (!post?.id) return;
+
+    let isActive = true;
+    setViews(null);
+    setViewsError(null);
+    fetch(`/api/pageview?id=${post.id}`, { method: 'POST' })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to fetch views');
+        }
+        if (isActive && data.views !== undefined) {
+          setViews(data.views);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch views:', err);
+        if (isActive) {
+          setViewsError('浏览量加载失败');
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [post?.id]);
 
   // 监听滚动，高亮当前标题并计算阅读进度
@@ -83,6 +99,7 @@ export const BlogPost: React.FC = () => {
       <BlogHeader 
         post={post} 
         views={views}
+        viewsError={viewsError}
         showTocToggle={toc.length > 0} 
         onTocToggle={() => setIsTocOpen(!isTocOpen)} 
       />
