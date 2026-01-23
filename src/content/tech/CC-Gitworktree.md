@@ -174,7 +174,7 @@ CLAUDE.md 文件中的内容会在每次启动 Claude Code 会话时自动加载
 allowed-tools: [Bash(git:*), Read(*), Grep(*), LS(*)]
 description: Add and commit with conventional style
 version: "1.0.0"
-.claude/commands/git-commit.md
+.claude/commands/git-add-commit.md
 ---
 
 # Intelligent Git Commit Command
@@ -205,30 +205,28 @@ You are creating a git commit with the following features:
 ## Workflow
 
 1. **Analyze current changes**:
-
    - Run `git status` to check for uncommitted changes
    - Run `git diff --cached` to see staged changes
    - Run `git diff` to see unstaged changes
    - Identify the main type of changes and affected scope
 
 2. **Parse user input**:
-
    - Check if user provided additional context or specific requirements
    - Extract any specific commit type or scope preferences
    - Consider any attention points mentioned by the user
 
 3. **Generate commit message**:
-
    - Use conventional commit format: `(): `
    - Write description in Chinese by default
    - Incorporate user's additional context if provided
    - Keep the subject line under 50 characters
    - Add detailed body if needed (wrapped at 72 characters)
+   - add Contributors by use: "Co-Authored-By: Claude <noreply@anthropic.com>", there should be a blank line between contributors commit message.
 
 4. **Stage and commit**:
    - Ask user to confirm which files to stage (if not already staged)
+   - Show the commit result to the user and ask user to confirm
    - Create the commit with the generated message
-   - Show the commit result to the user
 
 ## Example Usage
 
