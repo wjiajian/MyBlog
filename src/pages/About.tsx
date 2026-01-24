@@ -60,7 +60,7 @@ const simplifiedAboutMd = `
 `;
 
 const quoteText =
-  "Everything I've built, written, and learned. Archived in time.";
+  "已识乾坤大，犹怜草木青";
 
 export const About: React.FC = () => {
   // 动画变体
