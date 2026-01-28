@@ -27,15 +27,20 @@ export interface Post extends PostMeta {
 }
 
 // 使用 Vite 的 import.meta.glob 同步导入所有 Markdown 文件
+// 使用相对路径以避免潜在的路径解析问题
 const techMarkdownFiles = import.meta.glob<string>(
-  '/src/content/tech/*.md',
+  '../content/tech/*.md',
   { eager: true, query: '?raw', import: 'default' }
 );
 
 const lifeMarkdownFiles = import.meta.glob<string>(
-  '/src/content/life/*.md',
+  '../content/life/*.md',
   { eager: true, query: '?raw', import: 'default' }
 );
+
+console.log('📚 Posts Data Loading...');
+console.log('Tech files found:', Object.keys(techMarkdownFiles).length);
+console.log('Life files found:', Object.keys(lifeMarkdownFiles).length);
 
 /**
  * 将 ISO 日期格式 (YYYY-MM-DD) 转换为显示格式 (Jan 07)
