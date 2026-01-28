@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 
 if (typeof window !== 'undefined') {
-  globalThis.Buffer = Buffer;
-  globalThis.process = { env: {} } as any;
+  (globalThis as any).Buffer = Buffer;
+  (globalThis as any).process = { env: {} } as any;
 }
