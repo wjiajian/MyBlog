@@ -1,3 +1,19 @@
+---
+slug: rag-stage3
+title: Agent 学习：工程化优化与高级 RAG 技术
+year: 2025
+date: 2025-12-08
+description: 从跑通代码到解决真实世界的复杂场景。本篇深入讲解固定长度、句子级、递归等多种切分策略的适用场景，结合BM25关键词检索与语义检索构建混合检索系统，并介绍重排序技术优化Top-K检索结果，最终构建生产级RAG系统。
+coverImage: https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1000&auto=format&fit=crop
+tags:
+  - Agent
+  - RAG
+  - 文本切分
+  - 混合检索
+categories: 笔记
+type: tech
+---
+
 > **核心理念**：从"跑通代码"到"解决真实世界的复杂脏活"，掌握生产级 RAG 系统的工程化深度。
 
 ---

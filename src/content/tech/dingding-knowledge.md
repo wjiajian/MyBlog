@@ -1,3 +1,17 @@
+---
+slug: dingding-knowledge
+title: 钉钉知识库同步与文档解析
+year: 2025
+date: 2025-11-28
+description: 解决企业知识分散在各个平台的困境。本文介绍两个项目：DingDingZhiKuTong实现钉钉知识库三步走智能增量同步，LinkContentAI通过模块化架构支持PDF/Word/PPT等多格式解析，并使用多模态大模型对文档图片进行深度分析与语义化描述。
+coverImage: https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop
+tags:
+  - 钉钉
+  - 文档解析
+categories: 项目记录
+type: tech
+---
+
 在企业数字化转型的浪潮中，知识库管理已成为组织竞争力的重要组成部分。如何高效同步多源知识库？如何智能化处理文档内容？这两个看似独立的问题，在实际的企业AI助手搭建过程中往往会交织在一起。
 
 > 项目链接:

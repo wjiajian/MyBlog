@@ -1,3 +1,19 @@
+---
+slug: rag-stage2
+title: Agent 学习：构建丐版 RAG 系统
+year: 2025
+date: 2025-12-02
+description: 完全脱离框架，先手动造轮子。从零实现文本切分（固定长度、语义切分）、使用SentenceTransformer向量化、Faiss构建向量数据库、余弦相似度检索，最终通过Prompt拼接调用LLM生成答案，完整走一遍RAG系统的数据流转全流程。
+coverImage: https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop
+tags:
+  - Agent
+  - RAG
+  - 文本切分
+  - 向量化
+categories: 笔记
+type: tech
+---
+
 > **核心理念**：先手动造轮子（去框架化），深度理解数据流转全流程，再谈工程优化。
 
 ---

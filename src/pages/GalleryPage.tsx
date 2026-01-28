@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { PhotoWall } from '../components/PhotoWall';
 import type { PhotoItem } from '../components/PhotoWall';
 import { ArrowLeft, Grid3X3, LayoutGrid, Rows3, Film, Sun, Moon } from 'lucide-react';
-import imagesMetadata from '../../public/photowall/images-metadata.json';
+import imagesMetadata from '../data/images-metadata.json';
 
 import type { ImageMetadata } from '../types';
 
