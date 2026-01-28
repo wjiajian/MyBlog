@@ -26,3 +26,6 @@ dist-ssr
 # skills
 .agent/
 .shared/
+
+# env
+.env.local

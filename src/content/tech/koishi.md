@@ -1,3 +1,17 @@
+---
+slug: koishi
+title: 通过 Docker+Koishi+NapCat 搭建 QQ 机器人
+year: 2025
+date: 2025-11-12
+description: 在Ubuntu服务器上搞定一个稳定高效的QQ机器人。本文包含完整流程：使用国内镜像安装Docker、持久化部署Koishi机器人框架、一键安装NapCat并用screen后台运行、配置OneBot正向WebSocket连接，还附带常用Docker命令参考。
+coverImage: /images/Koishi/coverImage.png
+tags:
+  - 聊天机器人
+  - Docker
+categories: 笔记
+type: tech
+---
+
 ## 📖 简介
 
 [Koishi](https://koishi.chat/zh-CN/) 是一个功能强大、可扩展的跨平台机器人框架。本指南将引导你如何在 Ubuntu 服务器上，通过 Docker 快速部署 Koishi，并使用 [NapCat](https://github.com/NapNeko/NapCat-Installer) 作为 QQ 适配器，最终搭建一个稳定、高效的 QQ 机器人。

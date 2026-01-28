@@ -1,3 +1,18 @@
+---
+slug: mcp
+title: MCP Server 入门体验
+year: 2025
+date: 2025-10-30
+description: MCP是为AI应用提供标准化连接的开放协议，就像USB-C接口一样让模型连接各种数据源和工具。本文以天气查询服务为例，详解MCP Server开发：使用FastMCP定义Tools、调用外部API、配置uv环境，并展示如何在VS Code的mcp.json中集成使用。
+coverImage: /images/mcp/coverImage.png
+tags:
+  - MCP
+  - LLM
+  - VS Code
+categories: 笔记
+type: tech
+---
+
 # MCP (模型上下文协议) 简介
 MCP 起源于 2024 年 11 月 25 日 Anthropic 发布的文章：[Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 MCP 是一个开放协议，它为应用程序向 LLM 提供上下文的方式进行了标准化。你可以将 MCP 想象成 AI 应用程序的 USB-C 接口。就像 USB-C 为设备连接各种外设和配件提供了标准化的方式一样，MCP 为 AI 模型连接各种数据源和工具提供了标准化的接口。
