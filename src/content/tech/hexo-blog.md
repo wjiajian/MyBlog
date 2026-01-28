@@ -1,3 +1,18 @@
+---
+slug: hexo-blog
+title: 使用 Hexo 通过 GitHub Pages 搭建博客
+year: 2025
+date: 2025-10-30
+description: 使用Hexo快速搭建个人博客的完整教程。从Node.js环境准备开始，依次介绍hexo-cli安装、hexo init初始化项目、hexo server本地预览、配置hexo-deployer-git插件和_config.yml，最后通过hexo deploy一键部署到GitHub Pages，开启你的博客之旅。
+coverImage: /images/Blogs/coverImage.jpg
+tags:
+  - blogs
+  - Hexo
+  - Github Pages
+categories: 笔记
+type: tech
+---
+
 使用 Hexo 快速搭建一个功能强大的个人博客。
 
 ## 1. 环境准备

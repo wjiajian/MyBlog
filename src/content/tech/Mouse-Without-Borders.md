@@ -1,3 +1,14 @@
+---
+slug: mouse-without-borders
+title: 使用 Mouse Without Borders 实现一套键鼠控制多台电脑
+year: 2026
+date: 2026-01-16
+description: 厌倦了在两套键盘鼠标间来回切换？使用微软官方神器 Mouse Without Borders (无界鼠标)！无需购买额外硬件，只需通过局域网，即可用一套键鼠无缝控制多台 Windows 电脑，甚至实现跨设备复制粘贴和文件拖拽，彻底释放你的桌面空间与生产力。
+coverImage: /images/Mouse-Without-Borders/coverImage.png
+categories: 技巧
+type: tech
+---
+
 ## 前言
 
 在日常生活以及工作中，我们的桌面上往往不止一台电脑：一台主力台式机跑代码，一台 MacBook 或 Windows 笔记本查资料、回消息，更甚者多台台式机。。

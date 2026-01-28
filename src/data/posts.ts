@@ -1,201 +1,172 @@
-import mcpMd from "../content/tech/mcp.md";
-// import geminiCliMd from "../content/tech/gemini-cli.md";
-import koishiMd from "../content/tech/koishi.md";
-// import opencodeMd from "../content/tech/opencode.md";
-// import unstructuredMd from "../content/tech/unstructured.md";
-import hexoBlogMd from "../content/tech/hexo-blog.md";
-import dingdingKnowledgeMd from "../content/tech/dingding-knowledge.md";
-import ragStage2Md from "../content/tech/rag-stage2.md";
-import ragStage3Md from "../content/tech/rag-stage3.md";
-import summary2025Md from "../content/life/2025.md";
-import ccGitWorktreeMd from "../content/tech/CC-Gitworktree.md";
-import mouseWithoutBordersMd from "../content/tech/Mouse-Without-Borders.md";
+/**
+ * posts.ts - 动态加载 Markdown 文章
+ *
+ * 使用 Vite 的 import.meta.glob 功能自动扫描并解析
+ * src/content 目录下的所有 Markdown 文件。
+ * Frontmatter 元数据通过 gray-matter 解析。
+ */
+import matter from 'gray-matter';
 
-export interface Post {
-  id: string; // 唯一ID，各文章不能重复
-  title: string; // 标题
-  year: number; // 年份
-  date: string; // 日期
-  description: string; // 简介，展示在卡片背面
-  coverImage: string; // 封面图，展示在卡片正面（1:1）
-  headerImage?: string; // 文章头图，可选
-  link: string; // 网址，格式必须是/posts/{id}
-  content?: string; // import的标签
-  tags?: string[]; // 标签
-  categories?: string; // 分类
-  type?: "tech" | "life"; // 内容类型：技术笔记 / 生活随笔，默认 tech
+// 定义文章元数据类型
+export interface PostMeta {
+  id: string;
+  title: string;
+  year: number;
+  date: string; // 显示格式: "Jan 07"
+  description: string;
+  coverImage: string;
+  categories: string;
+  type: 'tech' | 'life';
+  tags?: string[];
+  link: string; // 文章链接
 }
 
-export const posts: Post[] = [
-  // 2026 年文章
-  {
-    id: "2025-summary",
-    title: "2025年度总结",
-    year: 2026,
-    date: "Jan 07",
-    description: "2025年的流水账",
-    coverImage: "/images/2025-summary/coverImage.png",
-    link: "/posts/2025-summary",
-    content: summary2025Md,
-    categories: "年度总结",
-    type: "life",
-  },
-  {
-    id: "cc-gitworktree",
-    title: "Claude Code + Git Worktree",
-    year: 2026,
-    date: "Jan 14",
-    description: "结合 Claude Code 与 Git Worktree，实现主控-代理开发模式。",
-    coverImage: "/images/CC-Gitworktree/coverImage.png",
-    link: "/posts/cc-gitworktree",
-    content: ccGitWorktreeMd,
-    tags: ["Claude Code", "Git Worktree"],
-    categories: "技巧",
-    type: "tech",
-  },
-  {
-    id: "mouse-without-borders",
-    title: "使用 Mouse Without Borders 实现一套键鼠控制多台电脑",
-    year: 2026,
-    date: "Jan 16",
-    description: "厌倦了在两套键盘鼠标间来回切换？使用微软官方神器 Mouse Without Borders (无界鼠标)！无需购买额外硬件，只需通过局域网，即可用一套键鼠无缝控制多台 Windows 电脑，甚至实现跨设备复制粘贴和文件拖拽，彻底释放你的桌面空间与生产力。",
-    coverImage: "/images/Mouse-Without-Borders/coverImage.png",
-    link: "/posts/mouse-without-borders",
-    content: mouseWithoutBordersMd,
-    categories: "技巧",
-    type: "tech",
-  },
-  // 2025 年文章
-  {
-    id: "rag-stage3",
-    title: "Agent 学习：工程化优化与高级 RAG 技术",
-    year: 2025,
-    date: "Dec 08",
-    description:
-      "从跑通代码到解决真实世界的复杂场景。本篇深入讲解固定长度、句子级、递归等多种切分策略的适用场景，结合BM25关键词检索与语义检索构建混合检索系统，并介绍重排序技术优化Top-K检索结果，最终构建生产级RAG系统。",
-    coverImage:
-      "https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1000&auto=format&fit=crop",
-    link: "/posts/rag-stage3",
-    content: ragStage3Md,
-    tags: ["Agent", "RAG", "文本切分", "混合检索"],
-    categories: "笔记",
-    type: "tech",
-  },
-  {
-    id: "rag-stage2",
-    title: "Agent 学习：构建丐版 RAG 系统",
-    year: 2025,
-    date: "Dec 02",
-    description:
-      "完全脱离框架，先手动造轮子。从零实现文本切分（固定长度、语义切分）、使用SentenceTransformer向量化、Faiss构建向量数据库、余弦相似度检索，最终通过Prompt拼接调用LLM生成答案，完整走一遍RAG系统的数据流转全流程。",
-    coverImage:
-      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop",
-    link: "/posts/rag-stage2",
-    content: ragStage2Md,
-    tags: ["Agent", "RAG", "文本切分", "向量化"],
-    categories: "笔记",
-    type: "tech",
-  },
-  {
-    id: "dingding-knowledge",
-    title: "钉钉知识库同步与文档解析",
-    year: 2025,
-    date: "Nov 28",
-    description:
-      "解决企业知识分散在各个平台的困境。本文介绍两个项目：DingDingZhiKuTong实现钉钉知识库三步走智能增量同步，LinkContentAI通过模块化架构支持PDF/Word/PPT等多格式解析，并使用多模态大模型对文档图片进行深度分析与语义化描述。",
-    coverImage:
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop",
-    link: "/posts/dingding-knowledge",
-    content: dingdingKnowledgeMd,
-    tags: ["钉钉", "文档解析"],
-    categories: "项目记录",
-    type: "tech",
-  },
-  /*
-  {
-    id: "opencode",
-    title: "Windows 上安装 OpenCode 并接入 Minimax M2",
-    year: 2025,
-    date: "Nov 21",
-    description:
-      "OpenCode是一款在终端中运行的CLI+TUI AI编程代理工具，支持快速代码生成、调试和项目分析。本文详细介绍通过curl/npm安装OpenCode、配置MiniMax M2 API Key接入大模型，以及使用winget安装Oh My Posh美化终端显示Git状态等信息。",
-    coverImage: "/images/OpenCode/coverImage.png",
-    link: "/posts/opencode",
-    content: opencodeMd,
-    tags: ["Terminal", "OpenCode", "Claude Code"],
-    categories: "笔记",
-  },
-  */
- /*
-  {
-    id: "unstructured",
-    title: "Unstructured 及其使用入门",
-    year: 2025,
-    date: "Nov 21",
-    description:
-      "Unstructured是一个强大的开源文档解析库，无论PDF、Word、PPT、HTML还是图片，都可以用同一个partition()函数提取结构化数据。本文介绍其核心优势（归一化接口、语义分块、元数据保留），并提供Windows下使用Scoop安装Tesseract OCR和Poppler以支持中文PDF解析的完整指南。",
-    coverImage: "/images/Unstructured/coverImage.png",
-    link: "/posts/unstructured",
-    content: unstructuredMd,
-    tags: ["Python", "Scoop", "文档解析", "Unstructured"],
-    categories: "笔记",
-  },
-  */
-  {
-    id: "koishi",
-    title: "通过 Docker+Koishi+NapCat 搭建 QQ 机器人",
-    year: 2025,
-    date: "Nov 12",
-    description:
-      "在Ubuntu服务器上搞定一个稳定高效的QQ机器人。本文包含完整流程：使用国内镜像安装Docker、持久化部署Koishi机器人框架、一键安装NapCat并用screen后台运行、配置OneBot正向WebSocket连接，还附带常用Docker命令参考。",
-    coverImage: "/images/Koishi/coverImage.png",
-    link: "/posts/koishi",
-    content: koishiMd,
-    tags: ["聊天机器人", "Docker"],
-    categories: "笔记",
-    type: "tech",
-  },
-  {
-    id: "mcp",
-    title: "MCP Server 入门体验",
-    year: 2025,
-    date: "Oct 30",
-    description:
-      "MCP是为AI应用提供标准化连接的开放协议，就像USB-C接口一样让模型连接各种数据源和工具。本文以天气查询服务为例，详解MCP Server开发：使用FastMCP定义Tools、调用外部API、配置uv环境，并展示如何在VS Code的mcp.json中集成使用。",
-    coverImage: "/images/mcp/coverImage.png",
-    link: "/posts/mcp",
-    content: mcpMd,
-    tags: ["MCP", "LLM", "VS Code"],
-    categories: "笔记",
-    type: "tech",
-  },
-  /*
-  {
-    id: "gemini-cli",
-    title: "Gemini CLI 配置",
-    year: 2025,
-    date: "Oct 30",
-    description:
-      "Gemini CLI完整安装配置指南。包括Windows/macOS/Linux下使用nvm安装Node.js、npm全局安装@google/gemini-cli、创建Google Cloud项目并启用Gemini API、配置GOOGLE_CLOUD_PROJECT环境变量，即可开启命令行AI交互体验。",
-    coverImage: "/images/Gemini CLI/coverImage.png",
-    link: "/posts/gemini-cli",
-    content: geminiCliMd,
-    tags: ["Gemini CLI", "VS Code"],
-    categories: "笔记",
-  },
-  */
-  {
-    id: "hexo-blog",
-    title: "使用 Hexo 通过 GitHub Pages 搭建博客",
-    year: 2025,
-    date: "Oct 30",
-    description:
-      "使用Hexo快速搭建个人博客的完整教程。从Node.js环境准备开始，依次介绍hexo-cli安装、hexo init初始化项目、hexo server本地预览、配置hexo-deployer-git插件和_config.yml，最后通过hexo deploy一键部署到GitHub Pages，开启你的博客之旅。",
-    coverImage: "/images/Blogs/coverImage.jpg",
-    link: "/posts/hexo-blog",
-    content: hexoBlogMd,
-    tags: ["blogs", "Hexo", "Github Pages"],
-    categories: "笔记",
-    type: "tech",
-  },
-];
+// 定义完整文章类型
+export interface Post extends PostMeta {
+  content: string;
+}
+
+// 使用 Vite 的 import.meta.glob 同步导入所有 Markdown 文件
+// 使用相对路径以避免潜在的路径解析问题
+const techMarkdownFiles = import.meta.glob<string>(
+  '../content/tech/*.md',
+  { eager: true, query: '?raw', import: 'default' }
+);
+
+const lifeMarkdownFiles = import.meta.glob<string>(
+  '../content/life/*.md',
+  { eager: true, query: '?raw', import: 'default' }
+);
+
+console.log('📚 Posts Data Loading...');
+console.log('Tech files found:', Object.keys(techMarkdownFiles).length);
+console.log('Life files found:', Object.keys(lifeMarkdownFiles).length);
+
+/**
+ * 将 ISO 日期格式 (YYYY-MM-DD) 转换为显示格式 (Jan 07)
+ */
+function formatDateForDisplay(isoDate: string): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const date = new Date(isoDate);
+  if (isNaN(date.getTime())) {
+    return 'Jan 01'; // 默认值
+  }
+  const month = months[date.getMonth()];
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${month} ${day}`;
+}
+
+/**
+ * 生成文章链接
+ */
+function generatePostLink(id: string, type: 'tech' | 'life'): string {
+  return `/${type}/${id}`;
+}
+
+/**
+ * 解析单个 Markdown 文件
+ */
+function parseMarkdownFile(rawContent: string, filePath: string): Post | null {
+  try {
+    const { data, content } = matter(rawContent);
+
+    // 兼容 id 或 slug 字段 (TinaCMS 使用 slug，旧数据可能使用 id)
+    const id = data.slug || data.id;
+
+    // 确保必需字段存在
+    if (!id || !data.title) {
+      console.warn(`Markdown file ${filePath} is missing required fields (slug/id, title)`);
+      return null;
+    }
+
+    const postType = data.type || 'tech';
+    
+    // date 可能是 Date 对象或字符串
+    let isoDate = data.date;
+    if (isoDate instanceof Date) {
+      isoDate = isoDate.toISOString().split('T')[0];
+    } else if (!isoDate) {
+      isoDate = new Date().toISOString().split('T')[0];
+    }
+
+    return {
+      id: id,
+      title: data.title,
+      year: data.year || new Date().getFullYear(),
+      date: formatDateForDisplay(isoDate),
+      description: data.description || '',
+      coverImage: data.coverImage || '',
+      categories: data.categories || '',
+      type: postType,
+      tags: data.tags || [],
+      link: generatePostLink(id, postType),
+      content: content.trim(),
+    };
+  } catch (error) {
+    console.error(`Failed to parse Markdown file ${filePath}:`, error);
+    return null;
+  }
+}
+
+/**
+ * 加载所有文章
+ */
+function loadAllPosts(): Post[] {
+  const posts: Post[] = [];
+
+  // 处理 tech 文章
+  for (const [filePath, rawContent] of Object.entries(techMarkdownFiles)) {
+    const post = parseMarkdownFile(rawContent, filePath);
+    if (post) {
+      posts.push(post);
+    }
+  }
+
+  // 处理 life 文章
+  for (const [filePath, rawContent] of Object.entries(lifeMarkdownFiles)) {
+    const post = parseMarkdownFile(rawContent, filePath);
+    if (post) {
+      posts.push(post);
+    }
+  }
+
+  // 按日期降序排序
+  posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return posts;
+}
+
+// 导出所有文章
+export const posts: Post[] = loadAllPosts();
+
+// 便捷函数：按 ID 获取文章
+export function getPostById(id: string): Post | undefined {
+  return posts.find((post) => post.id === id);
+}
+
+// 便捷函数：按类型获取文章
+export function getPostsByType(type: 'tech' | 'life'): Post[] {
+  return posts.filter((post) => post.type === type);
+}
+
+// 便捷函数：按年份获取文章
+export function getPostsByYear(year: number): Post[] {
+  return posts.filter((post) => post.year === year);
+}
+
+// 便捷函数：获取所有年份
+export function getAllYears(): number[] {
+  const years = [...new Set(posts.map((post) => post.year))];
+  return years.sort((a, b) => b - a); // 降序
+}
+
+// 便捷函数：获取所有分类
+export function getAllCategories(): string[] {
+  return [...new Set(posts.map((post) => post.categories).filter(Boolean))];
+}
+
+// 便捷函数：获取所有标签
+export function getAllTags(): string[] {
+  const allTags = posts.flatMap((post) => post.tags || []);
+  return [...new Set(allTags)];
+}

@@ -10,7 +10,7 @@ const THUMBNAILS_DIR = path.join(ROOT, 'thumbnails');
 const FULL_DIR = path.join(THUMBNAILS_DIR, 'full');
 const MEDIUM_DIR = path.join(THUMBNAILS_DIR, 'medium');
 const TINY_DIR = path.join(THUMBNAILS_DIR, 'tiny');
-const OUTPUT_FILE = path.join(ROOT, 'images-metadata.json');
+const OUTPUT_FILE = path.join(__dirname, '../src/data/images-metadata.json');
 
 // Ensure directories exist
 [FULL_DIR, MEDIUM_DIR, TINY_DIR].forEach(dir => {
