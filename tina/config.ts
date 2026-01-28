@@ -6,12 +6,13 @@ const branch =
   process.env.GITHUB_BRANCH ||
   process.env.VERCEL_GIT_COMMIT_REF ||
   process.env.HEAD ||
-  'feature-tina';
+  'main';
 
 export default defineConfig({
   branch,
 
   // TinaCloud 凭证（从环境变量读取）
+  // 暂时强制使用本地模式 (Local Mode)
   clientId: process.env.TINA_CLIENT_ID || null,
   token: process.env.TINA_TOKEN || null,
 
