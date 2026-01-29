@@ -4,19 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tinacms dev -c \"vite\"",
-    "build": "tinacms build && tsc -b && vite build",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "start": "ts-node server.ts",
     "serve": "node dist-server/server.js",
     "build:server": "tsc -p tsconfig.server.json",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-metadata": "node scripts/process-photos.cjs",
-    "tina:dev": "tinacms dev",
-    "tina:build": "tinacms build"
+    "generate-metadata": "node scripts/process-photos.cjs"
   },
   "dependencies": {
-    "@tinacms/cli": "^2.1.2",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
@@ -38,8 +35,7 @@
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
-    "tailwind-merge": "^3.4.0",
-    "tinacms": "^3.3.2"
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

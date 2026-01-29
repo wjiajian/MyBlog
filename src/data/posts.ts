@@ -38,10 +38,6 @@ const lifeMarkdownFiles = import.meta.glob<string>(
   { eager: true, query: '?raw', import: 'default' }
 );
 
-console.log('📚 Posts Data Loading...');
-console.log('Tech files found:', Object.keys(techMarkdownFiles).length);
-console.log('Life files found:', Object.keys(lifeMarkdownFiles).length);
-
 /**
  * 将 ISO 日期格式 (YYYY-MM-DD) 转换为显示格式 (Jan 07)
  */
