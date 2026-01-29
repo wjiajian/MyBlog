@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PhotoItem } from './types';
 import { LightboxSidebar } from './LightboxSidebar';
+import { formatFileSize } from '../../utils/format';
 
 interface LightboxProps {
   images: PhotoItem[];
@@ -12,14 +13,6 @@ interface LightboxProps {
   onNext: () => void;
   onNavigate: (index: number) => void;
 }
-
-// 格式化文件大小
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return '未知';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
 
 export const Lightbox: React.FC<LightboxProps> = ({
   images,
@@ -37,25 +30,25 @@ export const Lightbox: React.FC<LightboxProps> = ({
 
   const selectedImage = images[selectedIndex];
 
-  // Load full resolution image with progress tracking using single fetch + blob
+  // 使用单次 fetch + blob 加载原图并跟踪进度
   useEffect(() => {
     if (!selectedImage) return;
 
     const totalSize = selectedImage.size || 0;
     
-    // Reset states
+    // 重置状态
     setImageLoadProgress(0);
     setImageLoadedBytes(0);
     setIsFullImageLoaded(false);
     setFullImageDimensions(null);
     
-    // Revoke previous blob URL to avoid memory leak
+    // 释放上一次的 blob URL，避免内存泄漏
     if (fullImageUrl) {
       URL.revokeObjectURL(fullImageUrl);
       setFullImageUrl(null);
     }
 
-    // Fetch image with progress tracking
+    // 拉取图片并跟踪进度
     const controller = new AbortController();
     
     fetch(selectedImage.src, { signal: controller.signal })
@@ -64,7 +57,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
         const contentLength = parseInt(response.headers.get('Content-Length') || '0') || totalSize;
         
         if (!reader) {
-          // Fallback: directly use src URL if reader is unavailable
+          // 若 reader 不可用，则直接使用 src
           setFullImageUrl(selectedImage.src);
           setIsFullImageLoaded(true);
           setImageLoadProgress(100);
@@ -77,12 +70,12 @@ export const Lightbox: React.FC<LightboxProps> = ({
         const read = (): Promise<void> => {
           return reader.read().then(({ done, value }) => {
             if (done) {
-              // Create blob from collected chunks
+              // 使用已收集的分片创建 blob
               const blob = new Blob(chunks as any);
               const blobUrl = URL.createObjectURL(blob);
               setFullImageUrl(blobUrl);
               
-              // Get image dimensions from blob
+              // 从 blob 获取图片尺寸
               const img = new Image();
               img.src = blobUrl;
               img.onload = () => {
@@ -91,7 +84,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
                 setImageLoadProgress(100);
               };
               img.onerror = () => {
-                // Still mark as loaded even if dimension fetch fails
+                // 即使尺寸获取失败也标记为已加载
                 setIsFullImageLoaded(true);
                 setImageLoadProgress(100);
               };
@@ -112,7 +105,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
         return read();
       })
       .catch(() => {
-        // On error, fallback to direct src
+        // 出错时回退为直接使用 src
         setFullImageUrl(selectedImage.src);
         setIsFullImageLoaded(true);
         setImageLoadProgress(100);
@@ -124,7 +117,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedImage]);
 
-  // Cleanup blob URL on unmount
+  // 卸载时清理 blob URL
   useEffect(() => {
     return () => {
       if (fullImageUrl && fullImageUrl.startsWith('blob:')) {
@@ -144,7 +137,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
       className="fixed inset-0 z-50 flex"
       onClick={onClose}
     >
-      {/* Current image blur background */}
+      {/* 当前图片的模糊背景 */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{ 
@@ -153,7 +146,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
           transform: 'scale(1.2)',
         }}
       />
-      {/* Dark overlay */}
+      {/* 深色遮罩 */}
       <div className="absolute inset-0 bg-black/60" />
 
       {/* 左箭头 */}
@@ -176,7 +169,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
             <X size={24} className="text-white" />
           </button>
 
-          {/* Medium Thumbnail Placeholder */}
+          {/* 中等缩略图占位 */}
           {!isFullImageLoaded && (
             <img
               src={selectedImage.srcMedium || selectedImage.srcTiny}
@@ -185,7 +178,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
             />
           )}
 
-          {/* Main image */}
+          {/* 主图 */}
           <motion.img
             key={selectedIndex}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -197,7 +190,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
             className="relative max-w-full max-h-screen object-contain shadow-2xl z-10"
           />
 
-          {/* Load progress indicator */}
+          {/* 加载进度指示 */}
           {!isFullImageLoaded && imageLoadProgress < 100 && (
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full">
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -211,7 +204,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* 侧栏 */}
         <LightboxSidebar 
           selectedImage={selectedImage}
           fullDimensions={fullImageDimensions}

@@ -11,20 +11,20 @@ dotenv.config();
 const app: Express = express();
 const port = parseInt(process.env.PORT || '3000', 10);
 
-// Middleware
+// 中间件
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from dist
+// 提供 dist 静态资源
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // 编译后 server.js 在 dist-server/ 目录，需要访问上级的 dist/ 目录
 const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
 
-// API Routes
+// 接口路由
 
-// Page Views API
+// 浏览量 API
 // 获取浏览量
 app.get('/api/pageview', async (req: Request, res: Response) => {
     const postId = req.query.id as string;
@@ -66,8 +66,8 @@ app.post('/api/pageview', async (req: Request, res: Response) => {
 });
 
 
-// Comments API
-// Helper: Build nested comments
+// 评论 API
+// 辅助：构建嵌套评论
 interface Comment {
     id: number;
     post_id: string;
@@ -149,7 +149,7 @@ app.post('/api/comments', async (req: Request, res: Response) => {
     }
 
     try {
-        // Validate parentId
+        // 校验 parentId
         if (parentId) {
              const parentCheck = await query('SELECT id, post_id FROM comments WHERE id = $1', [parentId]);
              if (parentCheck.rows.length === 0) {
@@ -176,36 +176,7 @@ app.post('/api/comments', async (req: Request, res: Response) => {
     }
 });
 
-// Init DB Endpoint (Optional, better to have a script but keeping API for similarity)
-app.get('/api/init-db', async (req: Request, res: Response) => {
-     try {
-         await query(`
-            CREATE TABLE IF NOT EXISTS pageviews (
-                post_id VARCHAR(255) PRIMARY KEY,
-                views INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-         `);
-         await query(`
-            CREATE TABLE IF NOT EXISTS comments (
-                id SERIAL PRIMARY KEY,
-                post_id VARCHAR(255) NOT NULL,
-                parent_id INTEGER REFERENCES comments(id),
-                nickname VARCHAR(100) NOT NULL,
-                content TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-         `);
-         res.json({ success: true, message: 'Tables initialized' });
-     } catch (error) {
-         console.error('Init DB error:', error);
-         res.status(500).json({ error: 'Failed to init db' });
-     }
-});
-
-
-// Catch-all for SPA
+// 单页应用兜底路由
 app.get('/{*path}', (req: Request, res: Response) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });

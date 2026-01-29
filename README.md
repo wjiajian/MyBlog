@@ -1,26 +1,54 @@
-# 📘 Jiajian's Blog
+# Jiajian's Blog
 
-基于 **React + TypeScript + Vite + Express + PostgreSQL** 构建的现代博客，支持 **自托管 (Self-Hosted)** 部署。
+基于 **React + TypeScript + Vite + Express + PostgreSQL** 构建的现代博客系统，支持自托管 (Self-Hosted) 部署。
 
 ---
 
-## ⚡ 快速开始
+## 快速开始
+
+### 开发模式
 
 ```bash
 npm install
 npm run dev
 ```
 
+### 生产部署
+
+```bash
+npm run build
+npm run db:init    # 初始化数据库表结构
+npm run serve      # 启动生产服务器
+```
+
 ---
 
-## 📂 项目结构
+## 项目结构
 
 ```
 MyBlog/
-├── dist-server/        # 服务端构建产物 (自动生成)
-├── server.ts           # Express 后端服务器入口
+├── server.ts               # Express 后端服务器入口
+├── dist-server/            # 服务端构建产物 (自动生成)
+├── scripts/
+│   ├── init-db.ts          # 数据库初始化脚本
+│   └── process-photos.cjs  # 照片墙数据处理脚本
 ├── src/
-│   ├── db/             # 数据库连接 (PostgreSQL)
+│   ├── db/                 # 数据库连接模块 (PostgreSQL)
+│   ├── components/         # React 组件
+│   │   ├── BlogPost/       # 文章详情页组件集
+│   │   ├── PhotoWall/      # 照片墙组件集
+│   │   └── ...
+│   ├── content/            # Markdown 文章
+│   │   ├── tech/           # 技术类文章
+│   │   └── life/           # 生活类文章
+│   ├── data/
+│   │   ├── posts.ts        # 文章数据加载与解析
+│   │   └── images-metadata.json  # 照片墙元数据
+│   ├── hooks/              # 自定义 Hooks
+│   ├── pages/              # 页面级组件
+│   ├── utils/              # 工具函数模块
+│   ├── types/              # TypeScript 类型定义
+│   └── App.tsx             # 主应用入口
 ├── public/
 │   ├── images/             # 文章图片资源
 │   ├── resources/          # 网站资源（背景/头像等）
@@ -30,52 +58,37 @@ MyBlog/
 │   │   ├── medium/         # 中等缩略图
 │   │   └── tiny/           # 模糊预览
 │   └── avatar/             # 默认头像
-├── scripts/
-│   └── process-photos.cjs  # 照片墙数据处理脚本
-├── src/
-│   ├── components/         # React 组件
-│   │   ├── BlogPost/       # 文章详情页组件集
-│   │   ├── PhotoWall/      # 照片墙组件集
-│   │   └── ...
-│   ├── content/            # Markdown 文章
-│   │   ├── tech/           # 技术类
-│   │   └── life/           # 生活类
-│   ├── data/posts.ts       # 文章数据配置
-│   ├── hooks/              # 自定义 Hooks
-│   ├── pages/              # 页面级组件
-│   ├── utils/              # 工具函数
-│   ├── types/              # TypeScript 类型定义
-│   └── App.tsx             # 主应用入口
 ├── package.json
 ├── vite.config.ts
-├── tailwind.config.js
-└── tsconfig.json
+├── tsconfig.json
+├── tsconfig.server.json    # 服务端 TypeScript 配置
+└── .env.example            # 环境变量模板
 ```
 
 ---
 
-## 🎯 功能介绍
+## 功能介绍
 
-### 📑 Tab 切换（技术笔记 / 生活随笔）
+### 内容分类
 
 首页支持通过 Tab 切换显示不同类型的内容：
 
 | Tab | 说明 |
 |-----|------|
-| 📚 技术笔记 | 默认显示，包含技术相关文章 |
-| ☕ 生活随笔 | 生活类内容，如随笔、摄影、旅行等 |
+| 技术笔记 | 默认显示，包含技术相关文章 |
+| 生活随笔 | 生活类内容，如随笔、摄影、旅行等 |
 
-在 `posts.ts` 中通过 `type` 字段设置：`'tech'` 或 `'life'`，不填默认为 `'tech'`。
+在 Markdown 文件的 Frontmatter 中通过 `type` 字段设置：`'tech'` 或 `'life'`，不填默认为 `'tech'`。
 
-### 📅 时间线页面
+### 时间线页面
 
-通过导航栏的 **时间线** 按钮进入，按年份展示所有文章，支持滚动同步高亮当前年月。
+通过导航栏的「时间线」按钮进入，按年份展示所有文章，支持滚动同步高亮当前年月。
 
-### 💬 评论系统
+### 评论系统
 
-文章底部内置匿名评论功能，用户只需填写昵称即可评论（使用 Vercel Postgres 存储）。
+文章底部内置匿名评论功能，用户只需填写昵称即可评论。评论数据存储于 PostgreSQL 数据库。
 
-### 🔍 导航栏功能
+### 导航栏功能
 
 右上角导航栏提供以下功能：
 - **首页** - 返回主页
@@ -86,7 +99,7 @@ MyBlog/
 - **友链** - 友链页面
 - **关于** - 个人介绍页面
 
-### 📖 文章目录系统
+### 文章目录系统
 
 文章详情页右侧（桌面端）或抽屉菜单（移动端）显示自动生成的目录，支持：
 - 自动提取 Markdown 标题（H1-H2）
@@ -94,7 +107,7 @@ MyBlog/
 - 阅读进度高亮
 - 回到顶部按钮
 
-### 🔗 友链页面
+### 友链页面
 
 独立的友链页面，支持：
 - 卡片式布局展示友链
@@ -103,7 +116,7 @@ MyBlog/
 
 ---
 
-## 🚀 性能优化
+## 性能优化
 
 ### 文章列表懒加载
 
@@ -117,7 +130,6 @@ MyBlog/
 | 优化项 | 实现方式 | 效果 |
 |--------|---------|------|
 | **懒加载** | 原生 `loading="lazy"` | 首屏加载提速 30-50% |
-| **CDN 加速** | Vercel + Cloudflare | 全球访问提速 50-70% |
 | **渐进式加载** | `ProgressiveImage` 组件 | Shimmer 动画 + 淡入效果 |
 | **骨架屏** | `Skeleton` 组件 | 消除内容布局偏移，提升感知速度 |
 | **事件防抖** | `useDebounce` Hook | 优化 Resize 等高频事件性能 |
@@ -129,10 +141,9 @@ MyBlog/
 
 ---
 
-## ✍️ 发布文章
+## 发布文章
 
-1. 在 `src/content/tech/` 或 `src/content/life/` 创建 `.md` 文件
-1. 在 `src/content/tech/` 或 `src/content/life/` 创建 `.md` 文件
+1. 在 `src/content/tech/` 或 `src/content/life/` 目录下创建 `.md` 文件
 2. 文件头添加 Frontmatter 元数据：
 
 ```markdown
@@ -140,6 +151,7 @@ MyBlog/
 slug: my-post-id
 title: 文章标题
 date: 2026-01-29
+year: 2026
 type: tech  # tech | life
 description: 简介...
 coverImage: /images/xxx/cover.png
@@ -150,7 +162,7 @@ tags:
 ---
 ```
 
-3. `posts.ts` 会自动扫描并加载所有 `.md` 文件，无需手动注册！
+3. `posts.ts` 会自动扫描并加载所有 `.md` 文件，无需手动注册
 
 ### 图片规格
 
@@ -161,7 +173,7 @@ tags:
 
 ---
 
-## 📷 照片墙
+## 照片墙
 
 ```bash
 # 1. 将照片放入 public/photowall/origin/
@@ -174,7 +186,7 @@ npm run generate-metadata
 
 ---
 
-## 🛠️ 工具函数
+## 工具函数
 
 ### Utils (`src/utils/`)
 
@@ -183,6 +195,7 @@ npm run generate-metadata
 | `storage.ts` | `safeGetItem/SetItem/RemoveItem` | SSR 兼容的 localStorage |
 | `date.ts` | `parseMonthFromDate`, `parseDate` | 日期解析 |
 | `theme.ts` | `getAppTheme`, `getGalleryTheme`, `getNavTheme` | 主题配置 |
+| `format.ts` | `formatFileSize`, `formatResolution`, `formatMegapixels` | 文件与图片格式化 |
 
 ### Hooks (`src/hooks/`)
 
@@ -192,9 +205,7 @@ npm run generate-metadata
 
 ---
 
-## 🌐 部署
-
-## 🌐 部署 (自托管)
+## 部署 (自托管)
 
 ### 1. 准备工作
 - Linux 服务器 (Ubuntu 推荐)
@@ -203,18 +214,105 @@ npm run generate-metadata
 - Nginx (反向代理)
 
 ### 2. 部署步骤
-详见 `migration_guide.md` 文档。
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd MyBlog
+
+# 安装依赖
+npm install
+
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，配置 DATABASE_URL 等
+
+# 初始化数据库
+npm run db:init
+
+# 构建项目
+npm run build
+
+# 启动服务（使用 PM2）
+pm2 start npm --name "myblog" -- run serve
+```
 
 ### 3. 环境变量 (.env)
 
 ```bash
 PORT=3000
-DATABASE_URL=postgres://user:pass@localhost:5432/myblog
+DATABASE_URL=postgres://user:password@localhost:5432/myblog
+NODE_ENV=production
+```
+
+### 4. Nginx 配置示例
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
 ```
 
 ---
 
-## 📦 技术栈
+## 数据库管理
+
+### 初始化数据库
+
+```bash
+npm run db:init
+```
+
+该命令将创建以下数据库表：
+- `pageviews` - 文章浏览量统计
+- `comments` - 评论数据
+
+### 表结构
+
+```sql
+-- 浏览量表
+CREATE TABLE pageviews (
+    post_id VARCHAR(255) PRIMARY KEY,
+    views INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 评论表
+CREATE TABLE comments (
+    id SERIAL PRIMARY KEY,
+    post_id VARCHAR(255) NOT NULL,
+    parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+    nickname VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## API 接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/pageview?id=<postId>` | 获取文章浏览量 |
+| POST | `/api/pageview?id=<postId>` | 增加文章浏览量 |
+| GET | `/api/comments?postId=<postId>` | 获取文章评论列表 |
+| POST | `/api/comments` | 发表评论 |
+
+---
+
+## 技术栈
 
 | 类别 | 技术 |
 |------|------|
@@ -227,3 +325,21 @@ DATABASE_URL=postgres://user:pass@localhost:5432/myblog
 | 后端 | Express.js |
 | 数据库 | PostgreSQL (`pg` library) |
 | 部署 | PM2 + Nginx |
+
+---
+
+## 开发脚本
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动前端开发服务器 |
+| `npm run build` | 构建前端和后端 |
+| `npm run serve` | 启动生产服务器 |
+| `npm run db:init` | 初始化数据库表结构 |
+| `npm run generate-metadata` | 生成照片墙元数据 |
+
+---
+
+## 许可证
+
+MIT License

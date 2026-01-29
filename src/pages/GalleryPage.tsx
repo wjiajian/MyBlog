@@ -50,7 +50,7 @@ export const GalleryPage: React.FC = () => {
       };
     });
     
-    // Sort by date descending (newest first)
+    // 按日期降序排序（最新优先）
     return result.sort((a, b) => {
       if (a.date && b.date) {
         return b.date.localeCompare(a.date);
@@ -59,7 +59,7 @@ export const GalleryPage: React.FC = () => {
     });
   }, []);
 
-  // 统计 Live Photo 数量
+  // 统计实况照片数量
   const livePhotoCount = useMemo(() => {
     return images.filter(img => img.videoSrc).length;
   }, [images]);
@@ -90,7 +90,7 @@ export const GalleryPage: React.FC = () => {
 
   return (
     <div className={`min-h-screen ${theme.page}`}>
-      {/* Header */}
+      {/* 头部 */}
       <header className={`sticky top-0 z-40 backdrop-blur-xl border-b ${theme.header}`}>
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
@@ -152,7 +152,7 @@ export const GalleryPage: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* 主内容 */}
       <main className="max-w-[1800px] mx-auto px-4 sm:px-6 py-8">
         {/* 统计信息 */}
         <motion.div
@@ -180,7 +180,7 @@ export const GalleryPage: React.FC = () => {
 
       </main>
 
-      {/* Footer */}
+      {/* 页脚 */}
       <footer className={`border-t py-8 mt-16 ${theme.footer}`}>
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 text-center">
           <p className={`text-sm ${theme.footerText}`}>

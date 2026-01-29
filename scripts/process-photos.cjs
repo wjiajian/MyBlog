@@ -12,7 +12,7 @@ const MEDIUM_DIR = path.join(THUMBNAILS_DIR, 'medium');
 const TINY_DIR = path.join(THUMBNAILS_DIR, 'tiny');
 const OUTPUT_FILE = path.join(__dirname, '../src/data/images-metadata.json');
 
-// Ensure directories exist
+// 确保目录存在
 [FULL_DIR, MEDIUM_DIR, TINY_DIR].forEach(dir => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
@@ -29,7 +29,7 @@ function formatDate(date) {
 async function processPhotos() {
     console.log('🚀 Starting photo processing...');
 
-    // Load existing metadata to preserve info/dates if needed
+    // 读取已有元数据，必要时保留信息/日期
     let existingMetadata = [];
     if (fs.existsSync(OUTPUT_FILE)) {
         try {
@@ -38,12 +38,12 @@ async function processPhotos() {
     }
     const existingMap = new Map(existingMetadata.map(item => [item.filename, item]));
 
-    // 2. Scan both origin and full directory (for converted files)
-    // We prioritize origin files. If a file exists in full but not origin, it's a converted file we should keep.
+    // 2. 同时扫描 origin 与 full 目录（包含已转换文件）
+    // 优先使用 origin 文件；若仅存在于 full，视为已转换文件保留
     const originFiles = fs.existsSync(ORIGIN_DIR) ? fs.readdirSync(ORIGIN_DIR).filter(file => EXTENSIONS.test(file)) : [];
     const fullFiles = fs.existsSync(FULL_DIR) ? fs.readdirSync(FULL_DIR).filter(file => EXTENSIONS.test(file)) : [];
     
-    // Create a map of baseName -> { origin: file, full: file }
+    // 创建 baseName -> { origin, full } 的映射
     const fileMap = new Map();
     
     originFiles.forEach(file => {
@@ -65,8 +65,8 @@ async function processPhotos() {
     const newMetadata = [];
 
     for (const [baseName, locations] of fileMap) {
-        // Determine source file: use origin if available (master), else full (converted)
-        // If origin is HEIC, we will convert and optionally delete it.
+        // 确定源文件：优先 origin（原始），否则 full（已转换）
+        // 若 origin 为 HEIC，则转换并按需删除原文件
         
         let sourcePath = '';
         let file = '';
@@ -103,7 +103,7 @@ async function processPhotos() {
             let inputBuffer = fs.readFileSync(sourcePath);
             let sharpInstance;
 
-            // Extract Date using exifr
+            // 使用 exifr 提取日期
             try {
                 const meta = await exifr.parse(inputBuffer);
                 if (meta && (meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate)) {
@@ -111,7 +111,7 @@ async function processPhotos() {
                 }
             } catch (err) {}
 
-            // Fallback Date
+            // 日期兜底
             if (!date && existingMap.has(locations.origin || locations.full)) {
                 date = existingMap.get(locations.origin || locations.full).date;
             }
@@ -119,9 +119,9 @@ async function processPhotos() {
                 date = formatDate(stats.mtime);
             }
 
-            // 2. CONVERT / PREPARE IMAGE
+            // 2. 转换/准备图片
             if (isHeic) {
-                // Convert HEIC to JPEG in FULL_DIR
+                // 在 FULL_DIR 中将 HEIC 转为 JPEG
                 const outputFullCjs = path.join(FULL_DIR, `${baseName}.jpg`);
                 
                 if (!fs.existsSync(outputFullCjs)) {
@@ -140,7 +140,7 @@ async function processPhotos() {
                 fullSrcPath = `/photowall/thumbnails/full/${baseName}.jpg`;
                 finalFormat = 'JPEG';
 
-                // DELETE HEIC FROM ORIGIN (User Request)
+                // 从 origin 删除 HEIC（用户需求）
                 try {
                     console.log(`  Deleting original HEIC file: ${file}`);
                     fs.unlinkSync(sourcePath);
@@ -149,20 +149,20 @@ async function processPhotos() {
                 }
 
             } else {
-                // JPEG / PNG
+                // 常见格式图片（JPEG/PNG）
                 if (isOrigin) {
-                    // It's in origin, so we use it as is (reference it)
-                    // BUT: user structure says "full" has converted. 
-                    // If it's already jpg in origin, we can just ref it.
+                    // 位于 origin，直接使用（引用）
+                    // 但用户结构说明 full 存放已转换文件
+                    // 若 origin 已是 jpg，可直接引用
                     fullSrcPath = `/photowall/origin/${file}`;
                 } else {
-                    // It's in full (already converted previously)
+                    // 位于 full（之前已转换）
                     fullSrcPath = `/photowall/thumbnails/full/${file}`;
                 }
                 finalFormat = ext.substring(1).toUpperCase();
             }
 
-            // 3. GENERATE THUMBNAILS
+            // 3. 生成缩略图
             const mediumFsPath = path.join(MEDIUM_DIR, `${baseName}.jpg`);
             const tinyFsPath = path.join(TINY_DIR, `${baseName}.jpg`);
 
@@ -172,7 +172,7 @@ async function processPhotos() {
             height = metadata.height;
 
             if (!fs.existsSync(mediumFsPath)) {
-                // console.log(`  Generating Medium Thumbnail...`);
+                // 如需调试，可输出“生成中等缩略图...”日志
                 await sharpInstance
                     .clone()
                     .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
@@ -181,7 +181,7 @@ async function processPhotos() {
             }
 
             if (!fs.existsSync(tinyFsPath)) {
-                // console.log(`  Generating Tiny Thumbnail...`);
+                // 如需调试，可输出“生成微型缩略图...”日志
                 await sharpInstance
                     .clone()
                     .resize(50, 50, { fit: 'inside', withoutEnlargement: true })
@@ -189,18 +189,18 @@ async function processPhotos() {
                     .toFile(tinyFsPath);
             }
 
-            // 4. ADD TO METADATA
+            // 4. 写入元数据
             let videoSrc = undefined;
-            // Try to find videoSrc from existing meta
-            // Check keys for both origin and full filename
+            // 尝试从已有元数据中读取 videoSrc
+            // 同时检查 origin 与 full 的文件名
             const key = locations.origin || locations.full;
             if (existingMap.has(key)) {
                 videoSrc = existingMap.get(key).videoSrc;
             }
 
             newMetadata.push({
-                filename: key, // Use the filename we found (origin preferred)
-                originalSrc: fullSrcPath, // effectively the source we use for lightbox
+                filename: key, // 使用找到的文件名（优先 origin）
+                originalSrc: fullSrcPath, // 作为灯箱显示的实际源
                 src: fullSrcPath,
                 srcMedium: mediumPathDisplay,
                 srcTiny: tinyPathDisplay,
@@ -217,7 +217,7 @@ async function processPhotos() {
         }
     }
 
-    // Sort by date descending
+    // 按日期降序排序
     newMetadata.sort((a, b) => {
         if (a.date && b.date) {
             return b.date.localeCompare(a.date);
