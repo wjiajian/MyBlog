@@ -11,7 +11,8 @@
     "build:server": "tsc -p tsconfig.server.json",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-metadata": "node scripts/process-photos.cjs"
+    "generate-metadata": "node scripts/process-photos.cjs",
+    "db:init": "npx tsx scripts/init-db.ts"
   },
   "dependencies": {
     "buffer": "^6.0.3",
