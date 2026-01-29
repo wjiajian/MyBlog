@@ -204,7 +204,7 @@ app.get('/api/init-db', async (req: Request, res: Response) => {
 
 
 // Catch-all for SPA
-app.get('*', (req: Request, res: Response) => {
+app.get('/{*path}', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
