@@ -18,7 +18,9 @@ app.use(express.json());
 // Serve static files from dist
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, 'dist')));
+// 编译后 server.js 在 dist-server/ 目录，需要访问上级的 dist/ 目录
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
 
 // API Routes
 
@@ -205,7 +207,7 @@ app.get('/api/init-db', async (req: Request, res: Response) => {
 
 // Catch-all for SPA
 app.get('/{*path}', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
