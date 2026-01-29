@@ -1,0 +1,178 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { query } from './src/db/index.js';
+dotenv.config();
+const app = express();
+const port = process.env.PORT || 3000;
+// Middleware
+app.use(cors());
+app.use(express.json());
+// Serve static files from dist
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, 'dist')));
+// API Routes
+// Page Views API
+// 获取浏览量
+app.get('/api/pageview', async (req, res) => {
+    const postId = req.query.id;
+    if (!postId) {
+        res.status(400).json({ error: 'Missing post id' });
+        return;
+    }
+    try {
+        const result = await query('SELECT views FROM pageviews WHERE post_id = $1', [postId]);
+        res.json({ views: result.rows[0]?.views || 0 });
+    }
+    catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+// 增加浏览量
+app.post('/api/pageview', async (req, res) => {
+    const postId = req.query.id;
+    if (!postId) {
+        res.status(400).json({ error: 'Missing post id' });
+        return;
+    }
+    try {
+        const result = await query(`
+            INSERT INTO pageviews (post_id, views)
+            VALUES ($1, 1)
+            ON CONFLICT (post_id)
+            DO UPDATE SET views = pageviews.views + 1, updated_at = CURRENT_TIMESTAMP
+            RETURNING views
+        `, [postId]);
+        res.json({ views: result.rows[0].views });
+    }
+    catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+app.get('/api/comments', async (req, res) => {
+    const postId = req.query.postId;
+    if (!postId) {
+        res.status(400).json({ error: 'Missing postId' });
+        return;
+    }
+    try {
+        const result = await query(`
+            SELECT id, post_id, parent_id, nickname, content, created_at
+            FROM comments
+            WHERE post_id = $1
+            ORDER BY created_at ASC
+        `, [postId]);
+        const rows = result.rows;
+        const commentsMap = new Map();
+        const rootComments = [];
+        rows.forEach((row) => {
+            const comment = {
+                id: row.id,
+                post_id: row.post_id,
+                parent_id: row.parent_id,
+                nickname: row.nickname,
+                content: row.content,
+                created_at: row.created_at,
+                replies: [],
+            };
+            commentsMap.set(comment.id, comment);
+        });
+        rows.forEach((row) => {
+            const comment = commentsMap.get(row.id);
+            if (row.parent_id === null) {
+                rootComments.push(comment);
+            }
+            else {
+                const parent = commentsMap.get(row.parent_id);
+                if (parent) {
+                    parent.replies.push(comment);
+                }
+            }
+        });
+        rootComments.reverse();
+        res.json({ comments: rootComments, total: rows.length });
+    }
+    catch (error) {
+        console.error('Comments API error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+app.post('/api/comments', async (req, res) => {
+    const { postId, nickname, content, parentId } = req.body;
+    if (!postId || !nickname || !content) {
+        res.status(400).json({ error: '昵称和内容不能为空' });
+        return;
+    }
+    if (nickname.length < 1 || nickname.length > 50) {
+        res.status(400).json({ error: '昵称长度应在 1-50 字符之间' });
+        return;
+    }
+    if (content.length < 1 || content.length > 1000) {
+        res.status(400).json({ error: '评论内容长度应在 1-1000 字符之间' });
+        return;
+    }
+    try {
+        // Validate parentId
+        if (parentId) {
+            const parentCheck = await query('SELECT id, post_id FROM comments WHERE id = $1', [parentId]);
+            if (parentCheck.rows.length === 0) {
+                res.status(400).json({ error: '回复的父评论不存在' });
+                return;
+            }
+            if (parentCheck.rows[0].post_id !== postId) {
+                res.status(400).json({ error: '不能跨文章回复评论' });
+                return;
+            }
+        }
+        const result = await query(`
+            INSERT INTO comments (post_id, parent_id, nickname, content)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, post_id, parent_id, nickname, content, created_at
+        `, [postId, parentId || null, nickname.trim(), content.trim()]);
+        res.status(201).json({ success: true, comment: result.rows[0] });
+    }
+    catch (error) {
+        console.error('Comments API error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+// Init DB Endpoint (Optional, better to have a script but keeping API for similarity)
+app.get('/api/init-db', async (req, res) => {
+    try {
+        await query(`
+            CREATE TABLE IF NOT EXISTS pageviews (
+                post_id VARCHAR(255) PRIMARY KEY,
+                views INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+         `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                post_id VARCHAR(255) NOT NULL,
+                parent_id INTEGER REFERENCES comments(id),
+                nickname VARCHAR(100) NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+         `);
+        res.json({ success: true, message: 'Tables initialized' });
+    }
+    catch (error) {
+        console.error('Init DB error:', error);
+        res.status(500).json({ error: 'Failed to init db' });
+    }
+});
+// Catch-all for SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+app.listen(port, () => {
+    console.log(`[server]: Server is running at http://localhost:${port}`);
+});
