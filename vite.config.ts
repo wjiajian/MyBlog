@@ -17,6 +17,10 @@ const markdownLoader = (): Plugin => {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), markdownLoader()],
+  server: {
+    host: '0.0.0.0',  // 添加这行
+    port: 5173,
+  },
   // Fix esbuild loader configuration
   esbuild: {
     loader: 'tsx',
