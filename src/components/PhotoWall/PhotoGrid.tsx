@@ -2,26 +2,13 @@ import React, { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Film } from 'lucide-react';
 import type { PhotoItem } from './types';
+import { formatFileSize, formatResolution } from '../../utils/format';
 
 interface PhotoGridProps {
   images: PhotoItem[];
   columns: number;
   onImageClick: (index: number) => void;
 }
-
-// 格式化文件大小
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return '未知';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-// 格式化分辨率
-const formatResolution = (width?: number, height?: number): string => {
-  if (!width || !height) return '未知';
-  return `${width} × ${height}`;
-};
 
 export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageClick }) => {
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
@@ -35,7 +22,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageCl
     setImageDimensions(prev => new Map(prev).set(index, { w: img.naturalWidth, h: img.naturalHeight }));
   }, []);
 
-  // Live Photo 悬停播放
+  // 实况照片悬停播放
   const handleMouseEnter = useCallback((index: number) => {
     setHoveredIndex(index);
     const video = videoRefs.current.get(index);
@@ -46,8 +33,8 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageCl
   }, []);
 
   const handleMouseLeave = useCallback((index: number) => {
-    // delay clearing hover slightly to prevent flicker if mouse moves fast? No, instant is better for stop.
-    // original logic:
+    // 原本考虑延迟清除悬停以防止鼠标快速移动导致闪烁，但立即停止更合适
+    // 原始逻辑：
     const video = videoRefs.current.get(index);
     if (video) {
       video.pause();
@@ -74,7 +61,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageCl
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.03 }}
-            className="photowall-item group relative mb-1.5 break-inside-avoid cursor-pointer overflow-hidden rounded-lg" // Added rounded-lg for cleaner look
+            className="photowall-item group relative mb-1.5 break-inside-avoid cursor-pointer overflow-hidden rounded-lg" // 添加 rounded-lg 让外观更干净
             onClick={() => onImageClick(index)}
             onMouseEnter={() => handleMouseEnter(index)}
             onMouseLeave={() => handleMouseLeave(index)}
@@ -93,7 +80,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageCl
               `}
             />
 
-            {/* Live Photo 视频 */}
+            {/* 实况照片视频 */}
             {isLivePhoto && (
               <video
                 ref={el => { if (el) videoRefs.current.set(index, el); }}
@@ -114,7 +101,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageCl
               <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse" />
             )}
 
-            {/* Live Photo 标识 */}
+            {/* 实况照片标识 */}
             {isLivePhoto && loadedImages.has(index) && (
               <div className="absolute top-3 left-3 z-10 transition-opacity duration-300 group-hover:opacity-0">
                 <div className="bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
@@ -124,7 +111,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({ images, columns, onImageCl
               </div>
             )}
 
-            {/* Hover 遮罩 */}
+            {/* 悬停遮罩 */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               {/* 底部信息 - 文件名 + 格式 + 分辨率 + 大小 */}
               <div className="absolute bottom-0 left-0 right-0 p-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">

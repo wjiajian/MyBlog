@@ -71,7 +71,7 @@ function App() {
     return matchesTab && matchesCategory;
   });
 
-  // Group posts by year
+  // 按年份分组文章
   const postsByYear = filteredPosts.reduce((acc, post) => {
     if (!acc[post.year]) {
       acc[post.year] = [];
@@ -133,7 +133,7 @@ function App() {
         }
       },
       {
-        root: null, // viewport
+        root: null, // 视口
         rootMargin: '-20% 0px -60% 0px', // 上方留20%，下方留60%，中间区域触发
         threshold: 0.1,
       }
@@ -351,7 +351,7 @@ function App() {
         </main>
       </div>
 
-      {/* Full Screen Overlay for Selected Album */}
+      {/* 选中相册的全屏遮罩 */}
       {/* ====== 展开弹窗配置区域 ====== */}
       <AnimatePresence>
         {selectedId && selectedPost && (

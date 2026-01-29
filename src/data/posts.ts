@@ -13,6 +13,7 @@ export interface PostMeta {
   title: string;
   year: number;
   date: string; // 显示格式: "Jan 07"
+  _sortDate: string; // 内部使用的 ISO 日期 (YYYY-MM-DD)，用于排序
   description: string;
   coverImage: string;
   categories: string;
@@ -77,7 +78,7 @@ function parseMarkdownFile(rawContent: string, filePath: string): Post | null {
 
     const postType = data.type || 'tech';
     
-    // date 可能是 Date 对象或字符串
+    // 日期可能是日期对象或字符串
     let isoDate = data.date;
     if (isoDate instanceof Date) {
       isoDate = isoDate.toISOString().split('T')[0];
@@ -90,6 +91,7 @@ function parseMarkdownFile(rawContent: string, filePath: string): Post | null {
       title: data.title,
       year: data.year || new Date().getFullYear(),
       date: formatDateForDisplay(isoDate),
+      _sortDate: isoDate, // 保留完整 ISO 日期用于排序
       description: data.description || '',
       coverImage: data.coverImage || '',
       categories: data.categories || '',
@@ -126,8 +128,14 @@ function loadAllPosts(): Post[] {
     }
   }
 
-  // 按日期降序排序
-  posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // 按年份和日期降序排序（先按 year 降序，再按完整 ISO 日期降序）
+  posts.sort((a, b) => {
+    if (a.year !== b.year) {
+      return b.year - a.year; // 年份降序
+    }
+    // 同一年份内按 ISO 日期降序
+    return new Date(b._sortDate).getTime() - new Date(a._sortDate).getTime();
+  });
 
   return posts;
 }

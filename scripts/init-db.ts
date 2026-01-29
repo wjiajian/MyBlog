@@ -1,6 +1,6 @@
 /**
- * Database Initialization Script
- * 
+ * 数据库初始化脚本
+ *
  * 用于初始化 PostgreSQL 数据库表结构
  * 运行方式: npm run db:init
  */
@@ -31,12 +31,12 @@ async function initDatabase(): Promise<void> {
   }
 
   try {
-    // Test connection
+    // 测试连接
     console.log("🔌 Testing database connection...");
     await pool.query("SELECT NOW()");
     console.log("✅ Database connection successful!");
 
-    // Create pageviews table
+    // 创建 pageviews 表
     console.log("📊 Creating pageviews table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS pageviews (
@@ -48,7 +48,7 @@ async function initDatabase(): Promise<void> {
     `);
     console.log("✅ pageviews table ready!");
 
-    // Create comments table
+    // 创建 comments 表
     console.log("💬 Creating comments table...");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS comments (
@@ -62,7 +62,7 @@ async function initDatabase(): Promise<void> {
     `);
     console.log("✅ comments table ready!");
 
-    // Create indexes for better performance
+    // 创建索引以提升性能
     console.log("🔍 Creating indexes...");
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
@@ -89,5 +89,5 @@ async function initDatabase(): Promise<void> {
   }
 }
 
-// Run the initialization
+// 执行初始化
 initDatabase();
