@@ -9,7 +9,7 @@ import { query }  from './src/db/index.js';
 dotenv.config();
 
 const app: Express = express();
-const port = process.env.PORT || 3000;
+const port = parseInt(process.env.PORT || '3000', 10);
 
 // Middleware
 app.use(cors());
