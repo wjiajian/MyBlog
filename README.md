@@ -1,6 +1,6 @@
 # 📘 Jiajian's Blog
 
-基于 **React + TypeScript + Vite** 构建的现代博客，部署于 **Vercel**，通过 **Cloudflare** CDN 加速。
+基于 **React + TypeScript + Vite + Express + PostgreSQL** 构建的现代博客，支持 **自托管 (Self-Hosted)** 部署。
 
 ---
 
@@ -17,9 +17,10 @@ npm run dev
 
 ```
 MyBlog/
-├── api/                    # Vercel Serverless API
-│   ├── comments.ts         # 评论系统 API
-│   └── pageview.ts         # 页面浏览量 API
+├── dist-server/        # 服务端构建产物 (自动生成)
+├── server.ts           # Express 后端服务器入口
+├── src/
+│   ├── db/             # 数据库连接 (PostgreSQL)
 ├── public/
 │   ├── images/             # 文章图片资源
 │   ├── resources/          # 网站资源（背景/头像等）
@@ -131,25 +132,25 @@ MyBlog/
 ## ✍️ 发布文章
 
 1. 在 `src/content/tech/` 或 `src/content/life/` 创建 `.md` 文件
-2. 在 `src/data/posts.ts` 中注册：
+1. 在 `src/content/tech/` 或 `src/content/life/` 创建 `.md` 文件
+2. 文件头添加 Frontmatter 元数据：
 
-```typescript
-import myPost from '../content/tech/my-post.md';
-
-// 添加到 posts 数组
-{
-  id: 'my-post',
-  title: '文章标题',
-  year: 2026,
-  date: 'Jan 23',
-  type: 'tech',  // 'tech' | 'life'
-  description: '简介...',
-  coverImage: '/images/xxx/cover.png',
-  headerImage: '/images/xxx/header.jpg',  // 可选
-  link: '/posts/my-post',
-  content: myPost,
-}
+```markdown
+---
+slug: my-post-id
+title: 文章标题
+date: 2026-01-29
+type: tech  # tech | life
+description: 简介...
+coverImage: /images/xxx/cover.png
+categories: 技术笔记
+tags: 
+  - React
+  - Node.js
+---
 ```
+
+3. `posts.ts` 会自动扫描并加载所有 `.md` 文件，无需手动注册！
 
 ### 图片规格
 
@@ -193,20 +194,23 @@ npm run generate-metadata
 
 ## 🌐 部署
 
-### Vercel
+## 🌐 部署 (自托管)
 
-已配置 `vercel.json`，连接 GitHub 即可自动部署。
+### 1. 准备工作
+- Linux 服务器 (Ubuntu 推荐)
+- Node.js v20+
+- PostgreSQL 数据库
+- Nginx (反向代理)
 
-### 环境变量
+### 2. 部署步骤
+详见 `migration_guide.md` 文档。
 
-| 变量 | 说明 |
-|------|------|
-| `POSTGRES_URL` | Vercel Postgres 连接字符串 |
-| `ALLOWED_ORIGINS` | 评论 API 域名白名单（逗号分隔） |
+### 3. 环境变量 (.env)
 
-### Cloudflare 加速
-
-添加域名 → DNS 指向 Vercel → 开启代理（橙色云朵）
+```bash
+PORT=3000
+DATABASE_URL=postgres://user:pass@localhost:5432/myblog
+```
 
 ---
 
@@ -219,6 +223,7 @@ npm run generate-metadata
 | 样式 | Tailwind CSS 3 |
 | 动画 | Framer Motion |
 | 路由 | React Router 7 |
-| Markdown | react-markdown + remark-gfm + rehype-highlight |
-| 后端 | Vercel Serverless + Postgres |
-| 部署 | Vercel + Cloudflare CDN |
+| Markdown | react-markdown + remark-gfm |
+| 后端 | Express.js |
+| 数据库 | PostgreSQL (`pg` library) |
+| 部署 | PM2 + Nginx |

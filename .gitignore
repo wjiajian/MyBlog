@@ -23,11 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
-# skills
+# Agent/skill files
 .agent/
 .shared/
 
-# env
+# Environment
 .env.local
-node_modules
-.envdist-server
+.env
+dist-server
