@@ -1,0 +1,44 @@
+name: Deploy to Aliyun
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy using SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            # 请将下面的 /path/to/your/project 替换为您服务器上的实际项目路径
+            # 例如: cd /www/wwwroot/myblog
+            cd /home/MyBlog
+
+            # 拉取最新代码
+            echo "Starting deployment..."
+            git pull origin main
+
+            # 安装依赖（防止有新依赖加入）
+            echo "Installing dependencies..."
+            npm install
+
+            # 构建服务端代码 (必须！因为 build 只构建前端)
+            echo "Building server..."
+            npm run build:server
+
+            # 构建前端项目
+            echo "Building project..."
+            npm run build
+
+            # 重启 PM2 服务
+            echo "Restarting PM2 process..."
+            pm2 restart myblog
+
+            echo "Deployment complete!"
