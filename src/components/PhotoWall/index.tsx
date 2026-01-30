@@ -4,7 +4,7 @@ import type { PhotoItem } from './types';
 import { PhotoGrid } from './PhotoGrid';
 import { Lightbox } from './Lightbox';
 
-// Re-export types for consumers
+// 重新导出类型供外部使用
 export type { PhotoItem };
 
 export interface PhotoWallProps {

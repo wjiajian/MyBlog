@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     // ====== 可配置项：主题感知头部 ======
-    // fixed: 固定定位，不随页面滚动
+    // 固定定位：不随页面滚动
     <header className="fixed top-0 left-0 w-full p-8 z-50 flex justify-end items-start pointer-events-none">
       {/* 右侧导航栏 */}
       <div className={`pointer-events-auto backdrop-blur-md px-2 py-1.5 rounded-xl border shadow-sm flex items-center gap-2 ${navContainerClass}`}>
