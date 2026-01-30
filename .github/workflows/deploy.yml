@@ -37,8 +37,9 @@ jobs:
             echo "Building project..."
             npm run build
 
-            # 重启 PM2 服务
-            echo "Restarting PM2 process..."
-            pm2 restart myblog
+            # 重启 PM2 服务 (先删除再启动，避免重复进程)
+            echo "🔄 Reloading PM2..."
+            pm2 delete myblog || true
+            pm2 start npm --name "myblog" -- run serve
 
             echo "Deployment complete!"
