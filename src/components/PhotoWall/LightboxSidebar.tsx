@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Film } from 'lucide-react';
 import type { PhotoItem } from './types';
 import { PhotoCommentSection } from '../PhotoCommentSection';
+import { formatFileSize, formatResolution, formatMegapixels } from '../../utils/format';
 
 interface LightboxSidebarProps {
   selectedImage: PhotoItem;
@@ -10,27 +11,6 @@ interface LightboxSidebarProps {
   currentIndex: number;
   onNavigate: (index: number) => void;
 }
-
-// 格式化文件大小
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return '未知';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-// 格式化分辨率
-const formatResolution = (width?: number, height?: number): string => {
-  if (!width || !height) return '未知';
-  return `${width} × ${height}`;
-};
-
-// 计算像素数
-const formatMegapixels = (width?: number, height?: number): string => {
-  if (!width || !height) return '未知';
-  const mp = (width * height) / 1000000;
-  return `${mp.toFixed(1)} MP`;
-};
 
 export const LightboxSidebar: React.FC<LightboxSidebarProps> = ({
   selectedImage,
@@ -44,7 +24,7 @@ export const LightboxSidebar: React.FC<LightboxSidebarProps> = ({
   return (
     <div className="w-80 bg-[#1a1a1a] border-l border-white/10 flex flex-col h-screen shrink-0 relative z-50">
       <div className="p-4 flex flex-col flex-1 min-h-0 overflow-hidden">
-        {/* Tab switcher */}
+        {/* 标签切换 */}
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setActiveTab('info')}
@@ -121,7 +101,7 @@ export const LightboxSidebar: React.FC<LightboxSidebarProps> = ({
               <h3 className="text-white/50 text-xs uppercase tracking-wider mb-3">快速预览</h3>
               <div className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-hide">
                 {images.map((image, i) => {
-                  // Only show thumbnails within +/- 15 range to perform better
+                  // 仅渲染当前索引前后 15 张缩略图以提升性能
                   if (Math.abs(i - currentIndex) > 15) return null;
                   
                   const isActive = i === currentIndex;
@@ -149,7 +129,7 @@ export const LightboxSidebar: React.FC<LightboxSidebarProps> = ({
                           loading="lazy"
                           className="w-full h-full object-cover"
                         />
-                        {/* Live Photo 标识 */}
+                        {/* 实况照片标识 */}
                         {image.videoSrc && (
                           <div className="absolute top-1 left-1">
                             <Film size={10} className="text-white drop-shadow-lg" />
@@ -178,7 +158,7 @@ export const LightboxSidebar: React.FC<LightboxSidebarProps> = ({
             </div>
           </>
         ) : (
-          /* Comment tab content */
+          /* 评论标签内容 */
           <div className="flex-1 overflow-hidden p-4">
             <PhotoCommentSection photoId={selectedImage.filename} />
           </div>
