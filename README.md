@@ -233,6 +233,9 @@ npm run db:init
 # 构建项目
 npm run build
 
+# 构建服务器
+npm run build:server
+
 # 启动服务（使用 PM2）
 pm2 start npm --name "myblog" -- run serve
 
