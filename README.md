@@ -235,6 +235,15 @@ npm run build
 
 # 启动服务（使用 PM2）
 pm2 start npm --name "myblog" -- run serve
+
+# 停止服务
+pm2 stop myblog
+
+# 重启服务
+pm2 restart myblog
+
+# 删除服务
+pm2 delete myblog
 ```
 
 ### 3. 环境变量 (.env)
@@ -267,7 +276,23 @@ server {
 
 ## 数据库管理
 
-### 初始化数据库
+### 创建数据库
+
+在初始化表结构之前，需要先创建 PostgreSQL 数据库：
+
+```bash
+# 方式一：使用 createdb 命令
+sudo -u postgres createdb myblog
+
+# 方式二：进入 PostgreSQL 交互式终端创建
+sudo -u postgres psql
+CREATE DATABASE myblog;
+CREATE USER myblog_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE myblog TO myblog_user;
+\q
+```
+
+### 初始化数据库表
 
 ```bash
 npm run db:init
