@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { PhotoItem } from './types';
 import { PhotoGrid } from './PhotoGrid';
 import { Lightbox } from './Lightbox';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // 重新导出类型供外部使用
 export type { PhotoItem };
@@ -16,7 +17,12 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
   images, 
   columns = 4 
 }) => {
+  const isMobile = useIsMobile();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  
+  // 触摸滑动相关状态
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   // 处理键盘导航
   useEffect(() => {
@@ -68,6 +74,34 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
     );
   }, [images.length]);
 
+  // 移动端触摸滑动处理
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50; // 滑动阈值
+    
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        // 左滑 -> 下一张
+        navigateNext();
+      } else {
+        // 右滑 -> 上一张
+        navigatePrev();
+      }
+    }
+    
+    // 重置
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  }, [navigateNext, navigatePrev]);
+
   return (
     <>
       <PhotoGrid 
@@ -78,14 +112,20 @@ export const PhotoWall: React.FC<PhotoWallProps> = ({
 
       <AnimatePresence>
         {selectedIndex !== null && (
-          <Lightbox
-            images={images}
-            selectedIndex={selectedIndex}
-            onClose={() => setSelectedIndex(null)}
-            onPrev={navigatePrev}
-            onNext={navigateNext}
-            onNavigate={setSelectedIndex}
-          />
+          <div
+            onTouchStart={isMobile ? handleTouchStart : undefined}
+            onTouchMove={isMobile ? handleTouchMove : undefined}
+            onTouchEnd={isMobile ? handleTouchEnd : undefined}
+          >
+            <Lightbox
+              images={images}
+              selectedIndex={selectedIndex}
+              onClose={() => setSelectedIndex(null)}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              onNavigate={setSelectedIndex}
+            />
+          </div>
         )}
       </AnimatePresence>
     </>

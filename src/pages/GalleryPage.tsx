@@ -12,9 +12,11 @@ import { safeGetItem, safeSetItem } from '../utils/storage';
 import { getGalleryTheme } from '../utils/theme';
 
 import { useDebouncedCallback } from '../hooks/useDebounce';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { GallerySkeleton } from '../components/Skeleton';
 
 export const GalleryPage: React.FC = () => {
+  const isMobile = useIsMobile();
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
   // 主题状态：默认亮色
@@ -70,12 +72,13 @@ export const GalleryPage: React.FC = () => {
   }, []);
 
   // 响应式列数 - 使用防抖
+  // 移动端强制 1 列布局，平板和桌面端需要更多列数
   const handleResize = useDebouncedCallback(() => {
     const width = window.innerWidth;
-    if (width < 640) setColumns(2);
-    else if (width < 1024) setColumns(3);
-    else if (width < 1536) setColumns(4);
-    else setColumns(5);
+    if (width < 768) setColumns(1);  // 移动端：1 列
+    else if (width < 1024) setColumns(2); // 平板：2 列
+    else if (width < 1536) setColumns(4); // 桌面：4 列
+    else setColumns(5); // 大屏：5 列
   }, 200);
 
   useEffect(() => {
@@ -103,9 +106,9 @@ export const GalleryPage: React.FC = () => {
               <span className="font-medium">返回首页</span>
             </a>
 
-            {/* 标题 */}
-            <h1 className="text-xl font-bold tracking-tight">
-            Photo Wall
+            {/* 标题 - 移动端居中显示 */}
+            <h1 className={`text-xl font-bold tracking-tight ${isMobile ? 'absolute left-1/2 -translate-x-1/2' : ''}`}>
+              Photo Wall
             </h1>
 
             {/* 右侧控制区 */}
@@ -123,30 +126,32 @@ export const GalleryPage: React.FC = () => {
                 )}
               </button>
 
-              {/* 列数控制 */}
-              <div className={`flex items-center gap-2 rounded-lg p-1 ${theme.controlBg}`}>
-                <button
-                  onClick={() => setColumns(3)}
-                  className={`p-2 rounded transition-colors cursor-pointer ${theme.controlBtn(columns === 3)}`}
-                  title="3 列"
-                >
-                  <Rows3 size={18} />
-                </button>
-                <button
-                  onClick={() => setColumns(4)}
-                  className={`p-2 rounded transition-colors cursor-pointer ${theme.controlBtn(columns === 4)}`}
-                  title="4 列"
-                >
-                  <LayoutGrid size={18} />
-                </button>
-                <button
-                  onClick={() => setColumns(5)}
-                  className={`p-2 rounded transition-colors cursor-pointer ${theme.controlBtn(columns === 5)}`}
-                  title="5 列"
-                >
-                  <Grid3X3 size={18} />
-                </button>
-              </div>
+              {/* 列数控制 - 移动端隐藏（固定 1 列） */}
+              {!isMobile && (
+                <div className={`flex items-center gap-2 rounded-lg p-1 ${theme.controlBg}`}>
+                  <button
+                    onClick={() => setColumns(2)}
+                    className={`p-2 rounded transition-colors cursor-pointer ${theme.controlBtn(columns === 2)}`}
+                    title="2 列"
+                  >
+                    <Rows3 size={18} />
+                  </button>
+                  <button
+                    onClick={() => setColumns(4)}
+                    className={`p-2 rounded transition-colors cursor-pointer ${theme.controlBtn(columns === 4)}`}
+                    title="4 列"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                  <button
+                    onClick={() => setColumns(5)}
+                    className={`p-2 rounded transition-colors cursor-pointer ${theme.controlBtn(columns === 5)}`}
+                    title="5 列"
+                  >
+                    <Grid3X3 size={18} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
