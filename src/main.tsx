@@ -25,7 +25,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
        <Routes>
          {/* 前台路由 */}
          <Route path="/" element={<App />} />
-         <Route path="/posts/:id" element={<BlogPost />} />
          <Route path="/tech/:id" element={<BlogPost />} />
          <Route path="/life/:id" element={<BlogPost />} />
          <Route path="/about" element={<About />} />

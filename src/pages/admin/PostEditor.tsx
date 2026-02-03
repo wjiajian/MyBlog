@@ -1,22 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Save, 
   ArrowLeft, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Image,
+  X
 } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import { authFetch } from '../../utils/auth';
 
 interface PostData {
   title: string;
+  slug?: string;
   content: string;
   type: 'tech' | 'life';
   categories: string;
   description: string;
   date: string;
+  coverImage: string;
 }
 
 /**
@@ -31,15 +36,54 @@ export const PostEditor: React.FC = () => {
 
   const [postData, setPostData] = useState<PostData>({
     title: '',
+    slug: '',
     content: '',
     type: 'tech',
     categories: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
+    coverImage: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [error, setError] = useState('');
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  // 上传封面图片
+  const handleCoverUpload = async (file: File) => {
+    if (!file) return;
+    
+    setIsUploadingCover(true);
+    setError('');
+    
+    try {
+      const formData = new FormData();
+      formData.append('cover', file);
+      // 将 slug 作为 query 参数传递，确保后端能第一时间获取到
+      // 如果没有 slug，使用标题或默认值
+      const folderName = postData.slug || postData.title || `cover-${Date.now()}`;
+      // const safeSlug = encodeURIComponent(postData.slug || '');
+      // formData.append('folderName', folderName);
+      
+      const response = await authFetch(`/api/posts/upload-cover?slug=${encodeURIComponent(postData.slug || '')}`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPostData({ ...postData, coverImage: data.url });
+      } else {
+        setError(data.error || '上传封面失败');
+      }
+    } catch (err) {
+      setError('上传封面图片失败');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
 
   // 加载文章内容（编辑模式）
   useEffect(() => {
@@ -51,11 +95,13 @@ export const PostEditor: React.FC = () => {
           if (data.meta) {
             setPostData({
               title: data.meta.title || '',
+              slug: filename?.replace('.md', ''), // 编辑时从文件名获取 slug
               content: data.content || '',
               type: type as 'tech' | 'life',
               categories: data.meta.categories || '',
               description: data.meta.description || '',
               date: data.meta.date ? String(data.meta.date) : '',
+              coverImage: data.meta.coverImage || '',
             });
           }
         })
@@ -166,6 +212,17 @@ export const PostEditor: React.FC = () => {
                 placeholder="文章标题"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-gray-600 text-sm mb-2">Slug (URL路径/文件名) <span className="text-xs text-gray-400 font-normal">可选，留空将使用标题</span></label>
+              <input
+                type="text"
+                value={postData.slug || ''}
+                onChange={(e) => setPostData({ ...postData, slug: e.target.value })}
+                disabled={isEditing} // 编辑模式下文件名不可改
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="my-awesome-post"
+              />
+            </div>
             <div>
               <label className="block text-gray-600 text-sm mb-2">类型</label>
               <select
@@ -197,7 +254,7 @@ export const PostEditor: React.FC = () => {
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-800 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
-            <div className="md:col-span-2 lg:col-span-3">
+            <div className="md:col-span-2 lg:col-span-2">
               <label className="block text-gray-600 text-sm mb-2">描述</label>
               <input
                 type="text"
@@ -206,6 +263,58 @@ export const PostEditor: React.FC = () => {
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="文章简短描述"
               />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-gray-600 text-sm mb-2">封面图片</label>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={postData.coverImage}
+                  onChange={(e) => setPostData({ ...postData, coverImage: e.target.value })}
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="封面图片URL，或点击右侧上传"
+                />
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {isUploadingCover ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Upload size={18} />
+                  )}
+                  上传
+                </button>
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(e) => e.target.files?.[0] && handleCoverUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+              {/* 封面预览 */}
+              {postData.coverImage && (
+                <div className="mt-3 relative inline-block">
+                  <img
+                    src={postData.coverImage}
+                    alt="封面预览"
+                    className="h-24 rounded-lg object-cover border border-gray-200"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPostData({ ...postData, coverImage: '' })}
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

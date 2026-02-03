@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { posts } from '../../data/posts';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { usePost } from '../../hooks/usePosts';
 
 import { BlogHeader } from './BlogHeader';
 import { TableOfContents, extractToc } from './TableOfContents';
@@ -8,7 +9,10 @@ import { BlogContent } from './BlogContent';
 
 export const BlogPost: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const post = posts.find(p => p.id === id);
+  const location = useLocation();
+  // 从 URL 路径解析 type (如 /tech/xxx 或 /life/xxx)
+  const type = location.pathname.startsWith('/life') ? 'life' : 'tech';
+  const { post, isLoading, error } = usePost(type, id);
   const [activeId, setActiveId] = useState<string>('');
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [views, setViews] = useState<number | null>(null);
@@ -83,11 +87,21 @@ export const BlogPost: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (!post) {
+  // 加载状态
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa]">
+        <Loader2 size={32} className="animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // 错误或未找到
+  if (error || !post) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa] text-gray-900">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Post not found</h1>
+          <h1 className="text-4xl font-bold mb-4">{error || 'Post not found'}</h1>
           <Link to="/" className="text-blue-600 hover:text-blue-800 transition-colors underline">Return Home</Link>
         </div>
       </div>

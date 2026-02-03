@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import type { Post } from '../data/posts';
+import type { Post } from '../hooks/usePosts';
 import { ArrowUpRight, X } from 'lucide-react';
 import clsx from 'clsx';
 import { ProgressiveImage } from './ProgressiveImage';
