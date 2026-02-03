@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { posts } from '../data/posts';
+import { usePosts, type Post } from '../hooks/usePosts';
 
 // 预定义颜色池（Tailwind 颜色类）
 const colorPool = [
@@ -27,18 +27,38 @@ const getCategoryColor = (category: string): string => {
   return colorPool[hash % colorPool.length];
 };
 
+// 解析日期获取月日
+const parseDate = (dateStr: string): { month: number; day: number } => {
+  const monthMap: Record<string, number> = {
+    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+  };
+  const parts = dateStr.split(' ');
+  return {
+    month: monthMap[parts[0]] || 1,
+    day: parseInt(parts[1]) || 1
+  };
+};
+
 
 export const TimelinePage: React.FC = () => {
-  // 按年份分组文章
-  const postsByYear = posts.reduce((acc, post) => {
-    if (!acc[post.year]) {
-      acc[post.year] = [];
-    }
-    acc[post.year].push(post);
-    return acc;
-  }, {} as Record<number, typeof posts>);
+  const { posts, isLoading } = usePosts();
 
-  const sortedYears = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
+  // 按年份分组文章
+  const postsByYear = useMemo(() => {
+    return posts.reduce((acc, post) => {
+      if (!acc[post.year]) {
+        acc[post.year] = [];
+      }
+      acc[post.year].push(post);
+      return acc;
+    }, {} as Record<number, Post[]>);
+  }, [posts]);
+
+  const sortedYears = useMemo(() => {
+    return Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
+  }, [postsByYear]);
+
   const totalPosts = posts.length;
 
   // 计算年度进度
@@ -48,19 +68,6 @@ export const TimelinePage: React.FC = () => {
   const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const totalDays = Math.floor((endOfYear.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
   const yearProgress = ((dayOfYear / totalDays) * 100).toFixed(4);
-
-  // 解析日期获取月日
-  const parseDate = (dateStr: string): { month: number; day: number } => {
-    const monthMap: Record<string, number> = {
-      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
-    };
-    const parts = dateStr.split(' ');
-    return {
-      month: monthMap[parts[0]] || 1,
-      day: parseInt(parts[1]) || 1
-    };
-  };
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
@@ -95,74 +102,81 @@ export const TimelinePage: React.FC = () => {
               <p className="text-sm text-gray-400">活在当下，珍惜眼下</p>
             </div>
 
-            {/* 时间线列表 */}
-            <div className="space-y-8">
-              {sortedYears.map((year, yearIndex) => (
-                <motion.div
-                  key={year}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: yearIndex * 0.1 }}
-                >
-                  {/* 年份标题 */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-1 h-6 bg-gray-300 rounded-full" />
-                    <h2 className="text-xl font-bold text-gray-800">{year}</h2>
-                    <span className="text-sm text-gray-400">({postsByYear[year].length})</span>
-                  </div>
+            {/* 加载状态 */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin text-gray-400" />
+              </div>
+            ) : (
+              /* 时间线列表 */
+              <div className="space-y-8">
+                {sortedYears.map((year, yearIndex) => (
+                  <motion.div
+                    key={year}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: yearIndex * 0.1 }}
+                  >
+                    {/* 年份标题 */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-1 h-6 bg-gray-300 rounded-full" />
+                      <h2 className="text-xl font-bold text-gray-800">{year}</h2>
+                      <span className="text-sm text-gray-400">({postsByYear[year].length})</span>
+                    </div>
 
-                  {/* 该年文章列表 */}
-                  <div className="ml-4 border-l-2 border-gray-200 pl-6 space-y-3">
-                    {postsByYear[year]
-                      .slice()
-                      .sort((a, b) => {
-                        const dateA = parseDate(a.date);
-                        const dateB = parseDate(b.date);
-                        // 降序排序：先按月份，再按日期
-                        if (dateB.month !== dateA.month) return dateB.month - dateA.month;
-                        return dateB.day - dateA.day;
-                      })
-                      .map((post, postIndex) => {
-                      const { month, day } = parseDate(post.date);
-                      const categoryColor = getCategoryColor(post.categories || '');
-                      
-                      return (
-                        <motion.div
-                          key={post.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.3, delay: yearIndex * 0.1 + postIndex * 0.05 }}
-                          className="relative flex items-start gap-4 group"
-                        >
-                          {/* 时间线圆点 */}
-                          <div className="absolute -left-[31px] top-1.5 w-3 h-3 bg-pink-400 rounded-full border-2 border-white shadow-sm" />
-                          
-                          {/* 日期 */}
-                          <span className="text-sm text-gray-400 font-mono w-12 flex-shrink-0">
-                            {String(month).padStart(2, '0')}/{String(day).padStart(2, '0')}
-                          </span>
-                          
-                          {/* 文章标题 */}
-                          <Link
-                            to={post.link}
-                            className="flex-1 text-gray-700 hover:text-gray-900 transition-colors group-hover:underline"
+                    {/* 该年文章列表 */}
+                    <div className="ml-4 border-l-2 border-gray-200 pl-6 space-y-3">
+                      {postsByYear[year]
+                        .slice()
+                        .sort((a, b) => {
+                          const dateA = parseDate(a.date);
+                          const dateB = parseDate(b.date);
+                          // 降序排序：先按月份，再按日期
+                          if (dateB.month !== dateA.month) return dateB.month - dateA.month;
+                          return dateB.day - dateA.day;
+                        })
+                        .map((post, postIndex) => {
+                        const { month, day } = parseDate(post.date);
+                        const categoryColor = getCategoryColor(post.categories || '');
+                        
+                        return (
+                          <motion.div
+                            key={post.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3, delay: yearIndex * 0.1 + postIndex * 0.05 }}
+                            className="relative flex items-start gap-4 group"
                           >
-                            {post.title}
-                          </Link>
-                          
-                          {/* 分类标签 */}
-                          {post.categories && (
-                            <span className={`text-sm ${categoryColor} flex-shrink-0`}>
-                              {post.categories}
+                            {/* 时间线圆点 */}
+                            <div className="absolute -left-[31px] top-1.5 w-3 h-3 bg-pink-400 rounded-full border-2 border-white shadow-sm" />
+                            
+                            {/* 日期 */}
+                            <span className="text-sm text-gray-400 font-mono w-12 flex-shrink-0">
+                              {String(month).padStart(2, '0')}/{String(day).padStart(2, '0')}
                             </span>
-                          )}
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                            
+                            {/* 文章标题 */}
+                            <Link
+                              to={post.link}
+                              className="flex-1 text-gray-700 hover:text-gray-900 transition-colors group-hover:underline"
+                            >
+                              {post.title}
+                            </Link>
+                            
+                            {/* 分类标签 */}
+                            {post.categories && (
+                              <span className={`text-sm ${categoryColor} flex-shrink-0`}>
+                                {post.categories}
+                              </span>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </main>
       </div>

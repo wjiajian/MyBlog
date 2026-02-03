@@ -4,18 +4,27 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { query } from './src/db/index.js';
+import authRoutes from './src/routes/auth.js';
+import postsRoutes from './src/routes/posts.js';
+import photosRoutes from './src/routes/photos.js';
 dotenv.config();
 const app = express();
-const port = process.env.PORT || 3000;
-// Middleware
+const port = parseInt(process.env.PORT || '3000', 10);
+// 中间件
 app.use(cors());
 app.use(express.json());
-// Serve static files from dist
+// 提供 dist 静态资源
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, 'dist')));
-// API Routes
-// Page Views API
+// 编译后 server.js 在 dist-server/ 目录，需要访问上级的 dist/ 目录
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+// 接口路由
+// 注册管理 API 路由
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postsRoutes);
+app.use('/api/photos', photosRoutes);
+// 浏览量 API
 // 获取浏览量
 app.get('/api/pageview', async (req, res) => {
     const postId = req.query.id;
@@ -117,7 +126,7 @@ app.post('/api/comments', async (req, res) => {
         return;
     }
     try {
-        // Validate parentId
+        // 校验 parentId
         if (parentId) {
             const parentCheck = await query('SELECT id, post_id FROM comments WHERE id = $1', [parentId]);
             if (parentCheck.rows.length === 0) {
@@ -141,38 +150,10 @@ app.post('/api/comments', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
-// Init DB Endpoint (Optional, better to have a script but keeping API for similarity)
-app.get('/api/init-db', async (req, res) => {
-    try {
-        await query(`
-            CREATE TABLE IF NOT EXISTS pageviews (
-                post_id VARCHAR(255) PRIMARY KEY,
-                views INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-         `);
-        await query(`
-            CREATE TABLE IF NOT EXISTS comments (
-                id SERIAL PRIMARY KEY,
-                post_id VARCHAR(255) NOT NULL,
-                parent_id INTEGER REFERENCES comments(id),
-                nickname VARCHAR(100) NOT NULL,
-                content TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-         `);
-        res.json({ success: true, message: 'Tables initialized' });
-    }
-    catch (error) {
-        console.error('Init DB error:', error);
-        res.status(500).json({ error: 'Failed to init db' });
-    }
+// 单页应用兜底路由
+app.use((req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
 });
-// Catch-all for SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-app.listen(port, () => {
-    console.log(`[server]: Server is running at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`[server]: Server is running at http://0.0.0.0:${port}`);
 });

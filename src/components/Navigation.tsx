@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock, Image, Users } from 'lucide-react';
-import { posts } from '../data/posts';
+import { usePosts } from '../hooks/usePosts';
 
 interface NavigationProps {
   onCategoryChange?: (category: string | null) => void;
@@ -31,6 +31,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { posts } = usePosts();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -44,23 +45,26 @@ export const Navigation: React.FC<NavigationProps> = ({
   const theme = getNavTheme(darkMode);
 
   // 获取所有唯一分类
-  const categories = Array.from(new Set(posts.map(p => p.categories).filter(Boolean))) as string[];
+  const categories = useMemo(() => {
+    return Array.from(new Set(posts.map(p => p.categories).filter(Boolean))) as string[];
+  }, [posts]);
 
   // 搜索结果：严格精确匹配
-  const searchResults = searchQuery.trim() 
-    ? posts.filter(post => {
-        const query = searchQuery.trim();
-        // 优先匹配标题（最相关）
-        if (exactMatch(post.title, query)) return true;
-        // 匹配标签（精确）
-        if (post.tags?.some(tag => exactMatch(tag, query))) return true;
-        // 匹配描述
-        if (exactMatch(post.description, query)) return true;
-        // 匹配正文内容（完整词匹配，至少3个字符才搜索正文）
-        if (query.length >= 3 && post.content && exactMatch(post.content, query)) return true;
-        return false;
-      }).slice(0, 5)
-    : [];
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return posts.filter(post => {
+      const query = searchQuery.trim();
+      // 优先匹配标题（最相关）
+      if (exactMatch(post.title, query)) return true;
+      // 匹配标签（精确）
+      if (post.tags?.some(tag => exactMatch(tag, query))) return true;
+      // 匹配描述
+      if (exactMatch(post.description, query)) return true;
+      // 匹配正文内容（完整词匹配，至少3个字符才搜索正文）
+      if (query.length >= 3 && post.content && exactMatch(post.content, query)) return true;
+      return false;
+    }).slice(0, 5);
+  }, [posts, searchQuery]);
 
 
   // 点击外部关闭

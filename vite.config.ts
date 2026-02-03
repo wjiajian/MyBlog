@@ -18,8 +18,14 @@ const markdownLoader = (): Plugin => {
 export default defineConfig({
   plugins: [react(), markdownLoader()],
   server: {
-    host: '0.0.0.0',  // 添加这行
+    host: '0.0.0.0',
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   },
   // Fix esbuild loader configuration
   esbuild: {
