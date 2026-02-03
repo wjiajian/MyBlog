@@ -10,7 +10,9 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const getJwtSecret = (): string => {
+  return process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+};
 
 /**
  * JWT 认证中间件
@@ -27,7 +29,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { username: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { username: string };
     req.user = decoded;
     next();
   } catch (error) {
@@ -39,5 +41,5 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
  * 生成 JWT token
  */
 export const generateToken = (username: string): string => {
-  return jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ username }, getJwtSecret(), { expiresIn: '7d' });
 };

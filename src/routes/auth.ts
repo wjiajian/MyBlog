@@ -6,9 +6,12 @@ import { generateToken } from '../middleware/auth.js';
 
 const router = Router();
 
-// 从环境变量读取管理员凭据
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
+// 从环境变量读取管理员凭据（按请求读取，避免 dotenv 初始化顺序问题）
+const getAdminCredentials = () => ({
+  username: process.env.ADMIN_USERNAME || 'admin',
+  passwordHash: process.env.ADMIN_PASSWORD_HASH || '',
+  devPassword: process.env.ADMIN_PASSWORD || 'admin123',
+});
 
 /**
  * POST /api/auth/login
@@ -22,8 +25,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  const { username: adminUsername, passwordHash, devPassword } = getAdminCredentials();
+
   // 验证用户名
-  if (username !== ADMIN_USERNAME) {
+  if (username !== adminUsername) {
     res.status(401).json({ error: '用户名或密码错误' });
     return;
   }
@@ -32,11 +37,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   // 如果未设置密码哈希，使用明文密码（仅供开发测试）
   let isValidPassword = false;
   
-  if (ADMIN_PASSWORD_HASH) {
-    isValidPassword = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+  if (passwordHash) {
+    isValidPassword = await bcrypt.compare(password, passwordHash);
   } else {
     // 开发模式：允许使用默认密码 "admin123"
-    const devPassword = process.env.ADMIN_PASSWORD || 'admin123';
     isValidPassword = password === devPassword;
   }
 
