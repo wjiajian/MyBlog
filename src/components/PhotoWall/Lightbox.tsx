@@ -297,6 +297,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className="fixed inset-0 z-50 flex"
+      style={{ touchAction: 'none' }}
       onClick={onClose}
     >
       {/* 当前图片的模糊背景 */}
