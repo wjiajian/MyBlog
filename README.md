@@ -28,13 +28,18 @@ npm run serve      # 启动生产服务器
 ```
 MyBlog/
 ├── server.ts               # Express 后端服务器入口
+├── dist/                   # 前端构建产物 (自动生成)
 ├── dist-server/            # 服务端构建产物 (自动生成)
 ├── scripts/
 │   ├── init-db.ts          # 数据库初始化脚本
 │   └── process-photos.cjs  # 照片墙数据处理脚本
 ├── src/
+│   ├── assets/             # 前端静态资源
 │   ├── db/                 # 数据库连接模块 (PostgreSQL)
+│   ├── middleware/         # 服务端中间件
+│   ├── routes/             # 服务端 API 路由
 │   ├── components/         # React 组件
+│   │   ├── admin/          # 后台管理组件
 │   │   ├── BlogPost/       # 文章详情页组件集
 │   │   ├── PhotoWall/      # 照片墙组件集
 │   │   └── ...
@@ -46,21 +51,29 @@ MyBlog/
 │   │   └── images-metadata.json  # 照片墙元数据
 │   ├── hooks/              # 自定义 Hooks
 │   ├── pages/              # 页面级组件
+│   │   ├── admin/          # 后台页面
+│   │   └── ...
 │   ├── utils/              # 工具函数模块
 │   ├── types/              # TypeScript 类型定义
-│   └── App.tsx             # 主应用入口
+│   ├── App.tsx             # 主应用入口
+│   ├── main.tsx            # 前端入口
+│   └── polyfill.ts         # 运行时补丁
 ├── public/
 │   ├── images/             # 文章图片资源
 │   ├── resources/          # 网站资源（背景/头像等）
 │   ├── photowall/          # 照片墙资源
 │   │   ├── origin/         # 原始照片（HEIC/JPG/PNG）
-│   │   ├── full/           # 完整尺寸
-│   │   ├── medium/         # 中等缩略图
-│   │   └── tiny/           # 模糊预览
+│   │   └── thumbnails/     # 缩略图集合
+│   │       ├── full/       # 完整尺寸
+│   │       ├── medium/     # 中等缩略图
+│   │       └── tiny/       # 模糊预览
 │   └── avatar/             # 默认头像
+├── index.html
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
 ├── tsconfig.server.json    # 服务端 TypeScript 配置
 └── .env.example            # 环境变量模板
 ```
