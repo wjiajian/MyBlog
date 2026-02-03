@@ -18,6 +18,22 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
 const PHOTOWALL_ROOT = path.join(PROJECT_ROOT, 'public', 'photowall');
 const ORIGIN_DIR = path.join(PHOTOWALL_ROOT, 'origin');
 const METADATA_FILE = path.join(PROJECT_ROOT, 'src', 'data', 'images-metadata.json');
+const PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic']);
+
+function normalizePhotoFilename(filename: string): string | null {
+  if (!filename || filename.includes('\0')) return null;
+  if (filename.includes('/') || filename.includes('\\')) return null;
+  if (path.basename(filename) !== filename) return null;
+  const ext = path.extname(filename).toLowerCase();
+  if (!PHOTO_EXTENSIONS.has(ext)) return null;
+  return filename;
+}
+
+function sanitizeUploadFilename(originalName: string): string | null {
+  const decodedName = Buffer.from(originalName, 'latin1').toString('utf8');
+  const baseName = path.basename(decodedName);
+  return normalizePhotoFilename(baseName);
+}
 
 // 确保上传目录存在
 if (!fs.existsSync(ORIGIN_DIR)) {
@@ -30,9 +46,13 @@ const storage = multer.diskStorage({
     cb(null, ORIGIN_DIR);
   },
   filename: (_req, file, cb) => {
-    // 保留原始文件名，处理中文和特殊字符
-    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    cb(null, originalName);
+    // 保留文件名并阻止路径穿越
+    const safeName = sanitizeUploadFilename(file.originalname);
+    if (!safeName) {
+      cb(new Error('无效的文件名'), '');
+      return;
+    }
+    cb(null, safeName);
   },
 });
 
@@ -85,7 +105,7 @@ router.post('/upload', authMiddleware, upload.array('photos', 20), async (req: R
   }
 
   const uploaded = files.map(file => ({
-    filename: Buffer.from(file.originalname, 'latin1').toString('utf8'),
+    filename: file.filename,
     size: file.size,
     path: file.path,
   }));
@@ -129,13 +149,25 @@ router.post('/process', authMiddleware, async (_req: Request, res: Response): Pr
  */
 router.delete('/:filename', authMiddleware, (req: Request, res: Response): void => {
   const { filename } = req.params as { filename: string };
-  const decodedFilename = decodeURIComponent(filename);
+  let decodedFilename = '';
+  try {
+    decodedFilename = decodeURIComponent(filename);
+  } catch {
+    res.status(400).json({ error: '无效的文件名' });
+    return;
+  }
+
+  const normalizedFilename = normalizePhotoFilename(decodedFilename);
+  if (!normalizedFilename) {
+    res.status(400).json({ error: '无效的文件名' });
+    return;
+  }
 
   // 获取文件基名（不含扩展名）
-  const baseName = path.basename(decodedFilename, path.extname(decodedFilename));
+  const baseName = path.basename(normalizedFilename, path.extname(normalizedFilename));
 
   const filesToDelete = [
-    path.join(ORIGIN_DIR, decodedFilename),
+    path.join(ORIGIN_DIR, normalizedFilename),
     path.join(PHOTOWALL_ROOT, 'thumbnails', 'full', `${baseName}.jpg`),
     path.join(PHOTOWALL_ROOT, 'thumbnails', 'medium', `${baseName}.jpg`),
     path.join(PHOTOWALL_ROOT, 'thumbnails', 'tiny', `${baseName}.jpg`),
@@ -159,7 +191,7 @@ router.delete('/:filename', authMiddleware, (req: Request, res: Response): void 
     if (fs.existsSync(METADATA_FILE)) {
       const content = fs.readFileSync(METADATA_FILE, 'utf8');
       const photos = JSON.parse(content);
-      const filtered = photos.filter((p: any) => p.filename !== decodedFilename);
+      const filtered = photos.filter((p: any) => p.filename !== normalizedFilename);
       fs.writeFileSync(METADATA_FILE, JSON.stringify(filtered, null, 2), 'utf8');
     }
   } catch (err) {

@@ -69,6 +69,20 @@ const uploadCover = multer({
 // 支持的文章类型
 const POST_TYPES = ['tech', 'life'];
 
+function resolvePostFilePath(type: string, filename: string): string | null {
+  if (!filename || filename.includes('\0')) return null;
+  if (filename.includes('/') || filename.includes('\\')) return null;
+  if (!filename.toLowerCase().endsWith('.md')) return null;
+  if (path.basename(filename) !== filename) return null;
+
+  const typeDir = path.resolve(CONTENT_DIR, type);
+  const resolved = path.resolve(typeDir, filename);
+  const relative = path.relative(typeDir, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+
+  return resolved;
+}
+
 interface PostMeta {
   filename: string;
   title: string;
@@ -187,7 +201,11 @@ router.get('/:type/:filename', (req: Request, res: Response): void => {
     return;
   }
 
-  const filePath = path.join(CONTENT_DIR, type, filename);
+  const filePath = resolvePostFilePath(type, filename);
+  if (!filePath) {
+    res.status(400).json({ error: '无效的文件名' });
+    return;
+  }
 
   if (!fs.existsSync(filePath)) {
     res.status(404).json({ error: '文章不存在' });
@@ -304,7 +322,11 @@ router.put('/:type/:filename', authMiddleware, (req: Request, res: Response): vo
     return;
   }
 
-  const filePath = path.join(CONTENT_DIR, type, filename);
+  const filePath = resolvePostFilePath(type, filename);
+  if (!filePath) {
+    res.status(400).json({ error: '无效的文件名' });
+    return;
+  }
 
   if (!fs.existsSync(filePath)) {
     res.status(404).json({ error: '文章不存在' });
@@ -348,7 +370,11 @@ router.delete('/:type/:filename', authMiddleware, (req: Request, res: Response):
     return;
   }
 
-  const filePath = path.join(CONTENT_DIR, type, filename);
+  const filePath = resolvePostFilePath(type, filename);
+  if (!filePath) {
+    res.status(400).json({ error: '无效的文件名' });
+    return;
+  }
 
   if (!fs.existsSync(filePath)) {
     res.status(404).json({ error: '文章不存在' });

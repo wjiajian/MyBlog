@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { generateToken } from '../middleware/auth.js';
 
 const router = Router();
@@ -62,10 +63,18 @@ router.post('/verify', (req: Request, res: Response): void => {
   }
 
   try {
-    const jwt = require('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
     const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ valid: true, username: decoded.username });
+    if (typeof decoded !== 'object' || decoded === null || !('username' in decoded)) {
+      res.json({ valid: false, error: '令牌无效或已过期' });
+      return;
+    }
+    const username = (decoded as JwtPayload).username;
+    if (typeof username !== 'string') {
+      res.json({ valid: false, error: '令牌无效或已过期' });
+      return;
+    }
+    res.json({ valid: true, username });
   } catch (error) {
     res.json({ valid: false, error: '令牌无效或已过期' });
   }
