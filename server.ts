@@ -185,7 +185,7 @@ app.post('/api/comments', async (req: Request, res: Response) => {
 });
 
 // 单页应用兜底路由
-app.get('/{*path}', (req: Request, res: Response) => {
+app.use((req: Request, res: Response) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
