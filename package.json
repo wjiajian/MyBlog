@@ -15,6 +15,8 @@
     "db:init": "npx tsx scripts/init-db.ts"
   },
   "dependencies": {
+    "@uiw/react-md-editor": "^4.0.11",
+    "bcryptjs": "^3.0.3",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
@@ -25,7 +27,9 @@
     "github-markdown-css": "^5.8.1",
     "gray-matter": "^4.0.3",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.561.0",
+    "multer": "^2.0.2",
     "pg": "^8.17.2",
     "react": "^19.2.0",
     "react-dnd": "^16.0.1",
@@ -40,8 +44,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.10.9",
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.5",

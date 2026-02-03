@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { query }  from './src/db/index.js';
+import authRoutes from './src/routes/auth.js';
+import postsRoutes from './src/routes/posts.js';
+import photosRoutes from './src/routes/photos.js';
 
 dotenv.config();
 
@@ -23,6 +26,11 @@ const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
 
 // 接口路由
+
+// 注册管理 API 路由
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postsRoutes);
+app.use('/api/photos', photosRoutes);
 
 // 浏览量 API
 // 获取浏览量
@@ -177,7 +185,7 @@ app.post('/api/comments', async (req: Request, res: Response) => {
 });
 
 // 单页应用兜底路由
-app.get('/{*path}', (req: Request, res: Response) => {
+app.use((req: Request, res: Response) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
