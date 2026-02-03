@@ -7,7 +7,6 @@ import {
   Loader2,
   AlertCircle,
   Upload,
-  Image,
   X
 } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
@@ -62,7 +61,6 @@ export const PostEditor: React.FC = () => {
       formData.append('cover', file);
       // 将 slug 作为 query 参数传递，确保后端能第一时间获取到
       // 如果没有 slug，使用标题或默认值
-      const folderName = postData.slug || postData.title || `cover-${Date.now()}`;
       // const safeSlug = encodeURIComponent(postData.slug || '');
       // formData.append('folderName', folderName);
       
