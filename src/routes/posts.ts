@@ -12,8 +12,17 @@ const router = Router();
 // 获取项目根目录
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// 编译后在 dist-server/src/routes/ 目录，需要回到项目根目录
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
+// 优先使用 cwd（通常是项目根目录），否则根据运行位置回退
+const PROJECT_ROOT = (() => {
+  const cwd = process.cwd();
+  if (fs.existsSync(path.join(cwd, 'package.json'))) {
+    return cwd;
+  }
+  const isDistServer = __dirname.split(path.sep).includes('dist-server');
+  return isDistServer
+    ? path.resolve(__dirname, '..', '..', '..')
+    : path.resolve(__dirname, '..', '..');
+})();
 const CONTENT_DIR = path.join(PROJECT_ROOT, 'src', 'content');
 const IMAGES_DIR = path.join(PROJECT_ROOT, 'public', 'images');
 
