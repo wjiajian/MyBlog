@@ -114,6 +114,13 @@ MyBlog/
 - 亮/暗主题自适应
 - 悬停动画效果
 
+### 后台管理系统
+
+访问 `/admin` 进入后台管理界面 (需鉴权)，支持：
+- **文章管理** - 在线增删改查文章，支持 Markdown 实时预览
+- **相册管理** - 管理照片墙资源
+- **安全登录** - 基于 JWT + bcrypt 的认证系统
+
 ---
 
 ## 性能优化
@@ -255,6 +262,12 @@ pm2 delete myblog
 PORT=3000
 DATABASE_URL=postgres://user:password@localhost:5432/myblog
 NODE_ENV=production
+
+# 管理员配置
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123          # 开发环境明文密码
+# ADMIN_PASSWORD_HASH=$2a$10$... # 生产环境哈希密码
+JWT_SECRET=your_jwt_secret_key
 ```
 
 ### 4. Nginx 配置示例
@@ -352,6 +365,7 @@ CREATE TABLE comments (
 | Markdown | react-markdown + remark-gfm |
 | 后端 | Express.js |
 | 数据库 | PostgreSQL (`pg` library) |
+| 认证 | JWT + bcryptjs |
 | 部署 | PM2 + Nginx |
 
 ---
