@@ -186,7 +186,18 @@ app.post('/api/comments', async (req: Request, res: Response) => {
 
 // 单页应用兜底路由
 app.use((req: Request, res: Response) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  // API 路由返回 JSON 404
+  if (req.path.startsWith('/api')) {
+    res.status(404).json({ error: 'API not found' });
+    return;
+  }
+  // 非 API 的 GET 请求返回 SPA 入口
+  if (req.method === 'GET') {
+    res.sendFile(path.join(distPath, 'index.html'));
+    return;
+  }
+  // 其他请求返回 404
+  res.status(404).json({ error: 'Not found' });
 });
 
 app.listen(port, '0.0.0.0', () => {

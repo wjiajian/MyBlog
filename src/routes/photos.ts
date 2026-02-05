@@ -14,7 +14,17 @@ const router = Router();
 // 获取项目根目录
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
+// 优先使用 cwd（通常是项目根目录），否则根据运行位置回退
+const PROJECT_ROOT = (() => {
+  const cwd = process.cwd();
+  if (fs.existsSync(path.join(cwd, 'package.json'))) {
+    return cwd;
+  }
+  const isDistServer = __dirname.split(path.sep).includes('dist-server');
+  return isDistServer
+    ? path.resolve(__dirname, '..', '..', '..')
+    : path.resolve(__dirname, '..', '..');
+})();
 const PHOTOWALL_ROOT = path.join(PROJECT_ROOT, 'public', 'photowall');
 const ORIGIN_DIR = path.join(PHOTOWALL_ROOT, 'origin');
 const METADATA_FILE = path.join(PROJECT_ROOT, 'src', 'data', 'images-metadata.json');

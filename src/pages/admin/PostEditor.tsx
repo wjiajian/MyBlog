@@ -59,12 +59,19 @@ export const PostEditor: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('cover', file);
-      // 将 slug 作为 query 参数传递，确保后端能第一时间获取到
-      // 如果没有 slug，使用标题或默认值
-      // const safeSlug = encodeURIComponent(postData.slug || '');
-      // formData.append('folderName', folderName);
       
-      const response = await authFetch(`/api/posts/upload-cover?slug=${encodeURIComponent(postData.slug || '')}`, {
+      // 优先使用 slug，否则根据标题生成 folderName
+      let folderName = postData.slug || '';
+      if (!folderName && postData.title) {
+        folderName = postData.title
+          .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-_]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .toLowerCase()
+          .slice(0, 50);
+      }
+      
+      const response = await authFetch(`/api/posts/upload-cover?slug=${encodeURIComponent(folderName)}`, {
         method: 'POST',
         body: formData,
       });
