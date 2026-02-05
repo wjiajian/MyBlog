@@ -380,11 +380,11 @@ router.put(
       const existing = fs.readFileSync(filePath, "utf8");
       const { data: existingMeta, content: existingContent } = matter(existing);
 
-      // 合并更新
+      // 合并更新（使用 undefined 判断，允许显式清空字段）
       const frontmatter: Record<string, any> = {
         ...existingMeta,
-        title: title || existingMeta.title,
-        date: date || existingMeta.date,
+        title: title !== undefined ? title : existingMeta.title,
+        date: date !== undefined ? date : existingMeta.date,
       };
       if (categories !== undefined) frontmatter.categories = categories;
       if (description !== undefined) frontmatter.description = description;
