@@ -36,7 +36,6 @@ export const PhotosManagement: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // 加载照片列表
   const loadPhotos = async () => {
@@ -64,7 +63,6 @@ export const PhotosManagement: React.FC = () => {
     setIsUploading(true);
     setError('');
     setSuccess('');
-    setUploadProgress(0);
 
     const formData = new FormData();
     Array.from(files).forEach(file => {
@@ -89,7 +87,6 @@ export const PhotosManagement: React.FC = () => {
       setError('上传照片失败');
     } finally {
       setIsUploading(false);
-      setUploadProgress(null);
     }
   };
 
@@ -245,14 +242,6 @@ export const PhotosManagement: React.FC = () => {
           <div className="flex flex-col items-center gap-3">
             <Loader2 size={32} className="animate-spin text-blue-500" />
             <p className="text-gray-500">上传中...</p>
-            {uploadProgress !== null && (
-              <div className="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 transition-all"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            )}
           </div>
         ) : (
           <>
