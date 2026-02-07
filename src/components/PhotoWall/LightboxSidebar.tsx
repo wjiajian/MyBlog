@@ -124,7 +124,7 @@ export const LightboxSidebar: React.FC<LightboxSidebarProps> = ({
                       {/* 缩略图 */}
                       <div className="relative w-12 h-12 flex-shrink-0 rounded-md overflow-hidden">
                         <img
-                          src={image.srcTiny || image.srcMedium || image.src}
+                          src={image.srcMedium || image.srcTiny || image.src}
                           alt={image.alt}
                           loading="lazy"
                           className="w-full h-full object-cover"
