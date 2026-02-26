@@ -143,6 +143,10 @@ function uploadPhotosMiddleware(req: Request, res: Response, next: (error?: unkn
  */
 router.get('/metadata', (_req: Request, res: Response): void => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     if (!fs.existsSync(METADATA_FILE)) {
       res.json({ photos: [], total: 0 });
       return;
