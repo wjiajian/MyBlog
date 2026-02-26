@@ -1,39 +1,42 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `src/` contains application code. Frontend UI lives in `src/components/` and `src/pages/`, shared logic in `src/hooks/`, `src/utils/`, and `src/types/`.
-- Markdown content is organized under `src/content/tech/` and `src/content/life/`; loading/parsing is handled in `src/data/posts.ts`.
-- Backend entry is `server.ts`, with API routes in `src/routes/`, middleware in `src/middleware/`, and PostgreSQL access in `src/db/`.
-- Static files live in `public/` (`images/`, `resources/`, `photowall/`). Build outputs are `dist/` and `dist-server/` (generated files).
+- `src/` contains the app and shared modules: `components/`, `pages/`, `hooks/`, `utils/`, `types/`, and content/data loaders.
+- Backend entrypoint is `server.ts`; API routes live in `src/routes/`, middleware in `src/middleware/`, and PostgreSQL access in `src/db/`.
+- Markdown posts are stored in `src/content/tech/` and `src/content/life/` with frontmatter metadata.
+- Static assets are in `public/` (images, photowall, avatars). Generated image metadata is `src/data/images-metadata.json`.
+- Build outputs are `dist/` and `dist-server/`; treat them as generated artifacts.
 
 ## Build, Test, and Development Commands
-- `npm run dev` — start Vite frontend dev server.
-- `npm run start` — run Express server with `ts-node` for backend development.
-- `npm run build` — compile TypeScript and build frontend bundle.
-- `npm run build:server` — compile server code to `dist-server/`.
-- `npm run serve` — run production server from built output.
-- `npm run lint` — run ESLint across the repository.
-- `npm run db:init` — initialize PostgreSQL tables.
-- `npm run generate-metadata` — process photo assets and regenerate `src/data/images-metadata.json`.
+- `npm install`: install dependencies.
+- `npm run dev`: start Vite frontend dev server.
+- `npm run start`: run `server.ts` directly for backend development.
+- `npm run build`: TypeScript project build + frontend production bundle.
+- `npm run build:server`: compile backend to `dist-server/`.
+- `npm run serve`: run compiled backend (`dist-server/server.js`).
+- `npm run lint`: run ESLint across the repo.
+- `npm run db:init`: initialize PostgreSQL tables.
+- `npm run generate-metadata`: rebuild photowall metadata from source images.
 
 ## Coding Style & Naming Conventions
-- Use TypeScript/TSX with strict typing (`strict`, `noUnusedLocals`, `noUnusedParameters` enabled).
-- Prefer 2-space indentation and keep formatting consistent with surrounding code.
-- Name React components/files in `PascalCase` (for example, `PhotoCommentSection.tsx`), hooks as `useXxx`, and utilities in `camelCase`.
-- Keep modules focused: route logic in `src/routes/`, database logic in `src/db/`, and shared types in `src/types/`.
-- Run `npm run lint` before submitting changes.
+- Use TypeScript with ESM imports and keep modules focused (single responsibility).
+- Follow existing formatting: 2-space indentation, semicolons, and clear type annotations at boundaries.
+- Use `PascalCase` for React components/pages (`PhotoCommentSection.tsx`), `camelCase` for functions/variables, and `useXxx` for hooks.
+- Keep route/module names resource-oriented and consistent (`posts.ts`, `photos.ts`, `auth.ts`).
+- Run `npm run lint` before opening a PR.
 
 ## Testing Guidelines
-- There is currently no dedicated `npm test` script or committed test suite.
-- Required validation for contributions: `npm run lint` and `npm run build`.
-- For feature work, smoke-test key paths locally: homepage, post detail rendering, comments API, and `/admin` authentication flow.
+- No automated test framework is currently configured in `package.json`.
+- Minimum validation for each change: `npm run lint` + manual verification of affected UI/API flows.
+- If behavior changes, include reproducible verification steps in the PR description.
+- If adding tests, use `*.test.ts`/`*.test.tsx` naming and colocate with the feature or under `src/__tests__/`.
 
 ## Commit & Pull Request Guidelines
-- Follow Conventional Commit-style prefixes used in history: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
-- Keep commits atomic and scoped to one concern.
-- PRs should include: change summary, impacted paths, local verification commands, and screenshots/GIFs for UI updates.
-- Link related issues and note any environment-variable or database setup changes.
+- Prefer conventional-style commit prefixes already used in history: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`.
+- Keep commit subjects short and imperative; optional scope is encouraged (example: `fix(auth): harden token validation`).
+- PRs should include: purpose, changed paths, manual test evidence, screenshots/GIFs for UI changes, and linked issues/tasks.
 
 ## Security & Configuration Tips
-- Copy `.env.example` to `.env` for local setup; never commit secrets.
-- Preserve existing auth and path-validation safeguards when touching server routes.
+- Do not commit secrets; copy `.env.example` to `.env` locally.
+- In production, set a strong `JWT_SECRET` and prefer `ADMIN_PASSWORD_HASH` over plaintext `ADMIN_PASSWORD`.
+- Review route/input validation carefully when touching file or auth-related endpoints.

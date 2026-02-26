@@ -22,6 +22,12 @@ interface Photo {
   size?: number;
 }
 
+interface ApiResult {
+  success?: boolean;
+  error?: string;
+  uploaded?: unknown[];
+}
+
 /**
  * 照片管理页面
  * 统一使用网站亮色主题风格
@@ -36,6 +42,24 @@ export const PhotosManagement: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  const parseApiResponse = async (response: Response): Promise<ApiResult> => {
+    if (response.status === 413) {
+      return {
+        error: '上传文件过大（或网关限制过小）。请压缩后重试，或提高服务端/Nginx 上传限制。'
+      };
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+    const text = await response.text();
+    if (text && text.trim().startsWith('<')) {
+      return { error: `请求失败（HTTP ${response.status}）` };
+    }
+    return { error: text || `请求失败（HTTP ${response.status}）` };
+  };
 
   // 加载照片列表
   const loadPhotos = async () => {
@@ -75,10 +99,11 @@ export const PhotosManagement: React.FC = () => {
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await parseApiResponse(response);
 
-      if (data.success) {
-        setSuccess(`成功上传 ${data.uploaded.length} 张照片`);
+      if (response.ok && data.success) {
+        const uploadedCount = data.uploaded?.length ?? 0;
+        setSuccess(`成功上传 ${uploadedCount} 张照片`);
         await loadPhotos();
       } else {
         setError(data.error || '上传失败');
@@ -101,9 +126,9 @@ export const PhotosManagement: React.FC = () => {
         method: 'POST',
       });
 
-      const data = await response.json();
+      const data = await parseApiResponse(response);
 
-      if (data.success) {
+      if (response.ok && data.success) {
         setSuccess('照片处理已启动，请稍后刷新查看结果');
       } else {
         setError(data.error || '处理失败');
@@ -122,8 +147,8 @@ export const PhotosManagement: React.FC = () => {
       const response = await authFetch(`/api/photos/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       });
-      const data = await response.json();
-      if (data.success) {
+      const data = await parseApiResponse(response);
+      if (response.ok && data.success) {
         setPhotos(photos.filter(p => p.filename !== filename));
         setDeleteConfirm(null);
         setSuccess('照片已删除');
@@ -185,7 +210,7 @@ export const PhotosManagement: React.FC = () => {
             上传照片
             <input
               type="file"
-              accept="image/*,.heic"
+              accept="image/*,.heic,.heif"
               multiple
               onChange={(e) => e.target.files && handleUpload(e.target.files)}
               className="hidden"
@@ -250,7 +275,7 @@ export const PhotosManagement: React.FC = () => {
               拖拽照片到此处上传，或点击上方按钮选择文件
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              支持 JPG、PNG、WebP、HEIC 格式
+              支持 JPG、PNG、WebP、HEIC、HEIF 格式（单文件大小受服务端配置限制）
             </p>
           </>
         )}
