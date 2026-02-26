@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { createRequire } from 'module';
 import { authMiddleware } from '../middleware/auth.js';
 
 const execAsync = promisify(exec);
@@ -28,21 +29,51 @@ const PROJECT_ROOT = (() => {
 const PHOTOWALL_ROOT = path.join(PROJECT_ROOT, 'public', 'photowall');
 const ORIGIN_DIR = path.join(PHOTOWALL_ROOT, 'origin');
 const METADATA_FILE = path.join(PROJECT_ROOT, 'src', 'data', 'images-metadata.json');
-const PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic']);
+const requireFromEsm = createRequire(import.meta.url);
+const {
+  SUPPORTED_FORMAT_TEXT,
+  PHOTO_EXTENSION_REGEX,
+  isSupportedPhotoExtension,
+} = requireFromEsm(path.join(PROJECT_ROOT, 'shared', 'photo-extensions.cjs')) as {
+  SUPPORTED_FORMAT_TEXT: string;
+  PHOTO_EXTENSION_REGEX: RegExp;
+  isSupportedPhotoExtension: (ext: string) => boolean;
+};
+const parsedUploadLimitMb = Number.parseInt(process.env.PHOTO_UPLOAD_MAX_MB || '50', 10);
+const MAX_UPLOAD_MB = Number.isFinite(parsedUploadLimitMb) && parsedUploadLimitMb > 0 ? parsedUploadLimitMb : 50;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 
 function normalizePhotoFilename(filename: string): string | null {
   if (!filename || filename.includes('\0')) return null;
   if (filename.includes('/') || filename.includes('\\')) return null;
   if (path.basename(filename) !== filename) return null;
   const ext = path.extname(filename).toLowerCase();
-  if (!PHOTO_EXTENSIONS.has(ext)) return null;
+  if (!isSupportedPhotoExtension(ext)) return null;
   return filename;
 }
 
+function getUploadFilenameCandidates(originalName: string): string[] {
+  const candidates = [originalName];
+  try {
+    const decoded = Buffer.from(originalName, 'latin1').toString('utf8');
+    if (decoded && decoded !== originalName) {
+      candidates.push(decoded);
+    }
+  } catch {
+    // ignore decode errors and fallback to original filename
+  }
+  return candidates;
+}
+
 function sanitizeUploadFilename(originalName: string): string | null {
-  const decodedName = Buffer.from(originalName, 'latin1').toString('utf8');
-  const baseName = path.basename(decodedName);
-  return normalizePhotoFilename(baseName);
+  for (const candidate of getUploadFilenameCandidates(originalName)) {
+    const baseName = path.basename(candidate);
+    const normalized = normalizePhotoFilename(baseName);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
 }
 
 // 确保上传目录存在
@@ -69,18 +100,42 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB 限制
+    fileSize: MAX_UPLOAD_BYTES, // 单文件大小限制
   },
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = /\.(jpg|jpeg|png|webp|heic)$/i;
-    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    if (allowedTypes.test(originalName)) {
+    const isAllowed = getUploadFilenameCandidates(file.originalname).some(name => PHOTO_EXTENSION_REGEX.test(name));
+    if (isAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('不支持的文件格式，仅支持 JPG、PNG、WebP、HEIC'));
+      cb(new Error(`不支持的文件格式，仅支持 ${SUPPORTED_FORMAT_TEXT}`));
     }
   },
 });
+
+function uploadPhotosMiddleware(req: Request, res: Response, next: (error?: unknown) => void): void {
+  upload.array('photos', 20)(req, res, (err?: unknown) => {
+    if (!err) {
+      next();
+      return;
+    }
+
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        res.status(413).json({ error: `单个文件不能超过 ${MAX_UPLOAD_MB}MB` });
+        return;
+      }
+      res.status(400).json({ error: err.message || '文件上传失败' });
+      return;
+    }
+
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message || '文件上传失败' });
+      return;
+    }
+
+    res.status(500).json({ error: '文件上传失败' });
+  });
+}
 
 /**
  * GET /api/photos/metadata
@@ -106,7 +161,7 @@ router.get('/metadata', (_req: Request, res: Response): void => {
  * POST /api/photos/upload
  * 上传照片（需要认证）
  */
-router.post('/upload', authMiddleware, upload.array('photos', 20), async (req: Request, res: Response): Promise<void> => {
+router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Request, res: Response): Promise<void> => {
   const files = req.files as Express.Multer.File[];
 
   if (!files || files.length === 0) {

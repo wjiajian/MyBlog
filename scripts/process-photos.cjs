@@ -3,6 +3,7 @@ const path = require('path');
 const sharp = require('sharp');
 const convert = require('heic-convert');
 const exifr = require('exifr');
+const { PHOTO_EXTENSION_REGEX } = require('../shared/photo-extensions.cjs');
 
 const ROOT = path.join(__dirname, '../public/photowall');
 const ORIGIN_DIR = path.join(ROOT, 'origin');
@@ -17,7 +18,7 @@ const OUTPUT_FILE = path.join(__dirname, '../src/data/images-metadata.json');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-const EXTENSIONS = /\.(jpg|jpeg|png|webp|heic)$/i;
+const EXTENSIONS = PHOTO_EXTENSION_REGEX;
 
 function formatDate(date) {
     const d = new Date(date);
@@ -27,7 +28,7 @@ function formatDate(date) {
 }
 
 async function processPhotos() {
-    console.log('🚀 Starting photo processing...');
+    console.log('Starting photo processing...');
 
     // 读取已有元数据，必要时保留信息/日期
     let existingMetadata = [];
@@ -93,9 +94,10 @@ async function processPhotos() {
         let width = 0;
         let height = 0;
         let finalFormat = 'JPEG';
-        
-        const isHeic = ext === '.heic';
-        let fullSrcPath = ''; 
+
+        const isHeic = ext === '.heic' || ext === '.heif';
+        const outputFullPath = path.join(FULL_DIR, `${baseName}.jpg`);
+        let fullSrcPath = '';
         let mediumPathDisplay = `/photowall/thumbnails/medium/${baseName}.jpg`;
         let tinyPathDisplay = `/photowall/thumbnails/tiny/${baseName}.jpg`;
 
@@ -119,59 +121,51 @@ async function processPhotos() {
                 date = formatDate(stats.mtime);
             }
 
-            // 2. 转换/准备图片
-            if (isHeic) {
-                // 在 FULL_DIR 中将 HEIC 转为 JPEG
-                const outputFullCjs = path.join(FULL_DIR, `${baseName}.jpg`);
-                
-                if (!fs.existsSync(outputFullCjs)) {
-                    console.log(`  Converting HEIC to JPEG...`);
+            // 2. 统一生成 full JPEG，确保前端展示路径稳定
+            const shouldRegenerateFull =
+                !fs.existsSync(outputFullPath) ||
+                (sourcePath !== outputFullPath && fs.statSync(outputFullPath).mtimeMs < stats.mtimeMs);
+
+            if (shouldRegenerateFull) {
+                if (isHeic) {
+                    console.log('  Converting HEIC/HEIF to JPEG...');
                     const jpegBuffer = await convert({
                         buffer: inputBuffer,
                         format: 'JPEG',
                         quality: 0.9
                     });
-                    fs.writeFileSync(outputFullCjs, jpegBuffer);
-                    inputBuffer = jpegBuffer; 
+                    fs.writeFileSync(outputFullPath, jpegBuffer);
+                } else if (ext === '.jpg' || ext === '.jpeg') {
+                    if (sourcePath !== outputFullPath) {
+                        fs.copyFileSync(sourcePath, outputFullPath);
+                    }
                 } else {
-                    inputBuffer = fs.readFileSync(outputFullCjs);
+                    // PNG/WebP 等格式统一转为 JPEG，避免展示链路分叉
+                    await sharp(inputBuffer)
+                        .jpeg({ quality: 92, mozjpeg: true })
+                        .toFile(outputFullPath);
                 }
-                
-                fullSrcPath = `/photowall/thumbnails/full/${baseName}.jpg`;
-                finalFormat = 'JPEG';
-
-                // 从 origin 删除 HEIC（用户需求）
-                try {
-                    console.log(`  Deleting original HEIC file: ${file}`);
-                    fs.unlinkSync(sourcePath);
-                } catch (e) {
-                    console.error('  Failed to delete HEIC:', e.message);
-                }
-
-            } else {
-                // 常见格式图片（JPEG/PNG）
-                if (isOrigin) {
-                    // 位于 origin，直接使用（引用）
-                    // 但用户结构说明 full 存放已转换文件
-                    // 若 origin 已是 jpg，可直接引用
-                    fullSrcPath = `/photowall/origin/${file}`;
-                } else {
-                    // 位于 full（之前已转换）
-                    fullSrcPath = `/photowall/thumbnails/full/${file}`;
-                }
-                finalFormat = ext.substring(1).toUpperCase();
             }
+
+            if (!fs.existsSync(outputFullPath)) {
+                throw new Error(`Missing full image after processing: ${outputFullPath}`);
+            }
+
+            inputBuffer = fs.readFileSync(outputFullPath);
+            fullSrcPath = `/photowall/thumbnails/full/${baseName}.jpg`;
+            finalFormat = 'JPEG';
 
             // 3. 生成缩略图
             const mediumFsPath = path.join(MEDIUM_DIR, `${baseName}.jpg`);
             const tinyFsPath = path.join(TINY_DIR, `${baseName}.jpg`);
+            const fullStats = fs.statSync(outputFullPath);
 
             sharpInstance = sharp(inputBuffer);
             const metadata = await sharpInstance.metadata();
             width = metadata.width;
             height = metadata.height;
 
-            if (!fs.existsSync(mediumFsPath)) {
+            if (!fs.existsSync(mediumFsPath) || fs.statSync(mediumFsPath).mtimeMs < fullStats.mtimeMs) {
                 // 如需调试，可输出“生成中等缩略图...”日志
                 await sharpInstance
                     .clone()
@@ -180,13 +174,23 @@ async function processPhotos() {
                     .toFile(mediumFsPath);
             }
 
-            if (!fs.existsSync(tinyFsPath)) {
+            if (!fs.existsSync(tinyFsPath) || fs.statSync(tinyFsPath).mtimeMs < fullStats.mtimeMs) {
                 // 如需调试，可输出“生成微型缩略图...”日志
                 await sharpInstance
                     .clone()
                     .resize(50, 50, { fit: 'inside', withoutEnlargement: true })
                     .jpeg({ quality: 60 })
                     .toFile(tinyFsPath);
+            }
+
+            // 从 origin 删除 HEIC/HEIF，保留转换后的 JPEG
+            if (isOrigin && isHeic && fs.existsSync(sourcePath) && sourcePath !== outputFullPath) {
+                try {
+                    console.log(`  Deleting original HEIC/HEIF file: ${file}`);
+                    fs.unlinkSync(sourcePath);
+                } catch (e) {
+                    console.error('  Failed to delete HEIC/HEIF:', e.message);
+                }
             }
 
             // 4. 写入元数据
@@ -206,7 +210,7 @@ async function processPhotos() {
                 srcTiny: tinyPathDisplay,
                 width,
                 height,
-                size: stats.size,
+                size: fullStats.size,
                 format: finalFormat,
                 date,
                 videoSrc
@@ -226,7 +230,7 @@ async function processPhotos() {
     });
 
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(newMetadata, null, 2));
-    console.log(`✅ Done! Processed ${newMetadata.length} images.`);
+    console.log(`Done! Processed ${newMetadata.length} images.`);
     console.log(`Metadata saved to ${OUTPUT_FILE}`);
 }
 
