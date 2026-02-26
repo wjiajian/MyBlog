@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { createRequire } from 'module';
 import { authMiddleware } from '../middleware/auth.js';
 
 const execAsync = promisify(exec);
@@ -28,8 +29,16 @@ const PROJECT_ROOT = (() => {
 const PHOTOWALL_ROOT = path.join(PROJECT_ROOT, 'public', 'photowall');
 const ORIGIN_DIR = path.join(PHOTOWALL_ROOT, 'origin');
 const METADATA_FILE = path.join(PROJECT_ROOT, 'src', 'data', 'images-metadata.json');
-const PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
-const PHOTO_EXTENSION_REGEX = /\.(jpg|jpeg|png|webp|heic|heif)$/i;
+const requireFromEsm = createRequire(import.meta.url);
+const {
+  SUPPORTED_FORMAT_TEXT,
+  PHOTO_EXTENSION_REGEX,
+  isSupportedPhotoExtension,
+} = requireFromEsm(path.join(PROJECT_ROOT, 'shared', 'photo-extensions.cjs')) as {
+  SUPPORTED_FORMAT_TEXT: string;
+  PHOTO_EXTENSION_REGEX: RegExp;
+  isSupportedPhotoExtension: (ext: string) => boolean;
+};
 const parsedUploadLimitMb = Number.parseInt(process.env.PHOTO_UPLOAD_MAX_MB || '50', 10);
 const MAX_UPLOAD_MB = Number.isFinite(parsedUploadLimitMb) && parsedUploadLimitMb > 0 ? parsedUploadLimitMb : 50;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
@@ -39,7 +48,7 @@ function normalizePhotoFilename(filename: string): string | null {
   if (filename.includes('/') || filename.includes('\\')) return null;
   if (path.basename(filename) !== filename) return null;
   const ext = path.extname(filename).toLowerCase();
-  if (!PHOTO_EXTENSIONS.has(ext)) return null;
+  if (!isSupportedPhotoExtension(ext)) return null;
   return filename;
 }
 
@@ -98,7 +107,7 @@ const upload = multer({
     if (isAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('不支持的文件格式，仅支持 JPG、PNG、WebP、HEIC、HEIF'));
+      cb(new Error(`不支持的文件格式，仅支持 ${SUPPORTED_FORMAT_TEXT}`));
     }
   },
 });

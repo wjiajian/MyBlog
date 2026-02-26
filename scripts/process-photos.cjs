@@ -3,6 +3,7 @@ const path = require('path');
 const sharp = require('sharp');
 const convert = require('heic-convert');
 const exifr = require('exifr');
+const { PHOTO_EXTENSION_REGEX } = require('../shared/photo-extensions.cjs');
 
 const ROOT = path.join(__dirname, '../public/photowall');
 const ORIGIN_DIR = path.join(ROOT, 'origin');
@@ -17,7 +18,7 @@ const OUTPUT_FILE = path.join(__dirname, '../src/data/images-metadata.json');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-const EXTENSIONS = /\.(jpg|jpeg|png|webp|heic|heif)$/i;
+const EXTENSIONS = PHOTO_EXTENSION_REGEX;
 
 function formatDate(date) {
     const d = new Date(date);
@@ -27,7 +28,7 @@ function formatDate(date) {
 }
 
 async function processPhotos() {
-    console.log('🚀 Starting photo processing...');
+    console.log('Starting photo processing...');
 
     // 读取已有元数据，必要时保留信息/日期
     let existingMetadata = [];
@@ -229,7 +230,7 @@ async function processPhotos() {
     });
 
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(newMetadata, null, 2));
-    console.log(`✅ Done! Processed ${newMetadata.length} images.`);
+    console.log(`Done! Processed ${newMetadata.length} images.`);
     console.log(`Metadata saved to ${OUTPUT_FILE}`);
 }
 
