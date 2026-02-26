@@ -19,6 +19,7 @@ export const GalleryPage: React.FC = () => {
   const isMobile = useIsMobile();
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
+  const [metadata, setMetadata] = useState<ImageMetadata[]>(imagesMetadata as ImageMetadata[]);
   // 主题状态：默认亮色
   const [darkMode, setDarkMode] = useState(() => {
     const saved = safeGetItem('blog-theme');
@@ -32,10 +33,9 @@ export const GalleryPage: React.FC = () => {
 
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
-    const metadata = imagesMetadata as ImageMetadata[];
     const result = metadata.map((meta) => {
       const filename = meta.filename;
-      const baseName = filename.replace(/\.(jpg|jpeg|png|webp|heic)$/i, '');
+      const baseName = filename.replace(/\.(jpg|jpeg|png|webp|heic|heif)$/i, '');
       
       return {
         src: meta.src,
@@ -59,7 +59,7 @@ export const GalleryPage: React.FC = () => {
       }
       return a.filename.localeCompare(b.filename, 'zh-CN');
     });
-  }, []);
+  }, [metadata]);
 
   // 统计实况照片数量
   const livePhotoCount = useMemo(() => {
@@ -67,8 +67,33 @@ export const GalleryPage: React.FC = () => {
   }, [images]);
 
   useEffect(() => {
-    // 移除人工延迟，改为立即完成加载
-    setIsLoading(false);
+    let cancelled = false;
+
+    const loadMetadata = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/photos/metadata', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        if (!cancelled && Array.isArray(data.photos)) {
+          setMetadata(data.photos as ImageMetadata[]);
+        }
+      } catch {
+        // 保留构建时元数据作为兜底，避免页面空白
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadMetadata();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // 响应式列数 - 使用防抖
