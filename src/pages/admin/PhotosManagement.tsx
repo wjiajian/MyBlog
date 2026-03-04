@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Upload, 
-  Trash2, 
-  Image as ImageIcon,
-  RefreshCw,
-  Loader2,
+import {
   AlertCircle,
+  CalendarDays,
   CheckCircle,
-  X
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  Loader2,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
+import { resolvePhotoAssetPaths } from '../../utils/photoUrl';
 
 interface Photo {
+  driveItemId?: string;
   filename: string;
   src: string;
   srcMedium?: string;
@@ -20,206 +23,210 @@ interface Photo {
   width?: number;
   height?: number;
   size?: number;
+  date?: string;
+  format?: string;
+  isVisible?: boolean;
+  visibilityUpdatedAt?: string | null;
 }
 
 interface ApiResult {
   success?: boolean;
   error?: string;
-  uploaded?: unknown[];
+}
+
+interface MonthGroup {
+  monthKey: string;
+  monthLabel: string;
+  photos: Photo[];
+  visibleCount: number;
+}
+
+const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
+const UNKNOWN_MONTH_KEY = 'unknown';
+
+function getPhotoKey(photo: Pick<Photo, 'filename' | 'driveItemId'>): string {
+  if (photo.driveItemId) return `drive:${photo.driveItemId}`;
+  return `file:${photo.filename}`;
+}
+
+function getMonthKey(date?: string): string {
+  if (!date) return UNKNOWN_MONTH_KEY;
+  const match = date.match(/^(\d{4}):(\d{2})/);
+  if (!match) return UNKNOWN_MONTH_KEY;
+  return `${match[1]}-${match[2]}`;
+}
+
+function getMonthLabel(monthKey: string): string {
+  if (monthKey === UNKNOWN_MONTH_KEY) return '未知时间';
+  const [year, month] = monthKey.split('-');
+  return `${year}年${month}月`;
+}
+
+function compareMonthKeyDesc(a: string, b: string): number {
+  if (a === UNKNOWN_MONTH_KEY && b === UNKNOWN_MONTH_KEY) return 0;
+  if (a === UNKNOWN_MONTH_KEY) return 1;
+  if (b === UNKNOWN_MONTH_KEY) return -1;
+  return b.localeCompare(a);
 }
 
 /**
- * 照片管理页面
- * 统一使用网站亮色主题风格
+ * 照片管理页面（OSS 模式）
+ * 按年月列出照片，并支持单张照片展示开关。
  */
 export const PhotosManagement: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [toggling, setToggling] = useState<Record<string, boolean>>({});
 
   const parseApiResponse = async (response: Response): Promise<ApiResult> => {
-    if (response.status === 413) {
-      return {
-        error: '上传文件过大（或网关限制过小）。请压缩后重试，或提高服务端/Nginx 上传限制。'
-      };
-    }
-
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       return response.json();
     }
     const text = await response.text();
-    if (text && text.trim().startsWith('<')) {
-      return { error: `请求失败（HTTP ${response.status}）` };
-    }
     return { error: text || `请求失败（HTTP ${response.status}）` };
   };
 
-  // 加载照片列表
-  const loadPhotos = async () => {
-    setIsLoading(true);
+  const loadPhotos = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    setIsRefreshing(true);
     setError('');
+
     try {
-      const response = await fetch('/api/photos/metadata');
-      const data = await response.json();
-      setPhotos(data.photos || []);
-    } catch (err) {
+      const response = await fetch('/api/photos/metadata?includeHidden=1', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json() as { photos?: Photo[] };
+      const resolvedPhotos = Array.isArray(data.photos)
+        ? data.photos.map(photo => {
+          const resolved = resolvePhotoAssetPaths(photo, PHOTO_ASSET_BASE_URL);
+          return {
+            ...resolved,
+            isVisible: photo.isVisible !== false,
+          };
+        })
+        : [];
+      setPhotos(resolvedPhotos);
+    } catch {
       setError('加载照片列表失败');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    loadPhotos();
+    void loadPhotos(false);
   }, []);
 
-  // 处理文件上传
-  const handleUpload = async (files: FileList | File[]) => {
-    if (!files.length) return;
+  const monthGroups = useMemo<MonthGroup[]>(() => {
+    const groupMap = new Map<string, Photo[]>();
 
-    setIsUploading(true);
+    for (const photo of photos) {
+      const monthKey = getMonthKey(photo.date);
+      if (!groupMap.has(monthKey)) {
+        groupMap.set(monthKey, []);
+      }
+      groupMap.get(monthKey)?.push(photo);
+    }
+
+    const groups = Array.from(groupMap.entries())
+      .sort(([a], [b]) => compareMonthKeyDesc(a, b))
+      .map(([monthKey, groupPhotos]) => {
+        const sortedPhotos = [...groupPhotos].sort((a, b) => {
+          if (a.date && b.date) return b.date.localeCompare(a.date);
+          return a.filename.localeCompare(b.filename, 'zh-CN');
+        });
+        return {
+          monthKey,
+          monthLabel: getMonthLabel(monthKey),
+          photos: sortedPhotos,
+          visibleCount: sortedPhotos.filter(photo => photo.isVisible !== false).length,
+        };
+      });
+
+    return groups;
+  }, [photos]);
+
+  const totalCount = photos.length;
+  const visibleCount = photos.filter(photo => photo.isVisible !== false).length;
+  const hiddenCount = totalCount - visibleCount;
+
+  const handleToggleVisibility = async (photo: Photo, nextVisible: boolean) => {
+    const photoKey = getPhotoKey(photo);
+    setToggling(prev => ({ ...prev, [photoKey]: true }));
     setError('');
     setSuccess('');
 
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('photos', file);
-    });
-
     try {
-      const response = await authFetch('/api/photos/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await authFetch('/api/photos/visibility', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: photo.filename,
+          driveItemId: photo.driveItemId,
+          isVisible: nextVisible,
+        }),
       });
 
       const data = await parseApiResponse(response);
-
-      if (response.ok && data.success) {
-        const uploadedCount = data.uploaded?.length ?? 0;
-        setSuccess(`成功上传 ${uploadedCount} 张照片`);
-        await loadPhotos();
-      } else {
-        setError(data.error || '上传失败');
+      if (!response.ok || !data.success) {
+        setError(data.error || '更新展示状态失败');
+        return;
       }
-    } catch (err) {
-      setError('上传照片失败');
+
+      setPhotos(prev => prev.map(item => {
+        if (getPhotoKey(item) !== photoKey) return item;
+        return {
+          ...item,
+          isVisible: nextVisible,
+          visibilityUpdatedAt: new Date().toISOString(),
+        };
+      }));
+      setSuccess(nextVisible ? '已设置为展示' : '已设置为隐藏');
+    } catch {
+      setError('更新展示状态失败');
     } finally {
-      setIsUploading(false);
+      setToggling(prev => ({ ...prev, [photoKey]: false }));
     }
-  };
-
-  // 触发照片处理
-  const handleProcess = async () => {
-    setIsProcessing(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await authFetch('/api/photos/process', {
-        method: 'POST',
-      });
-
-      const data = await parseApiResponse(response);
-
-      if (response.ok && data.success) {
-        setSuccess('照片处理已启动，请稍后刷新查看结果');
-      } else {
-        setError(data.error || '处理失败');
-      }
-    } catch (err) {
-      setError('启动照片处理失败');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // 删除照片
-  const handleDelete = async (filename: string) => {
-    setIsDeleting(true);
-    try {
-      const response = await authFetch(`/api/photos/${encodeURIComponent(filename)}`, {
-        method: 'DELETE',
-      });
-      const data = await parseApiResponse(response);
-      if (response.ok && data.success) {
-        setPhotos(photos.filter(p => p.filename !== filename));
-        setDeleteConfirm(null);
-        setSuccess('照片已删除');
-      } else {
-        setError(data.error || '删除失败');
-      }
-    } catch (err) {
-      setError('删除照片失败');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // 拖拽事件处理
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = e.dataTransfer.files;
-    handleUpload(files);
-  }, []);
-
-  // 格式化文件大小
-  const formatSize = (bytes?: number) => {
-    if (!bytes) return '-';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">照片管理</h1>
-          <p className="text-gray-500 mt-1">共 {photos.length} 张照片</p>
+          <h1 className="text-2xl font-bold text-gray-800">照片墙展示管理</h1>
+          <p className="text-gray-500 mt-1">OSS 同步模式：后台仅管理展示状态，不再上传或处理图片</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleProcess}
-            disabled={isProcessing}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl transition-colors disabled:opacity-50 shadow-sm"
-          >
-            {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-            处理照片
-          </button>
-          <label className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl transition-colors cursor-pointer shadow-lg shadow-blue-500/25">
-            <Upload size={18} />
-            上传照片
-            <input
-              type="file"
-              accept="image/*,.heic,.heif"
-              multiple
-              onChange={(e) => e.target.files && handleUpload(e.target.files)}
-              className="hidden"
-            />
-          </label>
+        <button
+          onClick={() => void loadPhotos(true)}
+          disabled={isRefreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl transition-colors disabled:opacity-50 shadow-sm"
+        >
+          {isRefreshing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+          刷新列表
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-sm text-gray-500">总照片数</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">{totalCount}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-sm text-gray-500">展示中</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{visibleCount}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <p className="text-sm text-gray-500">已隐藏</p>
+          <p className="text-2xl font-bold text-gray-600 mt-1">{hiddenCount}</p>
         </div>
       </div>
 
-      {/* 提示消息 */}
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -252,114 +259,79 @@ export const PhotosManagement: React.FC = () => {
         </motion.div>
       )}
 
-      {/* 拖拽上传区域 */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`mb-6 border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
-          isDragging 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-200 hover:border-gray-300 bg-white'
-        }`}
-      >
-        {isUploading ? (
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 size={32} className="animate-spin text-blue-500" />
-            <p className="text-gray-500">上传中...</p>
-          </div>
-        ) : (
-          <>
-            <Upload size={32} className={`mx-auto mb-3 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
-            <p className={isDragging ? 'text-blue-600' : 'text-gray-500'}>
-              拖拽照片到此处上传，或点击上方按钮选择文件
-            </p>
-            <p className="text-gray-400 text-sm mt-2">
-              支持 JPG、PNG、WebP、HEIC、HEIF 格式（单文件大小受服务端配置限制）
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* 加载状态 */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={32} className="animate-spin text-blue-500" />
         </div>
-      ) : photos.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+      ) : monthGroups.length === 0 ? (
+        <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-200">
           <ImageIcon size={48} className="mx-auto mb-4 opacity-50" />
           <p>暂无照片</p>
         </div>
       ) : (
-        /* 照片网格 */
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {photos.map((photo) => (
-            <motion.div
-              key={photo.filename}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="group relative aspect-square bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-            >
-              <img
-                src={photo.srcMedium || photo.srcTiny || photo.src}
-                alt={photo.filename}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              {/* 悬停遮罩 */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                <button
-                  onClick={() => setDeleteConfirm(photo.filename)}
-                  className="p-2 bg-red-500/90 hover:bg-red-500 text-white rounded-lg transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
-                <span className="text-white/80 text-xs text-center px-2 truncate max-w-full">
-                  {photo.filename}
-                </span>
-                <span className="text-white/60 text-xs">
-                  {formatSize(photo.size)}
-                </span>
+        <div className="space-y-8">
+          {monthGroups.map(group => (
+            <section key={group.monthKey} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2 text-gray-800">
+                  <CalendarDays size={18} />
+                  <h2 className="text-lg font-semibold">{group.monthLabel}</h2>
+                </div>
+                <p className="text-sm text-gray-500">
+                  共 {group.photos.length} 张，展示 {group.visibleCount} 张
+                </p>
               </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
 
-      {/* 删除确认对话框 */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 border border-gray-200 shadow-xl"
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-2">确认删除</h3>
-            <p className="text-gray-500 mb-2">
-              确定要删除这张照片吗？
-            </p>
-            <p className="text-gray-400 text-sm mb-6 truncate">
-              {deleteConfirm}
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
-                disabled={isDeleting}
-              >
-                取消
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors flex items-center gap-2"
-                disabled={isDeleting}
-              >
-                {isDeleting && <Loader2 size={16} className="animate-spin" />}
-                删除
-              </button>
-            </div>
-          </motion.div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {group.photos.map(photo => {
+                  const photoKey = getPhotoKey(photo);
+                  const isVisible = photo.isVisible !== false;
+                  const isToggling = toggling[photoKey] === true;
+                  return (
+                    <article
+                      key={photoKey}
+                      className={`rounded-xl overflow-hidden border shadow-sm ${
+                        isVisible ? 'border-emerald-200 bg-white' : 'border-gray-200 bg-gray-50'
+                      }`}
+                    >
+                      <img
+                        src={photo.srcMedium || photo.srcTiny || photo.src}
+                        alt={photo.filename}
+                        className="w-full aspect-square object-cover"
+                        loading="lazy"
+                      />
+                      <div className="p-3">
+                        <p className="text-xs text-gray-600 truncate" title={photo.filename}>
+                          {photo.filename}
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-1 truncate">
+                          {photo.date || '未知拍摄时间'}
+                        </p>
+                        <button
+                          onClick={() => void handleToggleVisibility(photo, !isVisible)}
+                          disabled={isToggling}
+                          className={`mt-3 w-full inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50 ${
+                            isVisible
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {isToggling ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : isVisible ? (
+                            <Eye size={14} />
+                          ) : (
+                            <EyeOff size={14} />
+                          )}
+                          {isVisible ? '展示中（点击隐藏）' : '已隐藏（点击展示）'}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </div>

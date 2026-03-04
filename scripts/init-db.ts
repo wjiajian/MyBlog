@@ -62,6 +62,52 @@ async function initDatabase(): Promise<void> {
     `);
     console.log("✅ comments table ready!");
 
+    // 创建 OneDrive 同步状态表
+    console.log("☁️ Creating onedrive_sync_state table...");
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS onedrive_sync_state (
+        id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        folder_item_id TEXT,
+        delta_link TEXT,
+        subscription_id TEXT,
+        subscription_expiration TIMESTAMPTZ,
+        last_synced_at TIMESTAMPTZ,
+        last_error TEXT,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await pool.query(`
+      INSERT INTO onedrive_sync_state (id)
+      VALUES (1)
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    console.log("✅ onedrive_sync_state table ready!");
+
+    // 创建 OneDrive 同步文件索引表
+    console.log("☁️ Creating onedrive_sync_items table...");
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS onedrive_sync_items (
+        drive_item_id TEXT PRIMARY KEY,
+        filename TEXT NOT NULL,
+        base_name TEXT NOT NULL,
+        etag TEXT,
+        last_modified_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log("✅ onedrive_sync_items table ready!");
+
+    // 创建照片展示状态表
+    console.log("🖼️ Creating photo_visibility table...");
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS photo_visibility (
+        photo_key TEXT PRIMARY KEY,
+        is_visible BOOLEAN NOT NULL DEFAULT TRUE,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log("✅ photo_visibility table ready!");
+
     // 创建索引以提升性能
     console.log("🔍 Creating indexes...");
     await pool.query(`
@@ -69,6 +115,15 @@ async function initDatabase(): Promise<void> {
     `);
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_onedrive_sync_items_filename ON onedrive_sync_items(filename);
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_onedrive_sync_items_base_name ON onedrive_sync_items(base_name);
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_photo_visibility_is_visible ON photo_visibility(is_visible);
     `);
     console.log("✅ Indexes created!");
 
@@ -78,6 +133,9 @@ async function initDatabase(): Promise<void> {
     console.log("📋 Created tables:");
     console.log("   - pageviews (post_id, views, created_at, updated_at)");
     console.log("   - comments (id, post_id, parent_id, nickname, content, created_at)");
+    console.log("   - onedrive_sync_state (sync cursor/subscription/runtime state)");
+    console.log("   - onedrive_sync_items (drive_item_id -> filename/base_name/etag)");
+    console.log("   - photo_visibility (photo visibility switch state)");
 
   } catch (error) {
     console.error("❌ Database initialization failed:");
