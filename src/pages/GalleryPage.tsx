@@ -8,12 +8,15 @@ import imagesMetadata from '../data/images-metadata.json';
 import type { ImageMetadata } from '../types';
 
 import { safeGetItem, safeSetItem } from '../utils/storage';
+import { resolvePhotoAssetPaths } from '../utils/photoUrl';
 
 import { getGalleryTheme } from '../utils/theme';
 
 import { useDebouncedCallback } from '../hooks/useDebounce';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { GallerySkeleton } from '../components/Skeleton';
+
+const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
 
 export const GalleryPage: React.FC = () => {
   const isMobile = useIsMobile();
@@ -33,24 +36,27 @@ export const GalleryPage: React.FC = () => {
 
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
-    const result = metadata.map((meta) => {
+    const result = metadata
+      .filter(meta => meta.isVisible !== false)
+      .map((meta) => {
+      const resolved = resolvePhotoAssetPaths(meta, PHOTO_ASSET_BASE_URL);
       const filename = meta.filename;
       const baseName = filename.replace(/\.(jpg|jpeg|png|webp|heic|heif)$/i, '');
       
       return {
-        src: meta.src,
-        srcMedium: meta.srcMedium,
-        srcTiny: meta.srcTiny,
+        src: resolved.src,
+        srcMedium: resolved.srcMedium,
+        srcTiny: resolved.srcTiny,
         alt: baseName.replace(/[-_]/g, ' '),
         filename,
         format: meta.format,
         width: meta.width,
         height: meta.height,
         size: meta.size,
-        videoSrc: meta.videoSrc,
+        videoSrc: resolved.videoSrc,
         date: meta.date,
       };
-    });
+      });
     
     // 按日期降序排序（最新优先）
     return result.sort((a, b) => {

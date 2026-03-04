@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { query } from './src/db/index.js';
 import authRoutes from './src/routes/auth.js';
 import postsRoutes from './src/routes/posts.js';
 import photosRoutes from './src/routes/photos.js';
+import oneDriveSyncRoutes from './src/routes/onedrive-sync.js';
+import { startOneDriveSyncScheduler } from './src/services/onedrive-sync/service.js';
 dotenv.config();
 const app = express();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -16,14 +19,28 @@ app.use(express.json());
 // 提供 dist 静态资源
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// 编译后 server.js 在 dist-server/ 目录，需要访问上级的 dist/ 目录
-const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
+const PROJECT_ROOT = (() => {
+    const cwd = process.cwd();
+    if (fs.existsSync(path.join(cwd, 'package.json'))) {
+        return cwd;
+    }
+    return path.resolve(__dirname, '..');
+})();
+const publicPath = path.join(PROJECT_ROOT, 'public');
+const distPath = path.join(PROJECT_ROOT, 'dist');
+// 先提供 public（后台上传后的运行时资源），再提供 dist（前端构建产物）
+if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+}
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+}
 // 接口路由
 // 注册管理 API 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/photos', photosRoutes);
+app.use('/api/onedrive-sync', oneDriveSyncRoutes);
 // 浏览量 API
 // 获取浏览量
 app.get('/api/pageview', async (req, res) => {
@@ -159,7 +176,12 @@ app.use((req, res) => {
     }
     // 非 API 的 GET 请求返回 SPA 入口
     if (req.method === 'GET') {
-        res.sendFile(path.join(distPath, 'index.html'));
+        const indexPath = path.join(distPath, 'index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+            return;
+        }
+        res.status(404).json({ error: 'Frontend build not found' });
         return;
     }
     // 其他请求返回 404
@@ -168,3 +190,4 @@ app.use((req, res) => {
 app.listen(port, '0.0.0.0', () => {
     console.log(`[server]: Server is running at http://0.0.0.0:${port}`);
 });
+startOneDriveSyncScheduler();

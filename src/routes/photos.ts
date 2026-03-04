@@ -8,6 +8,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { createRequire } from 'module';
 import { authMiddleware } from '../middleware/auth.js';
+import { query } from '../db/index.js';
+import { resolvePhotoAssetPaths } from '../utils/photoUrl.js';
 
 const execAsync = promisify(exec);
 const router = Router();
@@ -42,6 +44,31 @@ const {
 const parsedUploadLimitMb = Number.parseInt(process.env.PHOTO_UPLOAD_MAX_MB || '50', 10);
 const MAX_UPLOAD_MB = Number.isFinite(parsedUploadLimitMb) && parsedUploadLimitMb > 0 ? parsedUploadLimitMb : 50;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+const PHOTO_ASSET_BASE_URL = process.env.OSS_PHOTOWALL_BASE_URL || process.env.VITE_OSS_PHOTOWALL_BASE_URL || '';
+let photoVisibilityTableEnsured = false;
+
+interface PhotoMetadataRecord {
+  driveItemId?: string;
+  filename: string;
+  originalSrc?: string;
+  src: string;
+  srcMedium?: string;
+  srcTiny?: string;
+  width?: number;
+  height?: number;
+  size?: number;
+  format?: string;
+  date?: string;
+  videoSrc?: string;
+  isVisible?: boolean;
+  visibilityUpdatedAt?: string | null;
+}
+
+interface PhotoVisibilityRow {
+  photo_key: string;
+  is_visible: boolean;
+  updated_at: string;
+}
 
 function normalizePhotoFilename(filename: string): string | null {
   if (!filename || filename.includes('\0')) return null;
@@ -74,6 +101,71 @@ function sanitizeUploadFilename(originalName: string): string | null {
     }
   }
   return null;
+}
+
+function parseIncludeHiddenQuery(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes';
+}
+
+function getPhotoVisibilityKey(driveItemId: string | undefined, filename: string): string {
+  if (driveItemId && driveItemId.trim().length > 0) {
+    return `drive:${driveItemId.trim()}`;
+  }
+  return `file:${filename}`;
+}
+
+function buildVisibilityKeyFromInput(driveItemId: unknown, filename: unknown): string | null {
+  if (typeof driveItemId === 'string' && driveItemId.trim().length > 0) {
+    return `drive:${driveItemId.trim()}`;
+  }
+  if (typeof filename === 'string') {
+    const normalizedFilename = normalizePhotoFilename(filename);
+    if (normalizedFilename) {
+      return `file:${normalizedFilename}`;
+    }
+  }
+  return null;
+}
+
+async function ensurePhotoVisibilityTable(): Promise<void> {
+  if (photoVisibilityTableEnsured) return;
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS photo_visibility (
+      photo_key TEXT PRIMARY KEY,
+      is_visible BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  photoVisibilityTableEnsured = true;
+}
+
+async function getVisibilityMapForPhotos(photos: PhotoMetadataRecord[]): Promise<Map<string, PhotoVisibilityRow>> {
+  const keys = Array.from(
+    new Set(
+      photos
+        .filter(photo => typeof photo.filename === 'string' && photo.filename.length > 0)
+        .map(photo => getPhotoVisibilityKey(photo.driveItemId, photo.filename)),
+    ),
+  );
+
+  if (keys.length === 0) {
+    return new Map<string, PhotoVisibilityRow>();
+  }
+
+  const result = await query(`
+    SELECT photo_key, is_visible, updated_at
+    FROM photo_visibility
+    WHERE photo_key = ANY($1::text[]);
+  `, [keys]);
+
+  const visibilityMap = new Map<string, PhotoVisibilityRow>();
+  for (const row of result.rows as PhotoVisibilityRow[]) {
+    visibilityMap.set(row.photo_key, row);
+  }
+  return visibilityMap;
 }
 
 // 确保上传目录存在
@@ -141,11 +233,13 @@ function uploadPhotosMiddleware(req: Request, res: Response, next: (error?: unkn
  * GET /api/photos/metadata
  * 获取照片元数据（动态读取）
  */
-router.get('/metadata', (_req: Request, res: Response): void => {
+router.get('/metadata', async (req: Request, res: Response): Promise<void> => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    const includeHidden = parseIncludeHiddenQuery(req.query.includeHidden);
+    await ensurePhotoVisibilityTable();
 
     if (!fs.existsSync(METADATA_FILE)) {
       res.json({ photos: [], total: 0 });
@@ -153,8 +247,32 @@ router.get('/metadata', (_req: Request, res: Response): void => {
     }
 
     const content = fs.readFileSync(METADATA_FILE, 'utf8');
-    const photos = JSON.parse(content);
-    res.json({ photos, total: photos.length });
+    const parsedPhotos = JSON.parse(content);
+    const metadataPhotos = Array.isArray(parsedPhotos) ? (parsedPhotos as PhotoMetadataRecord[]) : [];
+    const visibilityMap = await getVisibilityMapForPhotos(metadataPhotos);
+
+    const resolvedPhotos = metadataPhotos.map(photo => {
+      const resolved = resolvePhotoAssetPaths(photo, PHOTO_ASSET_BASE_URL);
+      const visibilityKey = getPhotoVisibilityKey(photo.driveItemId, photo.filename);
+      const visibility = visibilityMap.get(visibilityKey);
+      const isVisible = visibility ? visibility.is_visible : true;
+
+      return {
+        ...resolved,
+        isVisible,
+        visibilityUpdatedAt: visibility?.updated_at ?? null,
+      };
+    });
+
+    const photos = includeHidden
+      ? resolvedPhotos
+      : resolvedPhotos.filter(photo => photo.isVisible !== false);
+
+    res.json({
+      photos,
+      total: photos.length,
+      allTotal: resolvedPhotos.length,
+    });
   } catch (error) {
     console.error('Photos API error:', error);
     res.status(500).json({ error: '读取照片元数据失败' });
@@ -213,10 +331,54 @@ router.post('/process', authMiddleware, async (_req: Request, res: Response): Pr
 });
 
 /**
+ * PATCH /api/photos/visibility
+ * 设置照片是否展示在照片墙（需要认证）
+ */
+router.patch('/visibility', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  const { filename, driveItemId, isVisible } = req.body as {
+    filename?: unknown;
+    driveItemId?: unknown;
+    isVisible?: unknown;
+  };
+
+  if (typeof isVisible !== 'boolean') {
+    res.status(400).json({ error: 'isVisible 必须为布尔值' });
+    return;
+  }
+
+  const visibilityKey = buildVisibilityKeyFromInput(driveItemId, filename);
+  if (!visibilityKey) {
+    res.status(400).json({ error: '无效的照片标识' });
+    return;
+  }
+
+  try {
+    await ensurePhotoVisibilityTable();
+    await query(`
+      INSERT INTO photo_visibility (photo_key, is_visible, updated_at)
+      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (photo_key)
+      DO UPDATE SET
+        is_visible = EXCLUDED.is_visible,
+        updated_at = CURRENT_TIMESTAMP;
+    `, [visibilityKey, isVisible]);
+
+    res.json({
+      success: true,
+      photoKey: visibilityKey,
+      isVisible,
+    });
+  } catch (error) {
+    console.error('Photos API error:', error);
+    res.status(500).json({ error: '更新照片展示状态失败' });
+  }
+});
+
+/**
  * DELETE /api/photos/:filename
  * 删除照片（需要认证）
  */
-router.delete('/:filename', authMiddleware, (req: Request, res: Response): void => {
+router.delete('/:filename', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   const { filename } = req.params as { filename: string };
   let decodedFilename = '';
   try {
@@ -255,16 +417,32 @@ router.delete('/:filename', authMiddleware, (req: Request, res: Response): void 
     }
   }
 
-  // 更新元数据文件
+  // 更新元数据文件 + 清理可见性配置
   try {
+    await ensurePhotoVisibilityTable();
+
+    let deletedDriveItemId: string | undefined;
     if (fs.existsSync(METADATA_FILE)) {
       const content = fs.readFileSync(METADATA_FILE, 'utf8');
-      const photos = JSON.parse(content);
-      const filtered = photos.filter((p: any) => p.filename !== normalizedFilename);
+      const parsed = JSON.parse(content);
+      const photos = Array.isArray(parsed) ? (parsed as PhotoMetadataRecord[]) : [];
+      const found = photos.find(photo => photo.filename === normalizedFilename);
+      deletedDriveItemId = found?.driveItemId;
+      const filtered = photos.filter(photo => photo.filename !== normalizedFilename);
       fs.writeFileSync(METADATA_FILE, JSON.stringify(filtered, null, 2), 'utf8');
     }
+
+    const visibilityKeys = [`file:${normalizedFilename}`];
+    if (deletedDriveItemId) {
+      visibilityKeys.push(`drive:${deletedDriveItemId}`);
+    }
+
+    await query(`
+      DELETE FROM photo_visibility
+      WHERE photo_key = ANY($1::text[]);
+    `, [visibilityKeys]);
   } catch (err) {
-    console.error('Failed to update metadata:', err);
+    console.error('Failed to update metadata or visibility:', err);
   }
 
   res.json({
