@@ -30,6 +30,11 @@ function parseIntOrDefault(value: string | undefined, fallback: number): number 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseNonNegativeIntOrDefault(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value || '', 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function normalizeFolderPath(sourceFolderPath: string): string {
   if (!sourceFolderPath) return '';
   return sourceFolderPath.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
@@ -39,6 +44,8 @@ export function getConfig(): OneDriveSyncConfig {
   return {
     enabled: parseBoolean(process.env.ONEDRIVE_SYNC_ENABLED, false),
     pollIntervalSeconds: parseIntOrDefault(process.env.ONEDRIVE_SYNC_POLL_INTERVAL_SECONDS, 600),
+    yieldEveryItems: parseIntOrDefault(process.env.ONEDRIVE_SYNC_YIELD_EVERY_ITEMS, 25),
+    interItemDelayMs: parseNonNegativeIntOrDefault(process.env.ONEDRIVE_SYNC_INTER_ITEM_DELAY_MS, 0),
     tenantId: process.env.ONEDRIVE_TENANT_ID || '',
     clientId: process.env.ONEDRIVE_CLIENT_ID || '',
     clientSecret: process.env.ONEDRIVE_CLIENT_SECRET || '',
@@ -79,6 +86,8 @@ export function getSyncConfigSummary(): SyncConfigSummary {
     configured: config.enabled && missing.length === 0,
     missing,
     pollIntervalSeconds: config.pollIntervalSeconds,
+    yieldEveryItems: config.yieldEveryItems,
+    interItemDelayMs: config.interItemDelayMs,
     webhookConfigured: Boolean(config.webhookUrl),
     usesRefreshToken: Boolean(config.refreshToken),
   };

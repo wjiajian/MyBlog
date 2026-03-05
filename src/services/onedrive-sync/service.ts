@@ -1,7 +1,6 @@
 import type OSS from 'ali-oss';
 import { getConfig, getSyncConfigSummary } from './config.js';
 import {
-  deleteMetadataEntry,
   deleteSyncItem,
   ensureSyncTables,
   findBaseNameConflict,
@@ -9,7 +8,6 @@ import {
   getSyncState,
   readMetadataRecords,
   saveSyncState,
-  upsertMetadataEntry,
   upsertSyncItem,
   writeMetadataRecords,
 } from './state.js';
@@ -47,6 +45,124 @@ let running = false;
 let rerunRequested = false;
 let lastRunResult: SyncRunResult | null = null;
 
+interface MetadataStore {
+  recordsByKey: Map<string, PhotoMetadataRecord>;
+  keyByDriveItemId: Map<string, string>;
+  keyByFilename: Map<string, string>;
+}
+
+function getMetadataKey(driveItemId: string | undefined, filename: string): string {
+  if (driveItemId) return `drive:${driveItemId}`;
+  return `file:${filename}`;
+}
+
+function indexMetadataRecord(store: MetadataStore, key: string, record: PhotoMetadataRecord): void {
+  store.recordsByKey.set(key, record);
+  if (record.driveItemId) {
+    store.keyByDriveItemId.set(record.driveItemId, key);
+    return;
+  }
+  store.keyByFilename.set(record.filename, key);
+}
+
+function unindexMetadataRecord(store: MetadataStore, key: string): void {
+  const record = store.recordsByKey.get(key);
+  if (!record) return;
+  if (record.driveItemId) {
+    store.keyByDriveItemId.delete(record.driveItemId);
+  } else {
+    store.keyByFilename.delete(record.filename);
+  }
+  store.recordsByKey.delete(key);
+}
+
+function createMetadataStore(records: PhotoMetadataRecord[]): MetadataStore {
+  const store: MetadataStore = {
+    recordsByKey: new Map<string, PhotoMetadataRecord>(),
+    keyByDriveItemId: new Map<string, string>(),
+    keyByFilename: new Map<string, string>(),
+  };
+
+  for (const record of records) {
+    const key = getMetadataKey(record.driveItemId, record.filename);
+    indexMetadataRecord(store, key, record);
+  }
+  return store;
+}
+
+function findMetadataRecord(
+  store: MetadataStore,
+  driveItemId: string | undefined,
+  filename: string,
+): PhotoMetadataRecord | null {
+  if (driveItemId) {
+    const byIdKey = store.keyByDriveItemId.get(driveItemId);
+    if (byIdKey) {
+      return store.recordsByKey.get(byIdKey) || null;
+    }
+  }
+  const byFilenameKey = store.keyByFilename.get(filename);
+  if (byFilenameKey) {
+    return store.recordsByKey.get(byFilenameKey) || null;
+  }
+  return null;
+}
+
+function deleteMetadataRecord(store: MetadataStore, driveItemId: string, fallbackFilename?: string): boolean {
+  const byIdKey = store.keyByDriveItemId.get(driveItemId);
+  if (byIdKey) {
+    unindexMetadataRecord(store, byIdKey);
+    return true;
+  }
+
+  if (fallbackFilename) {
+    const byFilenameKey = store.keyByFilename.get(fallbackFilename);
+    if (byFilenameKey) {
+      unindexMetadataRecord(store, byFilenameKey);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function upsertMetadataRecord(store: MetadataStore, entry: PhotoMetadataRecord): void {
+  const preferredKey = getMetadataKey(entry.driveItemId, entry.filename);
+  const byIdKey = entry.driveItemId ? store.keyByDriveItemId.get(entry.driveItemId) : undefined;
+  const byFilenameKey = store.keyByFilename.get(entry.filename);
+  const existingKey = byIdKey || byFilenameKey;
+  const existing = existingKey ? store.recordsByKey.get(existingKey) : null;
+
+  const merged: PhotoMetadataRecord = existing
+    ? {
+        ...existing,
+        ...entry,
+      }
+    : entry;
+
+  if (existingKey) {
+    unindexMetadataRecord(store, existingKey);
+  }
+
+  indexMetadataRecord(store, preferredKey, merged);
+}
+
+function listMetadataRecords(store: MetadataStore): PhotoMetadataRecord[] {
+  return Array.from(store.recordsByKey.values());
+}
+
+function yieldToEventLoop(): Promise<void> {
+  return new Promise(resolve => {
+    setImmediate(resolve);
+  });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+}
+
 async function resolveUniqueBaseName(baseName: string, driveItemId: string): Promise<string> {
   const hasConflict = await findBaseNameConflict(baseName, driveItemId);
   if (!hasConflict) return baseName;
@@ -56,17 +172,13 @@ async function resolveUniqueBaseName(baseName: string, driveItemId: string): Pro
 async function processDeletedItem(
   driveItemId: string,
   client: OSS,
-  metadataRecords: PhotoMetadataRecord[],
+  metadataStore: MetadataStore,
 ): Promise<{
-  metadataRecords: PhotoMetadataRecord[];
   deleted: boolean;
 }> {
   const syncItem = await getSyncItem(driveItemId);
   if (!syncItem) {
-    return {
-      metadataRecords,
-      deleted: false,
-    };
+    return { deleted: false };
   }
 
   const keys = getPhotoObjectKeys(syncItem.base_name);
@@ -77,11 +189,8 @@ async function processDeletedItem(
   ]);
 
   await deleteSyncItem(driveItemId);
-  const updatedMetadata = deleteMetadataEntry(metadataRecords, driveItemId, syncItem.filename);
-  return {
-    metadataRecords: updatedMetadata,
-    deleted: true,
-  };
+  deleteMetadataRecord(metadataStore, driveItemId, syncItem.filename);
+  return { deleted: true };
 }
 
 async function processChangedPhotoItem(
@@ -89,24 +198,17 @@ async function processChangedPhotoItem(
   accessToken: string,
   config: OneDriveSyncConfig,
   client: OSS,
-  metadataRecords: PhotoMetadataRecord[],
+  metadataStore: MetadataStore,
 ): Promise<{
-  metadataRecords: PhotoMetadataRecord[];
   updated: boolean;
 }> {
   if (!isSupportedPhoto(item.name)) {
-    return {
-      metadataRecords,
-      updated: false,
-    };
+    return { updated: false };
   }
 
   const existing = await getSyncItem(item.id);
   if (existing && existing.etag && item.eTag && existing.etag === item.eTag && existing.filename === item.name) {
-    return {
-      metadataRecords,
-      updated: false,
-    };
+    return { updated: false };
   }
 
   const extension = getExtension(item.name);
@@ -127,15 +229,13 @@ async function processChangedPhotoItem(
   }
 
   const keys = getPhotoObjectKeys(uniqueBaseName);
-  await Promise.all([
-    putObject(client, keys.fullKey, variants.fullBuffer, 'image/jpeg'),
-    putObject(client, keys.mediumKey, variants.mediumBuffer, 'image/jpeg'),
-    putObject(client, keys.tinyKey, variants.tinyBuffer, 'image/jpeg'),
-  ]);
+  await putObject(client, keys.fullKey, variants.fullBuffer, 'image/jpeg');
+  await putObject(client, keys.mediumKey, variants.mediumBuffer, 'image/jpeg');
+  await putObject(client, keys.tinyKey, variants.tinyBuffer, 'image/jpeg');
 
   await upsertSyncItem(item.id, item.name, uniqueBaseName, item.eTag || null, item.lastModifiedDateTime);
 
-  const previous = metadataRecords.find(record => record.driveItemId === item.id || record.filename === item.name);
+  const previous = findMetadataRecord(metadataStore, item.id, item.name);
   const updatedMetadataRecord: PhotoMetadataRecord = {
     driveItemId: item.id,
     filename: item.name,
@@ -151,10 +251,8 @@ async function processChangedPhotoItem(
     videoSrc: previous?.videoSrc,
   };
 
-  return {
-    metadataRecords: upsertMetadataEntry(metadataRecords, updatedMetadataRecord),
-    updated: true,
-  };
+  upsertMetadataRecord(metadataStore, updatedMetadataRecord);
+  return { updated: true };
 }
 
 function buildDeltaEndpoint(config: OneDriveSyncConfig, folderItemId: string, deltaLink: string | null): string {
@@ -201,6 +299,8 @@ async function runSyncInternal(trigger: SyncTrigger): Promise<SyncRunResult> {
   let syncedItems = 0;
   let deletedItems = 0;
   let skippedItems = 0;
+  let itemErrorCount = 0;
+  let handledWorkItems = 0;
   let nextDeltaLink = '';
 
   try {
@@ -208,7 +308,7 @@ async function runSyncInternal(trigger: SyncTrigger): Promise<SyncRunResult> {
     const state = await getSyncState();
     const folderItemId = await resolveFolderItemId(token, config);
     const client = createOssClient(config);
-    let metadataRecords = readMetadataRecords();
+    const metadataStore = createMetadataStore(readMetadataRecords());
     let nextEndpointOrUrl = buildDeltaEndpoint(config, folderItemId, state.delta_link);
 
     while (nextEndpointOrUrl) {
@@ -227,23 +327,35 @@ async function runSyncInternal(trigger: SyncTrigger): Promise<SyncRunResult> {
           continue;
         }
 
-        if (item.deleted) {
-          const deletedResult = await processDeletedItem(item.id, client, metadataRecords);
-          metadataRecords = deletedResult.metadataRecords;
-          if (deletedResult.deleted) {
-            deletedItems++;
+        try {
+          if (item.deleted) {
+            const deletedResult = await processDeletedItem(item.id, client, metadataStore);
+            if (deletedResult.deleted) {
+              deletedItems++;
+            } else {
+              skippedItems++;
+            }
+            continue;
+          }
+
+          const changedResult = await processChangedPhotoItem(item, token, config, client, metadataStore);
+          if (changedResult.updated) {
+            syncedItems++;
           } else {
             skippedItems++;
           }
-          continue;
-        }
-
-        const changedResult = await processChangedPhotoItem(item, token, config, client, metadataRecords);
-        metadataRecords = changedResult.metadataRecords;
-        if (changedResult.updated) {
-          syncedItems++;
-        } else {
+        } catch (itemError) {
+          itemErrorCount++;
           skippedItems++;
+          console.error(`[onedrive-sync] Skip item due to processing error (id=${item.id}, name=${item.name || 'unknown'})`, itemError);
+        } finally {
+          handledWorkItems++;
+          if (config.yieldEveryItems > 0 && handledWorkItems % config.yieldEveryItems === 0) {
+            await yieldToEventLoop();
+          }
+          if (config.interItemDelayMs > 0) {
+            await sleep(config.interItemDelayMs);
+          }
         }
       }
 
@@ -254,12 +366,15 @@ async function runSyncInternal(trigger: SyncTrigger): Promise<SyncRunResult> {
       nextEndpointOrUrl = payload['@odata.nextLink'] || '';
     }
 
-    writeMetadataRecords(metadataRecords);
+    writeMetadataRecords(listMetadataRecords(metadataStore));
+    const completionMessage = itemErrorCount > 0
+      ? `Sync completed with ${itemErrorCount} item error(s)`
+      : null;
     await saveSyncState({
       delta_link: nextDeltaLink || state.delta_link,
       folder_item_id: folderItemId,
       last_synced_at: new Date().toISOString(),
-      last_error: null,
+      last_error: completionMessage,
     });
 
     return {
@@ -271,7 +386,7 @@ async function runSyncInternal(trigger: SyncTrigger): Promise<SyncRunResult> {
       syncedItems,
       deletedItems,
       skippedItems,
-      message: 'Sync completed',
+      message: completionMessage || 'Sync completed',
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
