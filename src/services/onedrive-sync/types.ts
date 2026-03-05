@@ -3,6 +3,8 @@ export type SyncTrigger = 'startup' | 'poll' | 'webhook' | 'manual' | 'queued';
 export interface OneDriveSyncConfig {
   enabled: boolean;
   pollIntervalSeconds: number;
+  yieldEveryItems: number;
+  interItemDelayMs: number;
   tenantId: string;
   clientId: string;
   clientSecret: string;
@@ -26,6 +28,8 @@ export interface SyncConfigSummary {
   configured: boolean;
   missing: string[];
   pollIntervalSeconds: number;
+  yieldEveryItems: number;
+  interItemDelayMs: number;
   webhookConfigured: boolean;
   usesRefreshToken: boolean;
 }
