@@ -19,13 +19,16 @@ import {
   resolveFolderItemId,
 } from './graph.js';
 import {
+  buildOriginalObjectKey,
   buildPhotoVariants,
   convertToJpegBuffer,
   createOssClient,
   deleteObjectIgnoreNotFound,
   extractPhotoDate,
+  getContentTypeFromExtension,
   getBaseName,
   getExtension,
+  getFormatLabelFromExtension,
   getPhotoObjectKeys,
   isSupportedPhoto,
   putObject,
@@ -183,6 +186,7 @@ async function processDeletedItem(
 
   const keys = getPhotoObjectKeys(syncItem.base_name);
   await Promise.all([
+    deleteObjectIgnoreNotFound(client, buildOriginalObjectKey(syncItem.filename)),
     deleteObjectIgnoreNotFound(client, keys.fullKey),
     deleteObjectIgnoreNotFound(client, keys.mediumKey),
     deleteObjectIgnoreNotFound(client, keys.tinyKey),
@@ -213,6 +217,9 @@ async function processChangedPhotoItem(
 
   const extension = getExtension(item.name);
   const downloaded = await downloadOneDriveFile(accessToken, config.driveId, item.id);
+  const originalKey = buildOriginalObjectKey(item.name);
+  await putObject(client, originalKey, downloaded, getContentTypeFromExtension(extension));
+
   const fullSourceBuffer = await convertToJpegBuffer(downloaded, extension);
   const variants = await buildPhotoVariants(fullSourceBuffer);
   const photoDate = await extractPhotoDate(downloaded, item.lastModifiedDateTime);
@@ -227,6 +234,9 @@ async function processChangedPhotoItem(
       deleteObjectIgnoreNotFound(client, oldKeys.tinyKey),
     ]);
   }
+  if (existing && existing.filename !== item.name) {
+    await deleteObjectIgnoreNotFound(client, buildOriginalObjectKey(existing.filename));
+  }
 
   const keys = getPhotoObjectKeys(uniqueBaseName);
   await putObject(client, keys.fullKey, variants.fullBuffer, 'image/jpeg');
@@ -239,14 +249,14 @@ async function processChangedPhotoItem(
   const updatedMetadataRecord: PhotoMetadataRecord = {
     driveItemId: item.id,
     filename: item.name,
-    originalSrc: `/${keys.fullKey}`,
+    originalSrc: `/${originalKey}`,
     src: `/${keys.fullKey}`,
     srcMedium: `/${keys.mediumKey}`,
     srcTiny: `/${keys.tinyKey}`,
     width: variants.width,
     height: variants.height,
-    size: variants.fullBuffer.length,
-    format: 'JPEG',
+    size: downloaded.length,
+    format: getFormatLabelFromExtension(extension),
     date: photoDate,
     videoSrc: previous?.videoSrc,
   };

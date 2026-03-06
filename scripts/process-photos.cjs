@@ -27,6 +27,14 @@ function formatDate(date) {
     return `${d.getFullYear()}:${pad(d.getMonth() + 1)}:${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+function getFormatLabelFromExtension(extension) {
+    const normalized = extension.toLowerCase();
+    if (normalized === '.jpg' || normalized === '.jpeg') return 'JPEG';
+    if (normalized === '.heic') return 'HEIC';
+    if (normalized === '.heif') return 'HEIF';
+    return normalized.replace('.', '').toUpperCase();
+}
+
 async function processPhotos() {
     console.log('Starting photo processing...');
 
@@ -67,7 +75,6 @@ async function processPhotos() {
 
     for (const [baseName, locations] of fileMap) {
         // 确定源文件：优先 origin（原始），否则 full（已转换）
-        // 若 origin 为 HEIC，则转换并按需删除原文件
         
         let sourcePath = '';
         let file = '';
@@ -93,13 +100,16 @@ async function processPhotos() {
         let date = null;
         let width = 0;
         let height = 0;
-        let finalFormat = 'JPEG';
+        let finalFormat = getFormatLabelFromExtension(ext);
 
         const isHeic = ext === '.heic' || ext === '.heif';
         const outputFullPath = path.join(FULL_DIR, `${baseName}.jpg`);
         let fullSrcPath = '';
         let mediumPathDisplay = `/photowall/thumbnails/medium/${baseName}.jpg`;
         let tinyPathDisplay = `/photowall/thumbnails/tiny/${baseName}.jpg`;
+        let originalPathDisplay = isOrigin
+            ? `/photowall/origin/${locations.origin}`
+            : '';
 
         try {
             let inputBuffer = fs.readFileSync(sourcePath);
@@ -153,7 +163,6 @@ async function processPhotos() {
 
             inputBuffer = fs.readFileSync(outputFullPath);
             fullSrcPath = `/photowall/thumbnails/full/${baseName}.jpg`;
-            finalFormat = 'JPEG';
 
             // 3. 生成缩略图
             const mediumFsPath = path.join(MEDIUM_DIR, `${baseName}.jpg`);
@@ -183,16 +192,6 @@ async function processPhotos() {
                     .toFile(tinyFsPath);
             }
 
-            // 从 origin 删除 HEIC/HEIF，保留转换后的 JPEG
-            if (isOrigin && isHeic && fs.existsSync(sourcePath) && sourcePath !== outputFullPath) {
-                try {
-                    console.log(`  Deleting original HEIC/HEIF file: ${file}`);
-                    fs.unlinkSync(sourcePath);
-                } catch (e) {
-                    console.error('  Failed to delete HEIC/HEIF:', e.message);
-                }
-            }
-
             // 4. 写入元数据
             let videoSrc = undefined;
             // 尝试从已有元数据中读取 videoSrc
@@ -204,13 +203,13 @@ async function processPhotos() {
 
             newMetadata.push({
                 filename: key, // 使用找到的文件名（优先 origin）
-                originalSrc: fullSrcPath, // 作为灯箱显示的实际源
+                originalSrc: originalPathDisplay || fullSrcPath,
                 src: fullSrcPath,
                 srcMedium: mediumPathDisplay,
                 srcTiny: tinyPathDisplay,
                 width,
                 height,
-                size: fullStats.size,
+                size: stats.size,
                 format: finalFormat,
                 date,
                 videoSrc
