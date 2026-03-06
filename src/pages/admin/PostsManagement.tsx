@@ -46,7 +46,7 @@ export const PostsManagement: React.FC = () => {
       const response = await fetch('/api/posts');
       const data = await response.json();
       setPosts(data.posts || []);
-    } catch (err) {
+    } catch {
       setError('加载文章列表失败');
     } finally {
       setIsLoading(false);
@@ -71,7 +71,7 @@ export const PostsManagement: React.FC = () => {
       } else {
         setError(data.error || '删除失败');
       }
-    } catch (err) {
+    } catch {
       setError('删除文章失败');
     } finally {
       setIsDeleting(false);

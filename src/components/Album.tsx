@@ -33,9 +33,6 @@ export const Album: React.FC<AlbumProps> = ({
         setIsFlipped(true);
       }, 200);
       return () => clearTimeout(timer);
-    } else if (!isExpanded) {
-      setIsFlipped(false);
-      setIsClosing(false);
     }
   }, [isExpanded, isClosing]);
 

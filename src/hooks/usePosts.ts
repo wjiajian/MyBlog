@@ -151,26 +151,26 @@ export function usePosts() {
  * 获取单篇文章的 Hook
  */
 export function usePost(type: string | undefined, id: string | undefined) {
+  const hasParams = Boolean(type && id);
+  const currentKey = hasParams ? `${type}/${id}` : null;
   const [post, setPost] = useState<Post | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<{ key: string; message: string } | null>(null);
   const fetchedRef = useRef<string | null>(null);
+  const postRef = useRef<Post | null>(null);
 
   useEffect(() => {
     if (!type || !id) {
-      setIsLoading(false);
       return;
     }
 
     const key = `${type}/${id}`;
     
     // 避免重复请求
-    if (fetchedRef.current === key && post) {
+    if (fetchedRef.current === key && postRef.current) {
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
     fetchedRef.current = key;
 
     fetch(`/api/posts/${type}/${id}.md`)
@@ -197,16 +197,21 @@ export function usePost(type: string | undefined, id: string | undefined) {
             content: data.content || '',
           };
           setPost(transformedPost);
+          postRef.current = transformedPost;
+          setErrorState(null);
         }
       })
       .catch((err) => {
-        setError(err.message || '加载文章失败');
+        setErrorState({ key, message: err.message || '加载文章失败' });
         console.error('Failed to fetch post:', err);
       })
       .finally(() => {
-        setIsLoading(false);
+        setLoadedKey(key);
       });
   }, [type, id]);
+
+  const isLoading = hasParams && loadedKey !== currentKey;
+  const error = currentKey && errorState?.key === currentKey ? errorState.message : null;
 
   return { post, isLoading, error };
 }

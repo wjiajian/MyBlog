@@ -18,10 +18,10 @@ import { getAppTheme } from './utils/theme';
 function App() {
   const { posts, isLoading } = usePosts();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ContentType>('tech');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeYear, setActiveYear] = useState<number | null>(null);
+  const currentCategory = searchParams.get('category');
   // 每年显示的文章数量
   const [postsPerYear, setPostsPerYear] = useState<Record<number, number>>({});
   // 已加载的年份数量
@@ -42,15 +42,8 @@ function App() {
   
   const selectedPost = useMemo(() => posts.find(p => p.id === selectedId), [posts, selectedId]);
 
-  // 从 URL 读取分类参数
-  useEffect(() => {
-    const category = searchParams.get('category');
-    setCurrentCategory(category);
-  }, [searchParams]);
-
   // 处理分类变更
   const handleCategoryChange = (category: string | null) => {
-    setCurrentCategory(category);
     if (category) {
       setSearchParams({ category });
     } else {
@@ -88,6 +81,7 @@ function App() {
   const sortedYears = useMemo(() => {
     return Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
   }, [postsByYear]);
+  const resolvedActiveYear = activeYear ?? sortedYears[0] ?? null;
 
   // 获取当前年份应显示的文章数
   const getVisiblePostsCount = (year: number) => postsPerYear[year] || 4;
@@ -113,13 +107,6 @@ function App() {
   // 监听年份区块滚动，更新时间线高亮
   // 将 sortedYears 转换为字符串，避免数组引用变化触发无限循环
   const sortedYearsKey = sortedYears.join(',');
-  
-  // 初始化 activeYear
-  useEffect(() => {
-    if (activeYear === null && sortedYears.length > 0) {
-      setActiveYear(sortedYears[0]);
-    }
-  }, [sortedYears.length]); // eslint-disable-line react-hooks/exhaustive-deps
   
   useEffect(() => {
     // 解析年份列表
@@ -209,7 +196,7 @@ function App() {
         {/* 左侧时间线导航 */}
         <Timeline 
           items={timelineItems} 
-          activeYear={activeYear}
+          activeYear={resolvedActiveYear}
           onYearClick={handleTimelineYearClick}
           darkMode={darkMode}
         />

@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { usePost } from '../../hooks/usePosts';
 
 import { BlogHeader } from './BlogHeader';
-import { TableOfContents, extractToc } from './TableOfContents';
+import { TableOfContents } from './TableOfContents';
+import { extractToc } from './toc';
 import { BlogContent } from './BlogContent';
 
 export const BlogPost: React.FC = () => {
@@ -17,15 +18,11 @@ export const BlogPost: React.FC = () => {
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [views, setViews] = useState<number | null>(null);
   const [viewsError, setViewsError] = useState<string | null>(null);
+  const [viewsPostId, setViewsPostId] = useState<string | null>(null);
   const [readProgress, setReadProgress] = useState(0);
 
   // 提取目录
-  const toc = useMemo(() => {
-    if (post?.content) {
-      return extractToc(post.content);
-    }
-    return [];
-  }, [post?.content]);
+  const toc = post?.content ? extractToc(post.content) : [];
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -36,8 +33,6 @@ export const BlogPost: React.FC = () => {
     if (!post?.id) return;
 
     let isActive = true;
-    setViews(null);
-    setViewsError(null);
     fetch(`/api/pageview?id=${post.id}`, { method: 'POST' })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
@@ -45,13 +40,17 @@ export const BlogPost: React.FC = () => {
           throw new Error(data.error || 'Failed to fetch views');
         }
         if (isActive && data.views !== undefined) {
+          setViewsError(null);
           setViews(data.views);
+          setViewsPostId(post.id);
         }
       })
       .catch((err) => {
         console.error('Failed to fetch views:', err);
         if (isActive) {
+          setViews(null);
           setViewsError('浏览量加载失败');
+          setViewsPostId(post.id);
         }
       });
 
@@ -59,6 +58,8 @@ export const BlogPost: React.FC = () => {
       isActive = false;
     };
   }, [post?.id]);
+  const activeViews = viewsPostId === post?.id ? views : null;
+  const activeViewsError = viewsPostId === post?.id ? viewsError : null;
 
   // 监听滚动，高亮当前标题并计算阅读进度
   useEffect(() => {
@@ -112,8 +113,8 @@ export const BlogPost: React.FC = () => {
     <div className="min-h-screen bg-[#f8f9fa] pb-20 selection:bg-blue-500/20">
       <BlogHeader 
         post={post} 
-        views={views}
-        viewsError={viewsError}
+        views={activeViews}
+        viewsError={activeViewsError}
         showTocToggle={toc.length > 0} 
         onTocToggle={() => setIsTocOpen(!isTocOpen)} 
       />

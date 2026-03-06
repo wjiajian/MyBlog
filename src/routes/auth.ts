@@ -79,7 +79,7 @@ router.post('/verify', (req: Request, res: Response): void => {
       return;
     }
     res.json({ valid: true, username });
-  } catch (error) {
+  } catch {
     res.json({ valid: false, error: '令牌无效或已过期' });
   }
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Loader2,
   RefreshCw,
+  Upload,
   X,
 } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
@@ -32,6 +33,7 @@ interface Photo {
 interface ApiResult {
   success?: boolean;
   error?: string;
+  message?: string;
 }
 
 interface MonthGroup {
@@ -77,9 +79,13 @@ export const PhotosManagement: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [toggling, setToggling] = useState<Record<string, boolean>>({});
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const parseApiResponse = async (response: Response): Promise<ApiResult> => {
     const contentType = response.headers.get('content-type') || '';
@@ -156,6 +162,70 @@ export const PhotosManagement: React.FC = () => {
   const visibleCount = photos.filter(photo => photo.isVisible !== false).length;
   const hiddenCount = totalCount - visibleCount;
 
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) {
+      setError('请先选择要上传的图片');
+      return;
+    }
+
+    setIsUploading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const formData = new FormData();
+      for (const file of selectedFiles) {
+        formData.append('photos', file);
+      }
+
+      const response = await authFetch('/api/photos/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await parseApiResponse(response);
+      if (!response.ok || !data.success) {
+        setError(data.error || '上传照片失败');
+        return;
+      }
+
+      setSuccess(data.message || `已上传 ${selectedFiles.length} 张照片`);
+      setSelectedFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      await loadPhotos(true);
+    } catch {
+      setError('上传照片失败');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleProcess = async () => {
+    setIsProcessing(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await authFetch('/api/photos/process', {
+        method: 'POST',
+      });
+      const data = await parseApiResponse(response);
+      if (!response.ok || !data.success) {
+        setError(data.error || '处理照片失败');
+        return;
+      }
+
+      setSuccess(data.message || '照片处理已完成');
+      await loadPhotos(true);
+    } catch {
+      setError('处理照片失败');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleToggleVisibility = async (photo: Photo, nextVisible: boolean) => {
     const photoKey = getPhotoKey(photo);
     setToggling(prev => ({ ...prev, [photoKey]: true }));
@@ -200,16 +270,56 @@ export const PhotosManagement: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">照片墙展示管理</h1>
-          <p className="text-gray-500 mt-1">OSS 同步模式：后台仅管理展示状态，不再上传或处理图片</p>
+          <p className="text-gray-500 mt-1">OSS 上传模式：支持上传图片并管理展示状态</p>
         </div>
         <button
           onClick={() => void loadPhotos(true)}
-          disabled={isRefreshing}
+          disabled={isRefreshing || isUploading || isProcessing}
           className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl transition-colors disabled:opacity-50 shadow-sm"
         >
           {isRefreshing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
           刷新列表
         </button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex-1">
+            <p className="text-sm text-gray-700 mb-2">上传照片到 OSS（支持批量）</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.heic,.heif"
+              onChange={event => {
+                const files = event.target.files ? Array.from(event.target.files) : [];
+                setSelectedFiles(files);
+              }}
+              className="block w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+            />
+            <p className="text-xs text-gray-400 mt-2">
+              已选择 {selectedFiles.length} 张，上传后会自动处理并写入 OSS
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void handleUpload()}
+              disabled={selectedFiles.length === 0 || isUploading || isProcessing}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              上传照片
+            </button>
+            <button
+              onClick={() => void handleProcess()}
+              disabled={isUploading || isProcessing}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              处理照片
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

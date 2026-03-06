@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -31,11 +31,7 @@ export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [username, setUsername] = useState<string | null>(null);
-
-  useEffect(() => {
-    setUsername(getUsername());
-  }, []);
+  const username = getUsername();
 
   const handleLogout = () => {
     logout();

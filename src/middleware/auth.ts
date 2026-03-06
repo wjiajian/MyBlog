@@ -1,13 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// 扩展 Express Request 类型以包含用户信息
-declare global {
-  namespace Express {
-    interface Request {
-      user?: { username: string };
-    }
-  }
+interface AuthRequest extends Request {
+  user?: { username: string };
 }
 
 const getJwtSecret = (): string => {
@@ -19,6 +14,7 @@ const getJwtSecret = (): string => {
  * 验证请求头中的 Bearer token
  */
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  const authReq = req as AuthRequest;
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -30,9 +26,9 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as { username: string };
-    req.user = decoded;
+    authReq.user = decoded;
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: '无效或过期的令牌' });
   }
 };

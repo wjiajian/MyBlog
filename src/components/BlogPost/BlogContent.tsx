@@ -19,7 +19,7 @@ const PreBlock: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   let isPlainText = true;
   
   if (React.isValidElement(children) && children.type === 'code') {
-     const childProps = children.props as any;
+     const childProps = children.props as { className?: string };
      const className = childProps.className || '';
      const match = /language-(\w+)/.exec(className);
      if (match) {

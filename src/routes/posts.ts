@@ -56,7 +56,7 @@ const coverStorage = multer.diskStorage({
     }
 
     // 将目录名保存到请求中供后续使用
-    (req as any).coverFolder = safeFolderName;
+    (req as CoverFolderRequest).coverFolder = safeFolderName;
     cb(null, destDir);
   },
   filename: (_req, file, cb) => {
@@ -115,6 +115,10 @@ interface PostMeta {
   tags?: string[];
   coverImage?: string;
   path: string;
+}
+
+interface CoverFolderRequest extends Request {
+  coverFolder?: string;
 }
 
 /**
@@ -320,7 +324,7 @@ router.post("/", authMiddleware, (req: Request, res: Response): void => {
 
   try {
     // 构建 frontmatter
-    const frontmatter: Record<string, any> = {
+    const frontmatter: Record<string, unknown> = {
       title,
       date: date || new Date().toISOString().split("T")[0],
     };
@@ -381,7 +385,7 @@ router.put(
       const { data: existingMeta, content: existingContent } = matter(existing);
 
       // 合并更新（使用 undefined 判断，允许显式清空字段）
-      const frontmatter: Record<string, any> = {
+      const frontmatter: Record<string, unknown> = {
         ...existingMeta,
         title: title !== undefined ? title : existingMeta.title,
         date: date !== undefined ? date : existingMeta.date,
@@ -463,7 +467,7 @@ router.post(
       return;
     }
 
-    const folderName = (req as any).coverFolder;
+    const folderName = (req as CoverFolderRequest).coverFolder || "default";
     const ext = path.extname(file.originalname).toLowerCase();
     const coverUrl = `/images/${folderName}/coverImage${ext}`;
 

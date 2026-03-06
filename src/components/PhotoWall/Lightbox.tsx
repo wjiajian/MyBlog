@@ -104,7 +104,14 @@ export const Lightbox: React.FC<LightboxProps> = ({
           return reader.read().then(({ done, value }) => {
             if (done) {
               // 使用已收集的分片创建 blob
-              const blob = new Blob(chunks as any);
+              const totalLength = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+              const merged = new Uint8Array(totalLength);
+              let offset = 0;
+              for (const chunk of chunks) {
+                merged.set(chunk, offset);
+                offset += chunk.byteLength;
+              }
+              const blob = new Blob([merged.buffer]);
               const blobUrl = URL.createObjectURL(blob);
               setFullImageUrl(blobUrl);
               

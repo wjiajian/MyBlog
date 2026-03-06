@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TimelineItem {
@@ -22,6 +22,7 @@ const monthNames = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月', 
 export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearClick, darkMode = false }) => {
   const [expandedYear, setExpandedYear] = useState<number | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const activeExpandedYear = expandedYear ?? activeYear;
 
   // 主题样式
   const theme = {
@@ -39,15 +40,8 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
     monthCount: darkMode ? 'text-white/40' : 'text-gray-400',
   };
 
-  // 当 activeYear 变化时展开对应年份
-  useEffect(() => {
-    if (activeYear) {
-      setExpandedYear(activeYear);
-    }
-  }, [activeYear]);
-
   const handleYearClick = (year: number) => {
-    setExpandedYear(expandedYear === year ? null : year);
+    setExpandedYear(prev => (prev === year ? null : year));
     onYearClick(year);
   };
 
@@ -106,7 +100,7 @@ export const Timeline: React.FC<TimelineProps> = ({ items, activeYear, onYearCli
                   </button>
                   
                   {/* 展开的月份列表 */}
-                  {expandedYear === item.year && item.months.length > 0 && (
+                  {activeExpandedYear === item.year && item.months.length > 0 && (
                     <motion.ul
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
