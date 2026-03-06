@@ -227,36 +227,34 @@ function extractObjectKeyFromUrl(urlValue: string | undefined): string | null {
   return normalizedPath;
 }
 
-function getBaseNameFromRecord(record: PhotoMetadataRecord | undefined): string | null {
-  if (!record) return null;
-  const fullKey = extractObjectKeyFromUrl(record.src);
-  if (!fullKey) return null;
-  const match = fullKey.match(/^photowall\/thumbnails\/full\/(.+)\.jpg$/i);
-  return match ? match[1] : null;
+function buildOriginalObjectKey(filename: string): string {
+  return `photowall/origin/${filename}`;
 }
 
-function collectUsedBaseNames(records: PhotoMetadataRecord[], excludeFilename?: string): Set<string> {
-  const used = new Set<string>();
-  for (const record of records) {
-    if (excludeFilename && record.filename === excludeFilename) continue;
-    const baseName = getBaseNameFromRecord(record);
-    if (baseName) {
-      used.add(baseName);
-    }
-  }
-  return used;
+function buildThumbnailObjectKeys(filename: string): { mediumKey: string; tinyKey: string } {
+  return {
+    mediumKey: `photowall/thumbnails/medium/${filename}.jpg`,
+    tinyKey: `photowall/thumbnails/tiny/${filename}.jpg`,
+  };
 }
 
-function resolveUniqueBaseName(preferredBaseName: string, usedBaseNames: Set<string>): string {
-  if (!usedBaseNames.has(preferredBaseName)) {
-    return preferredBaseName;
-  }
+function getContentTypeFromExtension(extension: string): string {
+  const normalized = extension.toLowerCase();
+  if (normalized === '.jpg' || normalized === '.jpeg') return 'image/jpeg';
+  if (normalized === '.png') return 'image/png';
+  if (normalized === '.webp') return 'image/webp';
+  if (normalized === '.gif') return 'image/gif';
+  if (normalized === '.heic') return 'image/heic';
+  if (normalized === '.heif') return 'image/heif';
+  return 'application/octet-stream';
+}
 
-  let suffix = 1;
-  while (usedBaseNames.has(`${preferredBaseName}-${suffix}`)) {
-    suffix += 1;
-  }
-  return `${preferredBaseName}-${suffix}`;
+function getFormatLabelFromExtension(extension: string): string {
+  const normalized = extension.toLowerCase();
+  if (normalized === '.jpg' || normalized === '.jpeg') return 'JPEG';
+  if (normalized === '.heic') return 'HEIC';
+  if (normalized === '.heif') return 'HEIF';
+  return normalized.replace('.', '').toUpperCase();
 }
 
 async function ensurePhotoVisibilityTable(): Promise<void> {
@@ -426,41 +424,55 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
     try {
       const extension = path.extname(safeName).toLowerCase();
       const existingRecord = metadataRecords.find(record => record.filename === safeName);
-      const existingBaseName = getBaseNameFromRecord(existingRecord);
-      const usedBaseNames = collectUsedBaseNames(metadataRecords, safeName);
-      const preferredBaseName = path.basename(safeName, extension);
-      const resolvedBaseName = existingBaseName && !usedBaseNames.has(existingBaseName)
-        ? existingBaseName
-        : resolveUniqueBaseName(preferredBaseName, usedBaseNames);
-
-      const keys = getPhotoObjectKeys(resolvedBaseName);
-      const sourceBuffer = await convertToJpegBuffer(file.buffer, extension);
-      const variants = await buildPhotoVariants(sourceBuffer);
+      const objectKey = buildOriginalObjectKey(safeName);
       const photoDate = await extractPhotoDate(file.buffer, new Date().toISOString());
+      const contentType = file.mimetype?.startsWith('image/')
+        ? file.mimetype
+        : getContentTypeFromExtension(extension);
 
-      await putObject(client, keys.fullKey, variants.fullBuffer, 'image/jpeg');
-      await putObject(client, keys.mediumKey, variants.mediumBuffer, 'image/jpeg');
-      await putObject(client, keys.tinyKey, variants.tinyBuffer, 'image/jpeg');
+      await putObject(client, objectKey, file.buffer, contentType);
 
-      if (existingBaseName && existingBaseName !== resolvedBaseName) {
-        const oldKeys = getPhotoObjectKeys(existingBaseName);
-        await Promise.all([
-          deleteObjectIgnoreNotFound(client, oldKeys.fullKey),
-          deleteObjectIgnoreNotFound(client, oldKeys.mediumKey),
-          deleteObjectIgnoreNotFound(client, oldKeys.tinyKey),
-        ]);
+      const thumbnailKeys = buildThumbnailObjectKeys(safeName);
+      const jpegBuffer = await convertToJpegBuffer(file.buffer, extension);
+      const variants = await buildPhotoVariants(jpegBuffer);
+      await putObject(client, thumbnailKeys.mediumKey, variants.mediumBuffer, 'image/jpeg');
+      await putObject(client, thumbnailKeys.tinyKey, variants.tinyBuffer, 'image/jpeg');
+      const srcMedium = `/${thumbnailKeys.mediumKey}`;
+      const srcTiny = `/${thumbnailKeys.tinyKey}`;
+
+      const keepKeys = new Set<string>([objectKey]);
+      const normalizedMediumKey = extractObjectKeyFromUrl(srcMedium);
+      const normalizedTinyKey = extractObjectKeyFromUrl(srcTiny);
+      if (normalizedMediumKey) keepKeys.add(normalizedMediumKey);
+      if (normalizedTinyKey) keepKeys.add(normalizedTinyKey);
+      const previousKeys = new Set<string>();
+      for (const candidate of [
+        existingRecord?.src,
+        existingRecord?.srcMedium,
+        existingRecord?.srcTiny,
+        existingRecord?.originalSrc,
+      ]) {
+        const key = extractObjectKeyFromUrl(candidate);
+        if (key && !keepKeys.has(key)) {
+          previousKeys.add(key);
+        }
+      }
+      if (previousKeys.size > 0) {
+        await Promise.all(Array.from(previousKeys).map(async key => {
+          await deleteObjectIgnoreNotFound(client, key);
+        }));
       }
 
       upsertMetadataRecordByFilename(metadataRecords, {
         filename: safeName,
-        originalSrc: `/${keys.fullKey}`,
-        src: `/${keys.fullKey}`,
-        srcMedium: `/${keys.mediumKey}`,
-        srcTiny: `/${keys.tinyKey}`,
-        width: variants.width,
-        height: variants.height,
-        size: variants.fullBuffer.length,
-        format: 'JPEG',
+        originalSrc: `/${objectKey}`,
+        src: `/${objectKey}`,
+        srcMedium,
+        srcTiny,
+        width: variants.width || existingRecord?.width,
+        height: variants.height || existingRecord?.height,
+        size: file.size,
+        format: getFormatLabelFromExtension(extension),
         date: photoDate || undefined,
         videoSrc: existingRecord?.videoSrc,
       });
@@ -468,7 +480,7 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
       uploaded.push({
         filename: safeName,
         size: file.size,
-        src: `/${keys.fullKey}`,
+        src: `/${objectKey}`,
       });
     } catch (error) {
       failed.push({
@@ -510,7 +522,7 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
 router.post('/process', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
   res.json({
     success: true,
-    message: 'OSS 模式下上传时已自动处理并更新元数据，无需手动处理',
+    message: 'OSS 模式下上传时已直接保留原图，并统一生成缩略图，无需手动处理',
   });
 });
 
@@ -595,6 +607,10 @@ router.delete('/:filename', authMiddleware, async (req: Request, res: Response):
     }
   }
   if (ossKeys.size === 0) {
+    const thumbnailKeys = buildThumbnailObjectKeys(normalizedFilename);
+    ossKeys.add(buildOriginalObjectKey(normalizedFilename));
+    ossKeys.add(thumbnailKeys.mediumKey);
+    ossKeys.add(thumbnailKeys.tinyKey);
     ossKeys.add(fallbackKeys.fullKey);
     ossKeys.add(fallbackKeys.mediumKey);
     ossKeys.add(fallbackKeys.tinyKey);

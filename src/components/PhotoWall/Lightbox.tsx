@@ -373,7 +373,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
           {/* 中等缩略图占位 */}
           {!isFullImageLoaded && (
             <img
-              src={selectedImage.srcMedium || selectedImage.srcTiny}
+              src={selectedImage.srcMedium || selectedImage.srcTiny || selectedImage.src}
               alt={selectedImage.alt}
               className="absolute max-w-full max-h-screen object-contain"
               style={{
