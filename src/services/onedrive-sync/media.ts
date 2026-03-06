@@ -37,6 +37,29 @@ export function getPhotoObjectKeys(baseName: string): { fullKey: string; mediumK
   };
 }
 
+export function buildOriginalObjectKey(filename: string): string {
+  return `photowall/origin/${filename}`;
+}
+
+export function getContentTypeFromExtension(extension: string): string {
+  const normalized = extension.toLowerCase();
+  if (normalized === '.jpg' || normalized === '.jpeg') return 'image/jpeg';
+  if (normalized === '.png') return 'image/png';
+  if (normalized === '.webp') return 'image/webp';
+  if (normalized === '.gif') return 'image/gif';
+  if (normalized === '.heic') return 'image/heic';
+  if (normalized === '.heif') return 'image/heif';
+  return 'application/octet-stream';
+}
+
+export function getFormatLabelFromExtension(extension: string): string {
+  const normalized = extension.toLowerCase();
+  if (normalized === '.jpg' || normalized === '.jpeg') return 'JPEG';
+  if (normalized === '.heic') return 'HEIC';
+  if (normalized === '.heif') return 'HEIF';
+  return normalized.replace('.', '').toUpperCase();
+}
+
 export function createOssClient(config: OneDriveSyncConfig): OSS {
   return new OSS({
     region: config.ossRegion,

@@ -231,8 +231,9 @@ function buildOriginalObjectKey(filename: string): string {
   return `photowall/origin/${filename}`;
 }
 
-function buildThumbnailObjectKeys(filename: string): { mediumKey: string; tinyKey: string } {
+function buildThumbnailObjectKeys(filename: string): { fullKey: string; mediumKey: string; tinyKey: string } {
   return {
+    fullKey: `photowall/thumbnails/full/${filename}.jpg`,
     mediumKey: `photowall/thumbnails/medium/${filename}.jpg`,
     tinyKey: `photowall/thumbnails/tiny/${filename}.jpg`,
   };
@@ -435,14 +436,18 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
       const thumbnailKeys = buildThumbnailObjectKeys(safeName);
       const jpegBuffer = await convertToJpegBuffer(file.buffer, extension);
       const variants = await buildPhotoVariants(jpegBuffer);
+      await putObject(client, thumbnailKeys.fullKey, variants.fullBuffer, 'image/jpeg');
       await putObject(client, thumbnailKeys.mediumKey, variants.mediumBuffer, 'image/jpeg');
       await putObject(client, thumbnailKeys.tinyKey, variants.tinyBuffer, 'image/jpeg');
+      const srcFull = `/${thumbnailKeys.fullKey}`;
       const srcMedium = `/${thumbnailKeys.mediumKey}`;
       const srcTiny = `/${thumbnailKeys.tinyKey}`;
 
       const keepKeys = new Set<string>([objectKey]);
+      const normalizedFullKey = extractObjectKeyFromUrl(srcFull);
       const normalizedMediumKey = extractObjectKeyFromUrl(srcMedium);
       const normalizedTinyKey = extractObjectKeyFromUrl(srcTiny);
+      if (normalizedFullKey) keepKeys.add(normalizedFullKey);
       if (normalizedMediumKey) keepKeys.add(normalizedMediumKey);
       if (normalizedTinyKey) keepKeys.add(normalizedTinyKey);
       const previousKeys = new Set<string>();
@@ -466,7 +471,7 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
       upsertMetadataRecordByFilename(metadataRecords, {
         filename: safeName,
         originalSrc: `/${objectKey}`,
-        src: `/${objectKey}`,
+        src: srcFull,
         srcMedium,
         srcTiny,
         width: variants.width || existingRecord?.width,
@@ -480,7 +485,7 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
       uploaded.push({
         filename: safeName,
         size: file.size,
-        src: `/${objectKey}`,
+        src: srcFull,
       });
     } catch (error) {
       failed.push({
@@ -522,7 +527,7 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
 router.post('/process', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
   res.json({
     success: true,
-    message: 'OSS 模式下上传时已直接保留原图，并统一生成缩略图，无需手动处理',
+    message: 'OSS 模式下上传时已保留原图，并统一生成 JPEG 全尺寸与缩略图，无需手动处理',
   });
 });
 
@@ -609,6 +614,7 @@ router.delete('/:filename', authMiddleware, async (req: Request, res: Response):
   if (ossKeys.size === 0) {
     const thumbnailKeys = buildThumbnailObjectKeys(normalizedFilename);
     ossKeys.add(buildOriginalObjectKey(normalizedFilename));
+    ossKeys.add(thumbnailKeys.fullKey);
     ossKeys.add(thumbnailKeys.mediumKey);
     ossKeys.add(thumbnailKeys.tinyKey);
     ossKeys.add(fallbackKeys.fullKey);
