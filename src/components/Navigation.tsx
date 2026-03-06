@@ -93,11 +93,6 @@ export const Navigation: React.FC<NavigationProps> = ({
     }
   }, [isSearchOpen]);
 
-  // 关闭移动菜单当路由变化时
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-
   const handleSearchSelect = (postId: string) => {
     setIsSearchOpen(false);
     setSearchQuery('');

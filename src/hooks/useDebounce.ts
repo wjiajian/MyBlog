@@ -7,7 +7,7 @@ import { useRef, useEffect, useCallback } from 'react';
  * @param delay 防抖延迟时间（毫秒）
  * @returns 经过防抖处理的函数
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
+export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): (...args: Parameters<T>) => void {

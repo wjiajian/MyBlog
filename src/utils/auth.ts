@@ -116,7 +116,7 @@ export async function login(username: string, password: string): Promise<{ succe
     }
 
     return { success: false, error: data.error || '登录失败' };
-  } catch (error) {
+  } catch {
     return { success: false, error: '网络错误，请稍后重试' };
   }
 }

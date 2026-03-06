@@ -9,8 +9,6 @@ import { query }  from './src/db/index.js';
 import authRoutes from './src/routes/auth.js';
 import postsRoutes from './src/routes/posts.js';
 import photosRoutes from './src/routes/photos.js';
-import oneDriveSyncRoutes from './src/routes/onedrive-sync.js';
-import { startOneDriveSyncScheduler } from './src/services/onedrive-sync/service.js';
 
 dotenv.config();
 
@@ -48,7 +46,6 @@ if (fs.existsSync(distPath)) {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/photos', photosRoutes);
-app.use('/api/onedrive-sync', oneDriveSyncRoutes);
 
 // 浏览量 API
 // 获取浏览量
@@ -104,6 +101,8 @@ interface Comment {
     replies?: Comment[];
 }
 
+type CommentRow = Omit<Comment, 'replies'>;
+
 app.get('/api/comments', async (req: Request, res: Response) => {
     const postId = req.query.postId as string;
     if (!postId) {
@@ -119,11 +118,11 @@ app.get('/api/comments', async (req: Request, res: Response) => {
             ORDER BY created_at ASC
         `, [postId]);
 
-        const rows = result.rows;
+        const rows = result.rows as CommentRow[];
         const commentsMap = new Map<number, Comment>();
         const rootComments: Comment[] = [];
 
-        rows.forEach((row: any) => {
+        rows.forEach((row) => {
              const comment: Comment = {
                 id: row.id,
                 post_id: row.post_id,
@@ -136,7 +135,7 @@ app.get('/api/comments', async (req: Request, res: Response) => {
              commentsMap.set(comment.id, comment);
         });
 
-        rows.forEach((row: any) => {
+        rows.forEach((row) => {
             const comment = commentsMap.get(row.id)!;
             if (row.parent_id === null) {
                 rootComments.push(comment);
@@ -226,5 +225,3 @@ app.use((req: Request, res: Response) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`[server]: Server is running at http://0.0.0.0:${port}`);
 });
-
-startOneDriveSyncScheduler();

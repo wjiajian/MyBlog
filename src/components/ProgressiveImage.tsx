@@ -60,13 +60,19 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
 
     const img = new Image();
     img.src = src;
-    
+    const markLoaded = () => setIsLoaded(true);
+
     if (img.complete) {
-      setIsLoaded(true);
-    } else {
-      img.onload = () => setIsLoaded(true);
-      img.onerror = () => setIsLoaded(true); // 即使加载失败也显示
+      const timer = window.setTimeout(markLoaded, 0);
+      return () => window.clearTimeout(timer);
     }
+
+    img.onload = markLoaded;
+    img.onerror = markLoaded; // 即使加载失败也显示
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [isInView, src]);
 
   return (

@@ -4,14 +4,19 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import OSS from 'ali-oss';
 import { createRequire } from 'module';
 import { authMiddleware } from '../middleware/auth.js';
 import { query } from '../db/index.js';
 import { resolvePhotoAssetPaths } from '../utils/photoUrl.js';
-
-const execAsync = promisify(exec);
+import {
+  buildPhotoVariants,
+  convertToJpegBuffer,
+  deleteObjectIgnoreNotFound,
+  extractPhotoDate,
+  getPhotoObjectKeys,
+  putObject,
+} from '../services/onedrive-sync/media.js';
 const router = Router();
 
 // 获取项目根目录
@@ -46,6 +51,14 @@ const MAX_UPLOAD_MB = Number.isFinite(parsedUploadLimitMb) && parsedUploadLimitM
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 const PHOTO_ASSET_BASE_URL = process.env.OSS_PHOTOWALL_BASE_URL || process.env.VITE_OSS_PHOTOWALL_BASE_URL || '';
 let photoVisibilityTableEnsured = false;
+
+interface OssConfig {
+  region: string;
+  bucket: string;
+  accessKeyId: string;
+  accessKeySecret: string;
+  endpoint: string;
+}
 
 interface PhotoMetadataRecord {
   driveItemId?: string;
@@ -129,6 +142,123 @@ function buildVisibilityKeyFromInput(driveItemId: unknown, filename: unknown): s
   return null;
 }
 
+function getOssConfig(): OssConfig {
+  return {
+    region: process.env.OSS_REGION || '',
+    bucket: process.env.OSS_BUCKET || '',
+    accessKeyId: process.env.OSS_ACCESS_KEY_ID || '',
+    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET || '',
+    endpoint: process.env.OSS_ENDPOINT || '',
+  };
+}
+
+function getMissingOssConfig(config: OssConfig): string[] {
+  const missing: string[] = [];
+  if (!config.region) missing.push('OSS_REGION');
+  if (!config.bucket) missing.push('OSS_BUCKET');
+  if (!config.accessKeyId) missing.push('OSS_ACCESS_KEY_ID');
+  if (!config.accessKeySecret) missing.push('OSS_ACCESS_KEY_SECRET');
+  return missing;
+}
+
+function isOssConfigured(config: OssConfig): boolean {
+  return getMissingOssConfig(config).length === 0;
+}
+
+function createOssClient(config: OssConfig): OSS {
+  return new OSS({
+    region: config.region,
+    bucket: config.bucket,
+    accessKeyId: config.accessKeyId,
+    accessKeySecret: config.accessKeySecret,
+    endpoint: config.endpoint || undefined,
+    secure: true,
+  });
+}
+
+function readMetadataRecords(): PhotoMetadataRecord[] {
+  if (!fs.existsSync(METADATA_FILE)) {
+    return [];
+  }
+  try {
+    const content = fs.readFileSync(METADATA_FILE, 'utf8');
+    const parsed = JSON.parse(content);
+    return Array.isArray(parsed) ? (parsed as PhotoMetadataRecord[]) : [];
+  } catch (error) {
+    console.error('Failed to parse metadata file:', error);
+    return [];
+  }
+}
+
+function writeMetadataRecords(records: PhotoMetadataRecord[]): void {
+  const sorted = [...records].sort((a, b) => {
+    if (a.date && b.date) return b.date.localeCompare(a.date);
+    return a.filename.localeCompare(b.filename, 'zh-CN');
+  });
+  fs.writeFileSync(METADATA_FILE, JSON.stringify(sorted, null, 2), 'utf8');
+}
+
+function upsertMetadataRecordByFilename(records: PhotoMetadataRecord[], entry: PhotoMetadataRecord): void {
+  const index = records.findIndex(record => record.filename === entry.filename);
+  if (index >= 0) {
+    records[index] = entry;
+    return;
+  }
+  records.push(entry);
+}
+
+function extractObjectKeyFromUrl(urlValue: string | undefined): string | null {
+  if (!urlValue) return null;
+  const trimmed = urlValue.trim();
+  if (!trimmed) return null;
+
+  let pathname = trimmed;
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('//')) {
+    try {
+      const url = trimmed.startsWith('//') ? new URL(`https:${trimmed}`) : new URL(trimmed);
+      pathname = url.pathname;
+    } catch {
+      return null;
+    }
+  }
+
+  const normalizedPath = pathname.split('?')[0].split('#')[0].replace(/^\/+/, '');
+  if (!normalizedPath.startsWith('photowall/')) return null;
+  return normalizedPath;
+}
+
+function getBaseNameFromRecord(record: PhotoMetadataRecord | undefined): string | null {
+  if (!record) return null;
+  const fullKey = extractObjectKeyFromUrl(record.src);
+  if (!fullKey) return null;
+  const match = fullKey.match(/^photowall\/thumbnails\/full\/(.+)\.jpg$/i);
+  return match ? match[1] : null;
+}
+
+function collectUsedBaseNames(records: PhotoMetadataRecord[], excludeFilename?: string): Set<string> {
+  const used = new Set<string>();
+  for (const record of records) {
+    if (excludeFilename && record.filename === excludeFilename) continue;
+    const baseName = getBaseNameFromRecord(record);
+    if (baseName) {
+      used.add(baseName);
+    }
+  }
+  return used;
+}
+
+function resolveUniqueBaseName(preferredBaseName: string, usedBaseNames: Set<string>): string {
+  if (!usedBaseNames.has(preferredBaseName)) {
+    return preferredBaseName;
+  }
+
+  let suffix = 1;
+  while (usedBaseNames.has(`${preferredBaseName}-${suffix}`)) {
+    suffix += 1;
+  }
+  return `${preferredBaseName}-${suffix}`;
+}
+
 async function ensurePhotoVisibilityTable(): Promise<void> {
   if (photoVisibilityTableEnsured) return;
 
@@ -168,29 +298,9 @@ async function getVisibilityMapForPhotos(photos: PhotoMetadataRecord[]): Promise
   return visibilityMap;
 }
 
-// 确保上传目录存在
-if (!fs.existsSync(ORIGIN_DIR)) {
-  fs.mkdirSync(ORIGIN_DIR, { recursive: true });
-}
-
 // 配置 multer 文件上传
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, ORIGIN_DIR);
-  },
-  filename: (_req, file, cb) => {
-    // 保留文件名并阻止路径穿越
-    const safeName = sanitizeUploadFilename(file.originalname);
-    if (!safeName) {
-      cb(new Error('无效的文件名'), '');
-      return;
-    }
-    cb(null, safeName);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: MAX_UPLOAD_BYTES, // 单文件大小限制
   },
@@ -284,23 +394,112 @@ router.get('/metadata', async (req: Request, res: Response): Promise<void> => {
  * 上传照片（需要认证）
  */
 router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Request, res: Response): Promise<void> => {
-  const files = req.files as Express.Multer.File[];
+  const files = req.files as Express.Multer.File[] | undefined;
 
   if (!files || files.length === 0) {
     res.status(400).json({ error: '未上传任何文件' });
     return;
   }
 
-  const uploaded = files.map(file => ({
-    filename: file.filename,
-    size: file.size,
-    path: file.path,
-  }));
+  const ossConfig = getOssConfig();
+  const missingOssConfig = getMissingOssConfig(ossConfig);
+  if (missingOssConfig.length > 0) {
+    res.status(500).json({ error: `OSS 配置缺失: ${missingOssConfig.join(', ')}` });
+    return;
+  }
 
-  res.json({
+  const metadataRecords = readMetadataRecords();
+  const client = createOssClient(ossConfig);
+  const uploaded: Array<{ filename: string; size: number; src: string }> = [];
+  const failed: Array<{ filename: string; error: string }> = [];
+
+  for (const file of files) {
+    const safeName = sanitizeUploadFilename(file.originalname);
+    if (!safeName) {
+      failed.push({
+        filename: file.originalname,
+        error: '无效的文件名',
+      });
+      continue;
+    }
+
+    try {
+      const extension = path.extname(safeName).toLowerCase();
+      const existingRecord = metadataRecords.find(record => record.filename === safeName);
+      const existingBaseName = getBaseNameFromRecord(existingRecord);
+      const usedBaseNames = collectUsedBaseNames(metadataRecords, safeName);
+      const preferredBaseName = path.basename(safeName, extension);
+      const resolvedBaseName = existingBaseName && !usedBaseNames.has(existingBaseName)
+        ? existingBaseName
+        : resolveUniqueBaseName(preferredBaseName, usedBaseNames);
+
+      const keys = getPhotoObjectKeys(resolvedBaseName);
+      const sourceBuffer = await convertToJpegBuffer(file.buffer, extension);
+      const variants = await buildPhotoVariants(sourceBuffer);
+      const photoDate = await extractPhotoDate(file.buffer, new Date().toISOString());
+
+      await putObject(client, keys.fullKey, variants.fullBuffer, 'image/jpeg');
+      await putObject(client, keys.mediumKey, variants.mediumBuffer, 'image/jpeg');
+      await putObject(client, keys.tinyKey, variants.tinyBuffer, 'image/jpeg');
+
+      if (existingBaseName && existingBaseName !== resolvedBaseName) {
+        const oldKeys = getPhotoObjectKeys(existingBaseName);
+        await Promise.all([
+          deleteObjectIgnoreNotFound(client, oldKeys.fullKey),
+          deleteObjectIgnoreNotFound(client, oldKeys.mediumKey),
+          deleteObjectIgnoreNotFound(client, oldKeys.tinyKey),
+        ]);
+      }
+
+      upsertMetadataRecordByFilename(metadataRecords, {
+        filename: safeName,
+        originalSrc: `/${keys.fullKey}`,
+        src: `/${keys.fullKey}`,
+        srcMedium: `/${keys.mediumKey}`,
+        srcTiny: `/${keys.tinyKey}`,
+        width: variants.width,
+        height: variants.height,
+        size: variants.fullBuffer.length,
+        format: 'JPEG',
+        date: photoDate || undefined,
+        videoSrc: existingRecord?.videoSrc,
+      });
+
+      uploaded.push({
+        filename: safeName,
+        size: file.size,
+        src: `/${keys.fullKey}`,
+      });
+    } catch (error) {
+      failed.push({
+        filename: safeName,
+        error: error instanceof Error ? error.message : '上传到 OSS 失败',
+      });
+    }
+  }
+
+  if (uploaded.length > 0) {
+    writeMetadataRecords(metadataRecords);
+  }
+
+  if (uploaded.length === 0) {
+    res.status(500).json({
+      success: false,
+      error: failed[0]?.error || '照片上传失败',
+      failed,
+    });
+    return;
+  }
+
+  const hasFailed = failed.length > 0;
+  res.status(hasFailed ? 207 : 200).json({
     success: true,
+    partial: hasFailed,
     uploaded,
-    message: `成功上传 ${files.length} 张照片，请手动触发处理生成缩略图`,
+    failed,
+    message: hasFailed
+      ? `成功上传 ${uploaded.length} 张，失败 ${failed.length} 张`
+      : `成功上传并处理 ${uploaded.length} 张照片`,
   });
 });
 
@@ -309,25 +508,10 @@ router.post('/upload', authMiddleware, uploadPhotosMiddleware, async (req: Reque
  * 手动触发照片处理（需要认证）
  */
 router.post('/process', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const scriptPath = path.join(PROJECT_ROOT, 'scripts', 'process-photos.cjs');
-    
-    if (!fs.existsSync(scriptPath)) {
-      res.status(500).json({ error: '照片处理脚本不存在' });
-      return;
-    }
-
-    // 异步执行处理脚本
-    res.json({ success: true, message: '照片处理已启动，请稍后刷新查看结果' });
-    
-    // 后台执行
-    execAsync(`node "${scriptPath}"`, { cwd: PROJECT_ROOT })
-      .then(() => console.log('Photos processed successfully'))
-      .catch(err => console.error('Photo processing error:', err));
-  } catch (error) {
-    console.error('Photos API error:', error);
-    res.status(500).json({ error: '启动照片处理失败' });
-  }
+  res.json({
+    success: true,
+    message: 'OSS 模式下上传时已自动处理并更新元数据，无需手动处理',
+  });
 });
 
 /**
@@ -394,23 +578,58 @@ router.delete('/:filename', authMiddleware, async (req: Request, res: Response):
     return;
   }
 
-  // 获取文件基名（不含扩展名）
-  const baseName = path.basename(normalizedFilename, path.extname(normalizedFilename));
+  const metadataRecords = readMetadataRecords();
+  const matchedRecord = metadataRecords.find(photo => photo.filename === normalizedFilename);
+  const fallbackBaseName = path.basename(normalizedFilename, path.extname(normalizedFilename));
+  const fallbackKeys = getPhotoObjectKeys(fallbackBaseName);
+  const ossKeys = new Set<string>();
+  for (const candidate of [
+    matchedRecord?.src,
+    matchedRecord?.srcMedium,
+    matchedRecord?.srcTiny,
+    matchedRecord?.originalSrc,
+  ]) {
+    const key = extractObjectKeyFromUrl(candidate);
+    if (key) {
+      ossKeys.add(key);
+    }
+  }
+  if (ossKeys.size === 0) {
+    ossKeys.add(fallbackKeys.fullKey);
+    ossKeys.add(fallbackKeys.mediumKey);
+    ossKeys.add(fallbackKeys.tinyKey);
+  }
+
+  let deletedOssCount = 0;
+  const ossConfig = getOssConfig();
+  if (isOssConfigured(ossConfig)) {
+    const client = createOssClient(ossConfig);
+    for (const key of ossKeys) {
+      try {
+        await deleteObjectIgnoreNotFound(client, key);
+        deletedOssCount += 1;
+      } catch (error) {
+        console.error(`Failed to delete OSS object ${key}:`, error);
+      }
+    }
+  } else {
+    console.warn('Skip OSS delete: OSS config is incomplete');
+  }
 
   const filesToDelete = [
     path.join(ORIGIN_DIR, normalizedFilename),
-    path.join(PHOTOWALL_ROOT, 'thumbnails', 'full', `${baseName}.jpg`),
-    path.join(PHOTOWALL_ROOT, 'thumbnails', 'medium', `${baseName}.jpg`),
-    path.join(PHOTOWALL_ROOT, 'thumbnails', 'tiny', `${baseName}.jpg`),
+    path.join(PHOTOWALL_ROOT, 'thumbnails', 'full', `${fallbackBaseName}.jpg`),
+    path.join(PHOTOWALL_ROOT, 'thumbnails', 'medium', `${fallbackBaseName}.jpg`),
+    path.join(PHOTOWALL_ROOT, 'thumbnails', 'tiny', `${fallbackBaseName}.jpg`),
   ];
 
-  let deletedCount = 0;
+  let deletedLocalCount = 0;
 
   for (const filePath of filesToDelete) {
     if (fs.existsSync(filePath)) {
       try {
         fs.unlinkSync(filePath);
-        deletedCount++;
+        deletedLocalCount++;
       } catch (err) {
         console.error(`Failed to delete ${filePath}:`, err);
       }
@@ -421,15 +640,10 @@ router.delete('/:filename', authMiddleware, async (req: Request, res: Response):
   try {
     await ensurePhotoVisibilityTable();
 
-    let deletedDriveItemId: string | undefined;
-    if (fs.existsSync(METADATA_FILE)) {
-      const content = fs.readFileSync(METADATA_FILE, 'utf8');
-      const parsed = JSON.parse(content);
-      const photos = Array.isArray(parsed) ? (parsed as PhotoMetadataRecord[]) : [];
-      const found = photos.find(photo => photo.filename === normalizedFilename);
-      deletedDriveItemId = found?.driveItemId;
-      const filtered = photos.filter(photo => photo.filename !== normalizedFilename);
-      fs.writeFileSync(METADATA_FILE, JSON.stringify(filtered, null, 2), 'utf8');
+    const deletedDriveItemId = matchedRecord?.driveItemId;
+    const filtered = metadataRecords.filter(photo => photo.filename !== normalizedFilename);
+    if (filtered.length !== metadataRecords.length) {
+      writeMetadataRecords(filtered);
     }
 
     const visibilityKeys = [`file:${normalizedFilename}`];
@@ -447,8 +661,9 @@ router.delete('/:filename', authMiddleware, async (req: Request, res: Response):
 
   res.json({
     success: true,
-    message: `已删除 ${deletedCount} 个文件`,
-    deletedFiles: deletedCount,
+    message: `已删除 ${deletedOssCount} 个 OSS 对象，清理 ${deletedLocalCount} 个本地文件`,
+    deletedOssFiles: deletedOssCount,
+    deletedLocalFiles: deletedLocalCount,
   });
 });
 

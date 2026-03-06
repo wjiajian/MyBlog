@@ -83,7 +83,7 @@ export const PostEditor: React.FC = () => {
       } else {
         setError(data.error || '上传封面失败');
       }
-    } catch (err) {
+    } catch {
       setError('上传封面图片失败');
     } finally {
       setIsUploadingCover(false);
@@ -148,7 +148,7 @@ export const PostEditor: React.FC = () => {
       } else {
         setError(data.error || '保存失败');
       }
-    } catch (err) {
+    } catch {
       setError('保存文章失败');
     } finally {
       setIsSaving(false);

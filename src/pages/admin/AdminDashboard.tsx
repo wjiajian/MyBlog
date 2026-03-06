@@ -19,7 +19,7 @@ export const AdminDashboard: React.FC = () => {
     {
       icon: <Image size={32} />,
       title: '照片管理',
-      description: '上传和管理照片墙图片',
+      description: '上传、处理和管理照片墙图片',
       path: '/admin/photos',
       color: 'from-purple-500 to-pink-500',
     },
@@ -65,7 +65,7 @@ export const AdminDashboard: React.FC = () => {
           <div>
             <h3 className="text-gray-800 font-medium mb-1">提示</h3>
             <p className="text-gray-500 text-sm">
-              文章修改后会立即生效，无需重新构建。照片上传后需要点击"处理照片"按钮生成缩略图。
+              文章修改后会立即生效，无需重新构建。照片上传后会自动处理并写入 OSS。
             </p>
           </div>
         </div>
