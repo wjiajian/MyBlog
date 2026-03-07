@@ -314,7 +314,7 @@ const upload = multer({
 });
 
 function uploadPhotosMiddleware(req: Request, res: Response, next: (error?: unknown) => void): void {
-  upload.array('photos', 20)(req, res, (err?: unknown) => {
+  upload.array('photos', 10)(req, res, (err?: unknown) => {
     if (!err) {
       next();
       return;
