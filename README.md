@@ -25,7 +25,8 @@ npm run serve      # 启动生产服务器
 
 - `2026-03-06`：主分支切换到 **OSS 直传模式**，移除 OneDrive 同步入口。
 - 照片上传后会保留原图格式，并统一生成 `medium/tiny` 缩略图用于网格和预览。
-- 后台 `/admin/photos` 已恢复上传与处理入口，处理接口保留为兼容入口。
+- 后台 `/admin/photos` 为当前主流程入口，上传/删除会由服务端维护 `src/data/images-metadata.json`。
+- `npm run generate-metadata` / `scripts/process-photos.cjs` 仅保留为历史手动回填工具，不是当前生产主流程。
 
 ---
 
@@ -38,7 +39,7 @@ MyBlog/
 ├── dist-server/            # 服务端构建产物 (自动生成)
 ├── scripts/
 │   ├── init-db.ts          # 数据库初始化脚本
-│   └── process-photos.cjs  # 照片墙数据处理脚本
+│   └── process-photos.cjs  # 照片墙历史/手动回填脚本（非主流程）
 ├── src/
 │   ├── assets/             # 前端静态资源
 │   ├── db/                 # 数据库连接模块 (PostgreSQL)
@@ -54,7 +55,7 @@ MyBlog/
 │   │   └── life/           # 生活类文章
 │   ├── data/
 │   │   ├── posts.ts        # 文章数据加载与解析
-│   │   └── images-metadata.json  # 照片墙元数据
+│   │   └── images-metadata.json  # 照片墙元数据（当前由服务端上传/删除流程维护）
 │   ├── hooks/              # 自定义 Hooks
 │   ├── pages/              # 页面级组件
 │   │   ├── admin/          # 后台页面
@@ -204,7 +205,7 @@ tags:
 ```bash
 # 进入后台
 # /admin/photos
-# 选择图片后上传，服务端会自动写入 OSS 与 metadata
+# 选择图片后上传，服务端会自动写入 OSS 并维护 metadata
 ```
 
 **特性：** HEIC/HEIF/JPG/PNG 原图保留 | 统一生成 `medium/tiny` 缩略图 | EXIF 提取 | 瀑布流布局 | 灯箱预览
@@ -212,6 +213,7 @@ tags:
 ### 当前存储模式（OSS 直传）
 
 当前主分支已切换为后台直传 OSS 模式，不再启用 OneDrive 自动同步链路。
+当前主流程为：管理员在 `/admin/photos` 上传/删除照片，服务端在 `src/routes/photos.ts` 中同步维护 OSS 对象与 `src/data/images-metadata.json`。
 
 数据流：
 
@@ -227,6 +229,23 @@ POST /api/photos/upload
           ▼
 Gallery / Admin 读取 /api/photos/metadata
 ```
+
+删除流程：
+
+```text
+Admin (/admin/photos) 删除图片
+          │
+          ▼
+DELETE /api/photos/:filename
+  - 删除 OSS 原图与缩略图对象
+  - 更新 src/data/images-metadata.json
+```
+
+上传限制与建议：
+
+1. 管理端会自动分批上传：每批最多 `10` 张、每批总大小最多 `50MB`。
+2. 后端当前单文件大小限制为 `50MB`。
+3. 为了更稳定的上传体验，建议单张图片尽量控制在 `5MB` 以内。
 
 OSS 对象路径约定：
 
@@ -248,6 +267,10 @@ OSS 对象路径约定：
 2. 手动触发处理接口（兼容入口，实际上传时已自动处理）
 3. 设置照片可见/隐藏状态
 4. 删除照片（同时删除 OSS 对象与 metadata）
+
+### 旧脚本说明
+
+`npm run generate-metadata`（底层脚本为 `scripts/process-photos.cjs`）仍可用于从本地 `public/photowall/` 做历史数据回填或手动重建缩略图/metadata，但它不是当前生产环境的主流程，也不应替代后台上传/删除接口对 metadata 的日常维护。
 
 ### 历史方案说明
 
@@ -345,8 +368,8 @@ OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com  # 可选
 # 单文件上传大小限制（后端 multer，默认 50MB）
 PHOTO_UPLOAD_MAX_MB=50
 
-# 前端分批上传大小（每批总大小，默认 8MB）
-VITE_PHOTO_UPLOAD_BATCH_MB=8
+# 前端自动分批上传大小（每批总大小，默认 50MB；每批最多 10 张）
+VITE_PHOTO_UPLOAD_BATCH_MB=50
 ```
 
 ### 4. Nginx 配置示例
@@ -474,7 +497,7 @@ CREATE TABLE photo_visibility (
 | `npm run build` | 构建前端和后端 |
 | `npm run serve` | 启动生产服务器 |
 | `npm run db:init` | 初始化数据库表结构 |
-| `npm run generate-metadata` | 生成照片墙元数据 |
+| `npm run generate-metadata` | 手动回填/重建照片墙缩略图与 metadata（历史工具，非主流程） |
 
 ---
 

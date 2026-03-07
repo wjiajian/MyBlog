@@ -5,6 +5,9 @@ const convert = require('heic-convert');
 const exifr = require('exifr');
 const { PHOTO_EXTENSION_REGEX } = require('../shared/photo-extensions.cjs');
 
+// Legacy/manual backfill tool: the primary production workflow now updates
+// OSS objects and src/data/images-metadata.json through src/routes/photos.ts.
+
 const ROOT = path.join(__dirname, '../public/photowall');
 const ORIGIN_DIR = path.join(ROOT, 'origin');
 const THUMBNAILS_DIR = path.join(ROOT, 'thumbnails');
