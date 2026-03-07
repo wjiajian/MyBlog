@@ -341,6 +341,12 @@ OSS_BUCKET=myblog-photowall
 OSS_ACCESS_KEY_ID=your_access_key_id
 OSS_ACCESS_KEY_SECRET=your_access_key_secret
 OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com  # 可选
+
+# 单文件上传大小限制（后端 multer，默认 50MB）
+PHOTO_UPLOAD_MAX_MB=50
+
+# 前端分批上传大小（每批总大小，默认 8MB）
+VITE_PHOTO_UPLOAD_BATCH_MB=8
 ```
 
 ### 4. Nginx 配置示例
@@ -349,6 +355,7 @@ OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com  # 可选
 server {
     listen 80;
     server_name your-domain.com;
+    client_max_body_size 64m;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
