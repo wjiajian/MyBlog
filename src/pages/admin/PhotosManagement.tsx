@@ -34,6 +34,9 @@ interface ApiResult {
   success?: boolean;
   error?: string;
   message?: string;
+  partial?: boolean;
+  uploaded?: Array<{ filename: string; size: number; src: string }>;
+  failed?: Array<{ filename: string; error: string }>;
 }
 
 interface MonthGroup {
@@ -45,6 +48,12 @@ interface MonthGroup {
 
 const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
 const UNKNOWN_MONTH_KEY = 'unknown';
+const MAX_FILES_PER_UPLOAD_BATCH = 20;
+const parsedUploadBatchLimitMb = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_BATCH_MB || '8', 10);
+const UPLOAD_BATCH_LIMIT_MB = Number.isFinite(parsedUploadBatchLimitMb) && parsedUploadBatchLimitMb > 0
+  ? parsedUploadBatchLimitMb
+  : 8;
+const MAX_BATCH_BYTES = UPLOAD_BATCH_LIMIT_MB * 1024 * 1024;
 
 function getPhotoKey(photo: Pick<Photo, 'filename' | 'driveItemId'>): string {
   if (photo.driveItemId) return `drive:${photo.driveItemId}`;
@@ -71,6 +80,32 @@ function compareMonthKeyDesc(a: string, b: string): number {
   return b.localeCompare(a);
 }
 
+function splitFilesIntoBatches(files: File[]): File[][] {
+  const batches: File[][] = [];
+  let currentBatch: File[] = [];
+  let currentBytes = 0;
+
+  for (const file of files) {
+    const exceedsBatchFileCount = currentBatch.length >= MAX_FILES_PER_UPLOAD_BATCH;
+    const exceedsBatchBytes = currentBatch.length > 0 && currentBytes + file.size > MAX_BATCH_BYTES;
+
+    if (exceedsBatchFileCount || exceedsBatchBytes) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentBytes = 0;
+    }
+
+    currentBatch.push(file);
+    currentBytes += file.size;
+  }
+
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+
+  return batches;
+}
+
 /**
  * 照片管理页面（OSS 模式）
  * 按年月列出照片，并支持单张照片展示开关。
@@ -92,7 +127,13 @@ export const PhotosManagement: React.FC = () => {
     if (contentType.includes('application/json')) {
       return response.json();
     }
+    if (response.status === 413) {
+      return { error: '上传请求过大（HTTP 413）。请减少单批上传数量，或在 Nginx 中调大 client_max_body_size。' };
+    }
     const text = await response.text();
+    if (text.includes('413 Request Entity Too Large')) {
+      return { error: '上传请求过大（HTTP 413）。请减少单批上传数量，或在 Nginx 中调大 client_max_body_size。' };
+    }
     return { error: text || `请求失败（HTTP ${response.status}）` };
   };
 
@@ -173,23 +214,53 @@ export const PhotosManagement: React.FC = () => {
     setSuccess('');
 
     try {
-      const formData = new FormData();
-      for (const file of selectedFiles) {
-        formData.append('photos', file);
+      const batches = splitFilesIntoBatches(selectedFiles);
+      let uploadedCount = 0;
+      const failedItems: Array<{ filename: string; error: string }> = [];
+
+      for (let index = 0; index < batches.length; index += 1) {
+        const batch = batches[index];
+        setSuccess(`正在上传第 ${index + 1}/${batches.length} 批（${batch.length} 张）...`);
+
+        const formData = new FormData();
+        for (const file of batch) {
+          formData.append('photos', file);
+        }
+
+        const response = await authFetch('/api/photos/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await parseApiResponse(response);
+
+        if (response.status === 413) {
+          setError(`第 ${index + 1} 批上传失败：请求体过大（HTTP 413）。请在 Nginx 中调大 client_max_body_size。`);
+          return;
+        }
+        if (!response.ok || !data.success) {
+          setError(data.error || `第 ${index + 1} 批上传失败`);
+          return;
+        }
+
+        uploadedCount += data.uploaded?.length ?? batch.length;
+        if (Array.isArray(data.failed) && data.failed.length > 0) {
+          failedItems.push(...data.failed);
+        }
       }
 
-      const response = await authFetch('/api/photos/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await parseApiResponse(response);
-      if (!response.ok || !data.success) {
-        setError(data.error || '上传照片失败');
+      if (uploadedCount === 0) {
+        setError('上传照片失败');
         return;
       }
 
-      setSuccess(data.message || `已上传 ${selectedFiles.length} 张照片`);
+      const failedCount = failedItems.length;
+      if (failedCount > 0) {
+        setSuccess(`上传完成：成功 ${uploadedCount} 张，失败 ${failedCount} 张`);
+        setError(`部分文件上传失败：${failedItems[0].filename}（${failedItems[0].error}）`);
+      } else {
+        setSuccess(`上传完成：成功 ${uploadedCount} 张`);
+      }
+
       setSelectedFiles([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -298,7 +369,7 @@ export const PhotosManagement: React.FC = () => {
               className="block w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
             />
             <p className="text-xs text-gray-400 mt-2">
-              已选择 {selectedFiles.length} 张，上传后会自动处理并写入 OSS
+              已选择 {selectedFiles.length} 张，系统会自动分批上传（每批最多 {MAX_FILES_PER_UPLOAD_BATCH} 张，约 {UPLOAD_BATCH_LIMIT_MB}MB）
             </p>
           </div>
           <div className="flex items-center gap-2">
