@@ -31,6 +31,178 @@ if (!fs.existsSync(IMAGES_DIR)) {
   fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
 
+interface ParsedMarkdownImport {
+  title: string;
+  slug: string;
+  content: string;
+  type: "tech" | "life";
+  categories: string;
+  description: string;
+  date: string;
+  coverImage: string;
+  tags?: string[];
+}
+
+interface PostCreatePayload {
+  title?: string;
+  slug?: string;
+  content?: string;
+  type?: string;
+  categories?: string;
+  description?: string;
+  tags?: string[];
+  date?: string;
+  coverImage?: string;
+}
+
+function sanitizeSlug(input: string): string {
+  return input
+    .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-_]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .toLowerCase()
+    .slice(0, 50);
+}
+
+function normalizeDateValue(input: unknown): string {
+  if (!input) return new Date().toISOString().split("T")[0];
+  if (input instanceof Date) {
+    return input.toISOString().split("T")[0];
+  }
+
+  const dateStr = String(input).trim();
+  const match = dateStr.match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : new Date().toISOString().split("T")[0];
+}
+
+function inferPostType(value: unknown): "tech" | "life" {
+  const raw = String(value || "").trim().toLowerCase();
+  if (["life", "生活", "日常"].includes(raw)) return "life";
+  return "tech";
+}
+
+function normalizeCategories(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean).join(", ");
+  }
+  return String(value || "").trim();
+}
+
+function buildCreatePostPayload(body: PostCreatePayload): { error?: string; payload?: Required<PostCreatePayload> } {
+  const { title, slug, content, type, categories, description, tags, date, coverImage } = body;
+
+  if (!title || !String(title).trim()) {
+    return { error: "标题不能为空" };
+  }
+  if (!content || !String(content).trim()) {
+    return { error: "内容不能为空" };
+  }
+  if (!type || !POST_TYPES.includes(type)) {
+    return { error: "无效的文章类型" };
+  }
+
+  return {
+    payload: {
+      title: String(title).trim(),
+      slug: String(slug || "").trim(),
+      content: String(content),
+      type,
+      categories: String(categories || "").trim(),
+      description: String(description || "").trim(),
+      tags: Array.isArray(tags) ? tags : [],
+      date: normalizeDateValue(date),
+      coverImage: String(coverImage || "").trim(),
+    },
+  };
+}
+
+function createPostFromPayload(body: PostCreatePayload):
+  | { success: true; filename: string; path: string }
+  | { success: false; status: number; error: string } {
+  const prepared = buildCreatePostPayload(body);
+  if (!prepared.payload) {
+    return {
+      success: false,
+      status: 400,
+      error: prepared.error || "参数错误",
+    };
+  }
+
+  const { title, slug, content, type, categories, description, tags, date, coverImage } = prepared.payload;
+
+  const timestamp = Date.now();
+  let filename = "";
+  if (slug) {
+    const safeSlug = sanitizeSlug(slug);
+    if (safeSlug) {
+      filename = `${safeSlug}.md`;
+    }
+  }
+
+  if (!filename) {
+    const safeTitle = title
+      .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .toLowerCase()
+      .slice(0, 50);
+    filename = `${safeTitle || timestamp}.md`;
+  }
+
+  const filePath = resolvePostFilePath(type, filename);
+  if (!filePath) {
+    return { success: false, status: 400, error: "无效的文件名" };
+  }
+
+  if (fs.existsSync(filePath)) {
+    return { success: false, status: 409, error: "同名文章已存在" };
+  }
+
+  try {
+    const frontmatter: Record<string, unknown> = {
+      title,
+      date,
+    };
+    if (categories) frontmatter.categories = categories;
+    if (description) frontmatter.description = description;
+    if (tags && tags.length > 0) frontmatter.tags = tags;
+    if (coverImage) frontmatter.coverImage = coverImage;
+
+    const fileContent = matter.stringify(content, frontmatter);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, fileContent, "utf8");
+    return { success: true, filename, path: `${type}/${filename}` };
+  } catch (error) {
+    console.error("Posts API error:", error);
+    return { success: false, status: 500, error: "保存文章失败" };
+  }
+}
+
+function parseMarkdownImportFile(markdownText: string): ParsedMarkdownImport {
+  const { data, content } = matter(markdownText);
+  const title = String(data.title || "").trim() || "未命名文章";
+  const slugSource = String(data.slug || data.permalink || title).trim();
+  const tags = Array.isArray(data.tags)
+    ? data.tags.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+
+  return {
+    title,
+    slug: sanitizeSlug(slugSource),
+    content: content.trim(),
+    type: inferPostType(data.type ?? data.categoryType ?? data.section),
+    categories: normalizeCategories(data.categories ?? data.category),
+    description: String(data.description || data.summary || data.excerpt || "").trim(),
+    date: normalizeDateValue(data.date),
+    coverImage: String(data.coverImage || data.cover || data.banner || "").trim(),
+    tags,
+  };
+}
+
 // 配置 multer 用于封面图片上传
 const coverStorage = multer.diskStorage({
   destination: (req, _file, cb) => {
@@ -77,6 +249,20 @@ const uploadCover = multer({
       cb(null, true);
     } else {
       cb(new Error("不支持的文件格式，仅支持 JPG、PNG、WebP、GIF"));
+    }
+  },
+});
+
+const uploadMarkdown = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (/\.md$/i.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error("仅支持上传 .md 文件"));
     }
   },
 });
@@ -263,92 +449,14 @@ router.get("/:type/:filename", (req: Request, res: Response): void => {
  * 创建新文章（需要认证）
  */
 router.post("/", authMiddleware, (req: Request, res: Response): void => {
-  const {
-    title,
-    slug,
-    content,
-    type,
-    categories,
-    description,
-    tags,
-    date,
-    coverImage,
-  } = req.body;
+  const result = createPostFromPayload(req.body);
 
-  if (!title || !content || !type) {
-    res.status(400).json({ error: "标题、内容和类型不能为空" });
+  if (!result.success) {
+    res.status(result.status).json({ error: result.error });
     return;
   }
 
-  if (!POST_TYPES.includes(type)) {
-    res.status(400).json({ error: "无效的文章类型" });
-    return;
-  }
-
-  // 生成文件名（优先使用 slug，否则使用标题或时间戳）
-  const timestamp = Date.now();
-  let filename = "";
-  if (slug) {
-    const safeSlug = slug
-      .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-_]/g, "")
-      .replace(/\s+/g, "-") // 空格转连字符
-      .replace(/-+/g, "-") // 多个连字符合并
-      .toLowerCase()
-      .slice(0, 50);
-    if (safeSlug) {
-      filename = `${safeSlug}.md`;
-    }
-  }
-
-  if (!filename) {
-    const safeTitle = title
-      .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .toLowerCase()
-      .slice(0, 50);
-    filename = `${safeTitle || timestamp}.md`;
-  }
-
-  // 使用安全路径解析函数验证路径
-  const filePath = resolvePostFilePath(type, filename);
-  if (!filePath) {
-    res.status(400).json({ error: "无效的文件名" });
-    return;
-  }
-
-  if (fs.existsSync(filePath)) {
-    res.status(409).json({ error: "同名文章已存在" });
-    return;
-  }
-
-  try {
-    // 构建 frontmatter
-    const frontmatter: Record<string, unknown> = {
-      title,
-      date: date || new Date().toISOString().split("T")[0],
-    };
-    if (categories) frontmatter.categories = categories;
-    if (description) frontmatter.description = description;
-    if (tags) frontmatter.tags = tags;
-    if (coverImage) frontmatter.coverImage = coverImage;
-
-    const fileContent = matter.stringify(content, frontmatter);
-
-    // 确保目录存在
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    fs.writeFileSync(filePath, fileContent, "utf8");
-    res
-      .status(201)
-      .json({ success: true, filename, path: `${type}/${filename}` });
-  } catch (error) {
-    console.error("Posts API error:", error);
-    res.status(500).json({ error: "保存文章失败" });
-  }
+  res.status(201).json({ success: true, filename: result.filename, path: result.path });
 });
 
 /**
@@ -447,6 +555,45 @@ router.delete(
     } catch (error) {
       console.error("Posts API error:", error);
       res.status(500).json({ error: "删除文章失败" });
+    }
+  },
+);
+
+/**
+ * POST /api/posts/import-markdown
+ * 上传 Markdown 并自动解析创建文章（需要认证）
+ */
+router.post(
+  "/import-markdown",
+  authMiddleware,
+  uploadMarkdown.single("file"),
+  (req: Request, res: Response): void => {
+    const file = req.file;
+
+    if (!file) {
+      res.status(400).json({ error: "未上传任何 Markdown 文件" });
+      return;
+    }
+
+    try {
+      const parsed = parseMarkdownImportFile(file.buffer.toString("utf8"));
+      const result = createPostFromPayload(parsed);
+
+      if (!result.success) {
+        res.status(result.status).json({ error: result.error });
+        return;
+      }
+
+      res.status(201).json({
+        success: true,
+        filename: result.filename,
+        path: result.path,
+        parsed,
+        message: "Markdown 导入成功，已创建文章",
+      });
+    } catch (error) {
+      console.error("Markdown import error:", error);
+      res.status(400).json({ error: "Markdown 解析失败，请检查 frontmatter 和内容格式" });
     }
   },
 );
