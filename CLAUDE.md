@@ -26,7 +26,7 @@ npm run lint
 # Initialize PostgreSQL database tables
 npm run db:init
 
-# Generate photo wall metadata (converts HEIC, creates thumbnails, extracts EXIF)
+# Legacy/manual photo wall backfill (not the primary production workflow)
 npm run generate-metadata
 ```
 
@@ -76,13 +76,16 @@ Both use `/api/comments` Express route with PostgreSQL storage. Comments support
 
 ### Photo Wall System
 
-The photo wall (`src/pages/GalleryPage.tsx`) uses a multi-stage image pipeline:
-1. Place originals in `public/photowall/origin/` (supports HEIC)
-2. Run `npm run generate-metadata` to:
+The current primary photo wall workflow is the admin upload/delete flow in `src/routes/photos.ts`:
+1. Upload or delete photos from `/admin/photos`
+2. Server writes/removes OSS objects
+3. Server updates `src/data/images-metadata.json`
+
+`npm run generate-metadata` remains available only as a legacy/manual backfill tool for local `public/photowall/` assets. It can still:
    - Convert HEIC to JPEG
    - Extract EXIF creation date
    - Generate full/medium/tiny thumbnails
-   - Create `src/data/images-metadata.json`
+   - Rebuild `src/data/images-metadata.json`
 
 Frontend implements progressive loading: tiny blurred placeholder → medium thumbnail → full image on demand.
 

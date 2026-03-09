@@ -48,11 +48,15 @@ interface MonthGroup {
 
 const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
 const UNKNOWN_MONTH_KEY = 'unknown';
-const MAX_FILES_PER_UPLOAD_BATCH = 20;
-const parsedUploadBatchLimitMb = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_BATCH_MB || '8', 10);
+const parsedMaxFilesPerBatch = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH || '10', 10);
+const MAX_FILES_PER_UPLOAD_BATCH = Number.isFinite(parsedMaxFilesPerBatch) && parsedMaxFilesPerBatch > 0
+  ? parsedMaxFilesPerBatch
+  : 10;
+const RECOMMENDED_SINGLE_FILE_SIZE_MB = 5;
+const parsedUploadBatchLimitMb = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_BATCH_MB || '50', 10);
 const UPLOAD_BATCH_LIMIT_MB = Number.isFinite(parsedUploadBatchLimitMb) && parsedUploadBatchLimitMb > 0
   ? parsedUploadBatchLimitMb
-  : 8;
+  : 50;
 const MAX_BATCH_BYTES = UPLOAD_BATCH_LIMIT_MB * 1024 * 1024;
 
 function getPhotoKey(photo: Pick<Photo, 'filename' | 'driveItemId'>): string {
@@ -369,7 +373,10 @@ export const PhotosManagement: React.FC = () => {
               className="block w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
             />
             <p className="text-xs text-gray-400 mt-2">
-              已选择 {selectedFiles.length} 张，系统会自动分批上传（每批最多 {MAX_FILES_PER_UPLOAD_BATCH} 张，约 {UPLOAD_BATCH_LIMIT_MB}MB）
+              已选择 {selectedFiles.length} 张，系统会自动分批上传（每批最多 {MAX_FILES_PER_UPLOAD_BATCH} 张，总计最多 {UPLOAD_BATCH_LIMIT_MB}MB）
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              自动分批规则：每批最多 {MAX_FILES_PER_UPLOAD_BATCH} 张、总计最多 {UPLOAD_BATCH_LIMIT_MB}MB；单张图片建议尽量控制在 {RECOMMENDED_SINGLE_FILE_SIZE_MB}MB 内，体验更好。
             </p>
           </div>
           <div className="flex items-center gap-2">

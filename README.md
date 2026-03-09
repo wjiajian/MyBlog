@@ -25,7 +25,8 @@ npm run serve      # 启动生产服务器
 
 - `2026-03-06`：主分支切换到 **OSS 直传模式**，移除 OneDrive 同步入口。
 - 照片上传后会保留原图格式，并统一生成 `medium/tiny` 缩略图用于网格和预览。
-- 后台 `/admin/photos` 已恢复上传与处理入口，处理接口保留为兼容入口。
+- 后台 `/admin/photos` 为当前主流程入口，上传/删除会由服务端维护 `src/data/images-metadata.json`。
+- `npm run generate-metadata` / `scripts/process-photos.cjs` 仅保留为历史手动回填工具，不是当前生产主流程。
 
 ---
 
@@ -38,7 +39,7 @@ MyBlog/
 ├── dist-server/            # 服务端构建产物 (自动生成)
 ├── scripts/
 │   ├── init-db.ts          # 数据库初始化脚本
-│   └── process-photos.cjs  # 照片墙数据处理脚本
+│   └── process-photos.cjs  # 照片墙历史/手动回填脚本（非主流程）
 ├── src/
 │   ├── assets/             # 前端静态资源
 │   ├── db/                 # 数据库连接模块 (PostgreSQL)
@@ -213,6 +214,7 @@ tags:
 ### 当前存储模式（OSS 直传）
 
 当前主分支已切换为后台直传 OSS 模式，不再启用 OneDrive 自动同步链路。
+当前主流程为：管理员在 `/admin/photos` 上传/删除照片，服务端在 `src/routes/photos.ts` 中同步维护 OSS 对象与 `src/data/images-metadata.json`。
 
 数据流：
 
@@ -228,6 +230,24 @@ POST /api/photos/upload
           ▼
 Gallery / Admin 读取 /api/photos/metadata
 ```
+
+删除流程：
+
+```text
+Admin (/admin/photos) 删除图片
+          │
+          ▼
+DELETE /api/photos/:filename
+  - 删除 OSS 原图与缩略图对象
+  - 更新 src/data/images-metadata.json
+```
+
+上传限制与建议：
+
+1. 管理端会自动分批上传：默认每批最多 `10` 张、每批总大小最多 `50MB`。
+2. 后端当前单文件大小限制为 `50MB`，且默认每个上传请求最多接收 `10` 个文件。
+3. `10` 张/批限制已改为前后端可配置（默认值保持一致），以避免规则漂移。
+4. 为了更稳定的上传体验，建议单张图片尽量控制在 `5MB` 以内。
 
 OSS 对象路径约定：
 
@@ -290,6 +310,38 @@ cp src/data/images-metadata.example.json src/data/images-metadata.json
 - 若线上 metadata 丢失，但 OSS 原图/缩略图仍在，可直接执行 `npm run rebuild-oss-metadata` 恢复。
 - 由于真实 metadata 已不再纳入 Git，后续 `git pull` / `git reset --hard` **不会再把仓库里的旧 metadata 覆盖回来**；但如果部署目录会清空未跟踪文件，仍建议在部署后补跑一次恢复脚本。
 
+### 从 OSS 恢复照片墙 metadata
+
+当 `src/data/images-metadata.json` 丢失、损坏，或需要按 OSS 现状重建时，可执行：
+
+```bash
+npm run rebuild-oss-metadata
+```
+
+脚本行为：
+
+1. 扫描 OSS 下的 `photowall/origin/`、`photowall/thumbnails/full/`、`photowall/thumbnails/medium/`、`photowall/thumbnails/tiny/`
+2. 以 `origin` 原图文件名作为 `filename`
+3. 优先读取原图 EXIF 中的拍摄时间（`DateTimeOriginal/CreateDate/ModifyDate`）作为 `date`
+4. 若 EXIF 不存在或读取失败，则回退为 OSS 对象时间
+5. 重新生成 `src/data/images-metadata.json`，并尽量保留已有记录中的 `videoSrc`、`isVisible`、`visibilityUpdatedAt` 等字段
+
+必需环境变量：
+
+```bash
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=myblog-photowall
+OSS_ACCESS_KEY_ID=your_access_key_id
+OSS_ACCESS_KEY_SECRET=your_access_key_secret
+# 可选
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+```
+
+注意：
+
+- 该脚本只重建 metadata，不修改现有上传 / 删除主流程。
+- 当前恢复依赖 `origin` 与 `thumbnails/full` 都存在；若某张图缺少 full 缩略图，会被跳过并在 OSS 侧补齐后重跑。
+
 ### 管理端能力
 
 `/admin/photos` 支持：
@@ -298,6 +350,10 @@ cp src/data/images-metadata.example.json src/data/images-metadata.json
 2. 手动触发处理接口（兼容入口，实际上传时已自动处理）
 3. 设置照片可见/隐藏状态
 4. 删除照片（同时删除 OSS 对象与 metadata）
+
+### 旧脚本说明
+
+`npm run generate-metadata`（底层脚本为 `scripts/process-photos.cjs`）仍可用于从本地 `public/photowall/` 做历史数据回填或手动重建缩略图/metadata，但它不是当前生产环境的主流程，也不应替代后台上传/删除接口对 metadata 的日常维护。
 
 ### 历史方案说明
 
@@ -395,8 +451,14 @@ OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com  # 可选
 # 单文件上传大小限制（后端 multer，默认 50MB）
 PHOTO_UPLOAD_MAX_MB=50
 
-# 前端分批上传大小（每批总大小，默认 8MB）
-VITE_PHOTO_UPLOAD_BATCH_MB=8
+# 每批最多上传文件数（后端请求限制，默认 10）
+PHOTO_UPLOAD_MAX_FILES_PER_BATCH=10
+
+# 前端自动分批上传每批最多文件数（默认 10，应与后端限制保持一致）
+VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH=10
+
+# 前端自动分批上传大小（每批总大小，默认 50MB）
+VITE_PHOTO_UPLOAD_BATCH_MB=50
 ```
 
 ### 4. Nginx 配置示例
@@ -524,7 +586,7 @@ CREATE TABLE photo_visibility (
 | `npm run build` | 构建前端和后端 |
 | `npm run serve` | 启动生产服务器 |
 | `npm run db:init` | 初始化数据库表结构 |
-| `npm run generate-metadata` | 生成照片墙元数据 |
+| `npm run generate-metadata` | 手动回填/重建照片墙缩略图与 metadata（历史工具，非主流程） |
 
 ---
 
