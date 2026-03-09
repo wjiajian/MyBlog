@@ -265,7 +265,7 @@ OSS 对象路径约定：
 5. `src/data/images-metadata.json` 属于运行时数据文件，**不再纳入 git 跟踪**。
 6. 仓库内提供 `src/data/images-metadata.example.json` 作为格式参考与初始化模板。
 
-### 从 OSS 恢复照片墙 metadata
+### metadata 文件与从 OSS 恢复
 
 当运行时 `src/data/images-metadata.json` 丢失、损坏，或需要按 OSS 现状重建时，可执行：
 
