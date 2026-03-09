@@ -55,7 +55,8 @@ MyBlog/
 │   │   └── life/           # 生活类文章
 │   ├── data/
 │   │   ├── posts.ts        # 文章数据加载与解析
-│   │   └── images-metadata.json  # 照片墙元数据（当前由服务端上传/删除流程维护）
+│   │   ├── images-metadata.example.json  # 照片墙元数据示例
+│   │   └── images-metadata.json          # 本地/线上运行时元数据（不入库）
 │   ├── hooks/              # 自定义 Hooks
 │   ├── pages/              # 页面级组件
 │   │   ├── admin/          # 后台页面
@@ -224,7 +225,7 @@ Admin (/admin/photos) 上传图片
 POST /api/photos/upload
   - 保存原图到 OSS (origin)
   - 统一生成 JPEG 的 medium/tiny 缩略图
-  - 更新 src/data/images-metadata.json
+  - 更新运行时 `src/data/images-metadata.json`
           │
           ▼
 Gallery / Admin 读取 /api/photos/metadata
@@ -251,14 +252,63 @@ DELETE /api/photos/:filename
 OSS 对象路径约定：
 
 1. 原图：`photowall/origin/<filename>`
-2. 中图缩略图：`photowall/thumbnails/medium/<filename>.jpg`
-3. 小图缩略图：`photowall/thumbnails/tiny/<filename>.jpg`
+2. 全尺寸缩略图：`photowall/thumbnails/full/<baseName>.jpg`
+3. 中图缩略图：`photowall/thumbnails/medium/<baseName>.jpg`
+4. 小图缩略图：`photowall/thumbnails/tiny/<baseName>.jpg`
 
 说明：
 
 1. `<filename>` 为上传后的安全文件名（保留原扩展名）。
-2. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
-3. 缩略图统一为 JPEG，供网格与预览占位使用。
+2. `<baseName>` 为去掉原扩展名后的文件名。
+3. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
+4. 缩略图统一为 JPEG，供网格与预览占位使用。
+5. `src/data/images-metadata.json` 属于运行时数据文件，**不再纳入 git 跟踪**。
+6. 仓库内提供 `src/data/images-metadata.example.json` 作为格式参考与初始化模板。
+
+### metadata 文件与从 OSS 恢复
+
+当运行时 `src/data/images-metadata.json` 丢失、损坏，或需要按 OSS 现状重建时，可执行：
+
+```bash
+npm run rebuild-oss-metadata
+```
+
+脚本行为：
+
+1. 自动加载项目根目录 `.env`
+2. 扫描 OSS 下的：
+   - `photowall/origin/`
+   - `photowall/thumbnails/full/`
+   - `photowall/thumbnails/medium/`
+   - `photowall/thumbnails/tiny/`
+3. 以 `origin` 原图文件名作为 `filename`
+4. 按 `origin/<filename>` → `thumbnails/*/<baseName>.jpg` 规则匹配缩略图
+5. 优先读取原图 EXIF 中的拍摄时间（如 `DateTimeOriginal/CreateDate/ModifyDate`）作为 `date`
+6. 若 EXIF 不存在或读取失败，则回退为 OSS 对象时间
+7. 重新生成运行时 `src/data/images-metadata.json`，并尽量保留已有记录中的 `videoSrc`、`isVisible`、`visibilityUpdatedAt` 等字段
+
+必需环境变量：
+
+```bash
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=myblog-photowall
+OSS_ACCESS_KEY_ID=your_access_key_id
+OSS_ACCESS_KEY_SECRET=your_access_key_secret
+# 可选
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+```
+
+注意：
+
+- 该脚本只重建 metadata，不修改现有上传 / 删除主流程。
+- 首次部署或新环境初始化时，可先复制示例文件：
+
+```bash
+cp src/data/images-metadata.example.json src/data/images-metadata.json
+```
+
+- 若线上 metadata 丢失，但 OSS 原图/缩略图仍在，可直接执行 `npm run rebuild-oss-metadata` 恢复。
+- 由于真实 metadata 已不再纳入 Git，后续 `git pull` / `git reset --hard` **不会再把仓库里的旧 metadata 覆盖回来**；但如果部署目录会清空未跟踪文件，仍建议在部署后补跑一次恢复脚本。
 
 ### 从 OSS 恢复照片墙 metadata
 
