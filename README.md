@@ -205,7 +205,7 @@ tags:
 ```bash
 # 进入后台
 # /admin/photos
-# 选择图片后上传，服务端会自动写入 OSS 与 metadata
+# 选择图片后上传，服务端会自动写入 OSS 并维护 metadata
 ```
 
 **特性：** HEIC/HEIF/JPG/PNG 原图保留 | 统一生成 `medium/tiny` 缩略图 | EXIF 提取 | 瀑布流布局 | 灯箱预览
@@ -232,23 +232,63 @@ Gallery / Admin 读取 /api/photos/metadata
 OSS 对象路径约定：
 
 1. 原图：`photowall/origin/<filename>`
-2. 中图缩略图：`photowall/thumbnails/medium/<filename>.jpg`
-3. 小图缩略图：`photowall/thumbnails/tiny/<filename>.jpg`
+2. 全尺寸缩略图：`photowall/thumbnails/full/<baseName>.jpg`
+3. 中图缩略图：`photowall/thumbnails/medium/<baseName>.jpg`
+4. 小图缩略图：`photowall/thumbnails/tiny/<baseName>.jpg`
 
 说明：
 
 1. `<filename>` 为上传后的安全文件名（保留原扩展名）。
-2. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
-3. 缩略图统一为 JPEG，供网格与预览占位使用。
+2. `<baseName>` 为去掉原扩展名后的文件名。
+3. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
+4. 缩略图统一为 JPEG，供网格与预览占位使用。
+5. `src/data/images-metadata.json` 属于运行时数据文件，**不再纳入 git 跟踪**。
+6. 仓库内提供 `src/data/images-metadata.example.json` 作为格式参考与初始化模板。
 
-说明：
+### 从 OSS 恢复照片墙 metadata
 
-1. `src/data/images-metadata.json` 属于运行时数据文件，**不再纳入 git 跟踪**，需要在本地/服务器上保留。
-2. 仓库内提供 `src/data/images-metadata.example.json` 作为格式参考与初始化模板。
-3. 首次部署或新环境拉取代码后，可执行：`cp src/data/images-metadata.example.json src/data/images-metadata.json`，再通过恢复脚本或后台上传补齐真实数据。
-4. `git pull`、`git reset --hard`、重新检出工作树等操作，都可能让未跟踪的运行时 metadata 丢失或与当前部署目录脱节；生产环境建议在持久化目录备份该文件。
-5. 若线上 metadata 丢失，但 OSS 原图/缩略图仍在，可优先使用现有 OSS 恢复脚本/流程重建 metadata。
-6. 部署后若新增、恢复或批量修正了 OSS 资源，建议重新执行 `rebuild-oss-metadata`（或项目中当前等效的 metadata 重建流程），确保 Gallery/Admin 读取到最新索引。
+当运行时 `src/data/images-metadata.json` 丢失、损坏，或需要按 OSS 现状重建时，可执行：
+
+```bash
+npm run rebuild-oss-metadata
+```
+
+脚本行为：
+
+1. 自动加载项目根目录 `.env`
+2. 扫描 OSS 下的：
+   - `photowall/origin/`
+   - `photowall/thumbnails/full/`
+   - `photowall/thumbnails/medium/`
+   - `photowall/thumbnails/tiny/`
+3. 以 `origin` 原图文件名作为 `filename`
+4. 按 `origin/<filename>` → `thumbnails/*/<baseName>.jpg` 规则匹配缩略图
+5. 优先读取原图 EXIF 中的拍摄时间（如 `DateTimeOriginal/CreateDate/ModifyDate`）作为 `date`
+6. 若 EXIF 不存在或读取失败，则回退为 OSS 对象时间
+7. 重新生成运行时 `src/data/images-metadata.json`，并尽量保留已有记录中的 `videoSrc`、`isVisible`、`visibilityUpdatedAt` 等字段
+
+必需环境变量：
+
+```bash
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=myblog-photowall
+OSS_ACCESS_KEY_ID=your_access_key_id
+OSS_ACCESS_KEY_SECRET=your_access_key_secret
+# 可选
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+```
+
+注意：
+
+- 该脚本只重建 metadata，不修改现有上传 / 删除主流程。
+- 首次部署或新环境初始化时，可先复制示例文件：
+
+```bash
+cp src/data/images-metadata.example.json src/data/images-metadata.json
+```
+
+- 若线上 metadata 丢失，但 OSS 原图/缩略图仍在，可直接执行 `npm run rebuild-oss-metadata` 恢复。
+- 由于真实 metadata 已不再纳入 Git，后续 `git pull` / `git reset --hard` **不会再把仓库里的旧 metadata 覆盖回来**；但如果部署目录会清空未跟踪文件，仍建议在部署后补跑一次恢复脚本。
 
 ### 管理端能力
 
@@ -262,16 +302,6 @@ OSS 对象路径约定：
 ### 历史方案说明
 
 仓库中仍保留 `readme-OSS.md` 与 `src/services/onedrive-sync/` 作为历史实现参考；当前 `server.ts` 未注册 OneDrive 同步路由，默认不启用该链路。
-
-### metadata 文件管理与恢复
-
-- **仓库中不提交真实 `src/data/images-metadata.json`**：该文件会被上传/删除流程持续改写，属于部署态数据。
-- **示例文件**：`src/data/images-metadata.example.json` 提供数组结构示例，便于新环境初始化。
-- **首次恢复方式**：
-  1. 先复制示例文件为 `src/data/images-metadata.json`；
-  2. 再通过后台重新上传，或执行现有 OSS 恢复 / metadata 重建脚本，把 OSS 中已有资源重新扫描写回 metadata。
-- **运维注意事项**：执行 `git pull`、`git reset --hard`、重新部署目录、容器重建时，要确认运行时 metadata 没被清空；必要时先备份再发布。
-- **部署建议**：如果部署流程不会保留工作目录中的运行时文件，请在发布完成后补跑一次 metadata 重建（例如 `rebuild-oss-metadata` 或当前等效脚本）。
 
 ---
 
