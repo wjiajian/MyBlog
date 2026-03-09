@@ -49,6 +49,10 @@ const {
 const parsedUploadLimitMb = Number.parseInt(process.env.PHOTO_UPLOAD_MAX_MB || '50', 10);
 const MAX_UPLOAD_MB = Number.isFinite(parsedUploadLimitMb) && parsedUploadLimitMb > 0 ? parsedUploadLimitMb : 50;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+const parsedMaxFilesPerBatch = Number.parseInt(process.env.PHOTO_UPLOAD_MAX_FILES_PER_BATCH || '10', 10);
+const MAX_FILES_PER_UPLOAD_BATCH = Number.isFinite(parsedMaxFilesPerBatch) && parsedMaxFilesPerBatch > 0
+  ? parsedMaxFilesPerBatch
+  : 10;
 const PHOTO_ASSET_BASE_URL = process.env.OSS_PHOTOWALL_BASE_URL || process.env.VITE_OSS_PHOTOWALL_BASE_URL || '';
 let photoVisibilityTableEnsured = false;
 
@@ -314,7 +318,7 @@ const upload = multer({
 });
 
 function uploadPhotosMiddleware(req: Request, res: Response, next: (error?: unknown) => void): void {
-  upload.array('photos', 10)(req, res, (err?: unknown) => {
+  upload.array('photos', MAX_FILES_PER_UPLOAD_BATCH)(req, res, (err?: unknown) => {
     if (!err) {
       next();
       return;
