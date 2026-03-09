@@ -4,7 +4,7 @@
 - `src/` contains the app and shared modules: `components/`, `pages/`, `hooks/`, `utils/`, `types/`, and content/data loaders.
 - Backend entrypoint is `server.ts`; API routes live in `src/routes/`, middleware in `src/middleware/`, and PostgreSQL access in `src/db/`.
 - Markdown posts are stored in `src/content/tech/` and `src/content/life/` with frontmatter metadata.
-- Static assets are in `public/` (images, photo wall, avatars). Photo metadata is stored in `src/data/images-metadata.json` and is primarily maintained by the admin upload/delete flow in `src/routes/photos.ts`.
+- Static assets are in `public/` (images, photowall, avatars). Photo metadata is stored in `src/data/images-metadata.json` and is primarily maintained by the admin upload/delete flow in `src/routes/photos.ts`.
 - Build outputs are `dist/` and `dist-server/`; treat them as generated artifacts.
 
 ## Build, Test, and Development Commands
@@ -16,7 +16,7 @@
 - `npm run serve`: run compiled backend (`dist-server/server.js`).
 - `npm run lint`: run ESLint across the repo.
 - `npm run db:init`: initialize PostgreSQL tables.
-- `npm run generate-metadata`: legacy/manual backfill tool for rebuilding photo wall thumbnails + metadata from source images; not the primary production workflow.
+- `npm run generate-metadata`: legacy/manual backfill tool for rebuilding photowall thumbnails + metadata from source images; not the primary production workflow.
 
 ## Coding Style & Naming Conventions
 - Use TypeScript with ESM imports and keep modules focused (single responsibility).
