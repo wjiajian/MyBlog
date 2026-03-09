@@ -69,10 +69,6 @@ function stripPrefix(key, prefix) {
   return key.startsWith(prefix) ? key.slice(prefix.length) : key;
 }
 
-function toBaseName(filename) {
-  return filename.replace(/\.[^.]+$/, '');
-}
-
 function getFormatLabelFromFilename(filename) {
   const extension = path.extname(filename).toLowerCase();
   if (extension === '.jpg' || extension === '.jpeg') return 'JPEG';
