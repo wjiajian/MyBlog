@@ -64,15 +64,15 @@ function sanitizeSlug(input: string): string {
     .slice(0, 50);
 }
 
-function normalizeDateValue(input: unknown): string {
+function normalizeDateValue(input: unknown): string | null {
   if (!input) return new Date().toISOString().split("T")[0];
   if (input instanceof Date) {
-    return input.toISOString().split("T")[0];
+    return Number.isNaN(input.getTime()) ? null : input.toISOString().split("T")[0];
   }
 
   const dateStr = String(input).trim();
   const match = dateStr.match(/\d{4}-\d{2}-\d{2}/);
-  return match ? match[0] : new Date().toISOString().split("T")[0];
+  return match ? match[0] : null;
 }
 
 function inferPostType(value: unknown): "tech" | "life" {
@@ -101,6 +101,11 @@ function buildCreatePostPayload(body: PostCreatePayload): { error?: string; payl
     return { error: "无效的文章类型" };
   }
 
+  const normalizedDate = normalizeDateValue(date);
+  if (!normalizedDate) {
+    return { error: "日期格式无效，请使用 YYYY-MM-DD" };
+  }
+
   return {
     payload: {
       title: String(title).trim(),
@@ -110,7 +115,7 @@ function buildCreatePostPayload(body: PostCreatePayload): { error?: string; payl
       categories: String(categories || "").trim(),
       description: String(description || "").trim(),
       tags: Array.isArray(tags) ? tags : [],
-      date: normalizeDateValue(date),
+      date: normalizedDate,
       coverImage: String(coverImage || "").trim(),
     },
   };
@@ -140,12 +145,7 @@ function createPostFromPayload(body: PostCreatePayload):
   }
 
   if (!filename) {
-    const safeTitle = title
-      .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .toLowerCase()
-      .slice(0, 50);
+    const safeTitle = sanitizeSlug(title);
     filename = `${safeTitle || timestamp}.md`;
   }
 
@@ -197,7 +197,7 @@ function parseMarkdownImportFile(markdownText: string): ParsedMarkdownImport {
     type: inferPostType(data.type ?? data.categoryType ?? data.section),
     categories: normalizeCategories(data.categories ?? data.category),
     description: String(data.description || data.summary || data.excerpt || "").trim(),
-    date: normalizeDateValue(data.date),
+    date: normalizeDateValue(data.date) || new Date().toISOString().split("T")[0],
     coverImage: String(data.coverImage || data.cover || data.banner || "").trim(),
     tags,
   };
