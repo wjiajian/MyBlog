@@ -156,19 +156,20 @@ async function main() {
 
   console.log(`Found objects -> origin: ${originObjects.length}, full: ${fullObjects.length}, medium: ${mediumObjects.length}, tiny: ${tinyObjects.length}`);
 
- const originByBaseName = new Map();
+  const originByFilename = new Map();
   for (const object of originObjects) {
     if (!object.name || !PHOTO_EXTENSION_REGEX.test(object.name)) continue;
     const filename = stripPrefix(object.name, ORIGIN_PREFIX);
-    const baseName = toBaseName(filename);
-    originByBaseName.set(baseName, object);
+    originByFilename.set(filename, object);
   }
 
-  const fullByBaseName = new Map();
+  const fullByFilename = new Map();
   for (const object of fullObjects) {
     if (!object.name || !object.name.toLowerCase().endsWith('.jpg')) continue;
     const filename = stripPrefix(object.name, THUMB_FULL_PREFIX);
-    fullByBaseName.set(toBaseName(filename), object);
+    if (!filename.toLowerCase().endsWith('.jpg')) continue;
+    const originFilename = filename.slice(0, -4);
+    fullByFilename.set(originFilename, object);
   }
 
   const mediumKeySet = new Set(
@@ -182,26 +183,25 @@ async function main() {
       .map((object) => stripPrefix(object.name, THUMB_TINY_PREFIX)),
   );
 
-  const baseNames = Array.from(originByBaseName.keys()).filter((baseName) => fullByBaseName.has(baseName));
+  const filenames = Array.from(originByFilename.keys()).filter((filename) => fullByFilename.has(filename));
 
-  if (baseNames.length === 0) {
-    throw new Error('No matching origin/full thumbnail objects found under OSS photowall prefixes.');
+  if (filenames.length === 0) {
+    throw new Error('No matching origin/full thumbnail objects found under OSS photowall prefixes. Expected thumbnails named as <origin filename>.jpg.');
   }
 
   const records = [];
 
-  for (const baseName of baseNames.sort((a, b) => a.localeCompare(b, 'zh-CN'))) {
-    const originObject = originByBaseName.get(baseName);
-    const fullObject = fullByBaseName.get(baseName);
+  for (const filename of filenames.sort((a, b) => a.localeCompare(b, 'zh-CN'))) {
+    const originObject = originByFilename.get(filename);
+    const fullObject = fullByFilename.get(filename);
     if (!originObject?.name || !fullObject?.name) continue;
 
-    const filename = stripPrefix(originObject.name, ORIGIN_PREFIX);
     const existing = existingByFilename.get(filename);
     const fallbackDate = formatDate(originObject.lastModified || fullObject.lastModified);
     const date = await resolveDate(client, originObject.name, fallbackDate);
     const dimensions = await resolveDimensions(client, fullObject.name);
-    const mediumFilename = `${baseName}.jpg`;
-    const tinyFilename = `${baseName}.jpg`;
+    const mediumFilename = `${filename}.jpg`;
+    const tinyFilename = `${filename}.jpg`;
 
     records.push({
       filename,

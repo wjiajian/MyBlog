@@ -252,18 +252,17 @@ DELETE /api/photos/:filename
 OSS 对象路径约定：
 
 1. 原图：`photowall/origin/<filename>`
-2. 全尺寸缩略图：`photowall/thumbnails/full/<baseName>.jpg`
-3. 中图缩略图：`photowall/thumbnails/medium/<baseName>.jpg`
-4. 小图缩略图：`photowall/thumbnails/tiny/<baseName>.jpg`
+2. 全尺寸缩略图：`photowall/thumbnails/full/<filename>.jpg`
+3. 中图缩略图：`photowall/thumbnails/medium/<filename>.jpg`
+4. 小图缩略图：`photowall/thumbnails/tiny/<filename>.jpg`
 
 说明：
 
 1. `<filename>` 为上传后的安全文件名（保留原扩展名）。
-2. `<baseName>` 为去掉原扩展名后的文件名。
-3. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
-4. 缩略图统一为 JPEG，供网格与预览占位使用。
-5. `src/data/images-metadata.json` 属于运行时数据文件，**不再纳入 git 跟踪**。
-6. 仓库内提供 `src/data/images-metadata.example.json` 作为格式参考与初始化模板。
+2. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
+3. 缩略图统一为 JPEG，命名方式为“保留完整原文件名，再额外追加 `.jpg`”，例如 `IMG_1234.HEIC` 对应 `IMG_1234.HEIC.jpg`。
+4. `src/data/images-metadata.json` 属于运行时数据文件，**不再纳入 git 跟踪**。
+5. 仓库内提供 `src/data/images-metadata.example.json` 作为格式参考与初始化模板。
 
 ### metadata 文件与从 OSS 恢复
 
@@ -282,7 +281,7 @@ npm run rebuild-oss-metadata
    - `photowall/thumbnails/medium/`
    - `photowall/thumbnails/tiny/`
 3. 以 `origin` 原图文件名作为 `filename`
-4. 按 `origin/<filename>` → `thumbnails/*/<baseName>.jpg` 规则匹配缩略图
+4. 按 `origin/<filename>` → `thumbnails/*/<filename>.jpg` 规则匹配缩略图
 5. 优先读取原图 EXIF 中的拍摄时间（如 `DateTimeOriginal/CreateDate/ModifyDate`）作为 `date`
 6. 若 EXIF 不存在或读取失败，则回退为 OSS 对象时间
 7. 重新生成运行时 `src/data/images-metadata.json`，并尽量保留已有记录中的 `videoSrc`、`isVisible`、`visibilityUpdatedAt` 等字段
