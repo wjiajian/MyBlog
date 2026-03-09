@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "generate-metadata": "node scripts/process-photos.cjs",
+    "rebuild-oss-metadata": "node scripts/rebuild-oss-photowall-metadata.mjs",
     "db:init": "npx tsx scripts/init-db.ts"
   },
   "dependencies": {
