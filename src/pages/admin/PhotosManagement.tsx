@@ -48,7 +48,10 @@ interface MonthGroup {
 
 const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
 const UNKNOWN_MONTH_KEY = 'unknown';
-const MAX_FILES_PER_UPLOAD_BATCH = 10;
+const parsedMaxFilesPerBatch = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH || '10', 10);
+const MAX_FILES_PER_UPLOAD_BATCH = Number.isFinite(parsedMaxFilesPerBatch) && parsedMaxFilesPerBatch > 0
+  ? parsedMaxFilesPerBatch
+  : 10;
 const RECOMMENDED_SINGLE_FILE_SIZE_MB = 5;
 const parsedUploadBatchLimitMb = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_BATCH_MB || '50', 10);
 const UPLOAD_BATCH_LIMIT_MB = Number.isFinite(parsedUploadBatchLimitMb) && parsedUploadBatchLimitMb > 0
