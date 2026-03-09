@@ -240,6 +240,38 @@ OSS 对象路径约定：
 2. 原图格式保持不变（如 HEIC/HEIF/JPG/PNG）。
 3. 缩略图统一为 JPEG，供网格与预览占位使用。
 
+### 从 OSS 恢复照片墙 metadata
+
+当 `src/data/images-metadata.json` 丢失、损坏，或需要按 OSS 现状重建时，可执行：
+
+```bash
+npm run rebuild-oss-metadata
+```
+
+脚本行为：
+
+1. 扫描 OSS 下的 `photowall/origin/`、`photowall/thumbnails/full/`、`photowall/thumbnails/medium/`、`photowall/thumbnails/tiny/`
+2. 以 `origin` 原图文件名作为 `filename`
+3. 优先读取原图 EXIF 中的拍摄时间（`DateTimeOriginal/CreateDate/ModifyDate`）作为 `date`
+4. 若 EXIF 不存在或读取失败，则回退为 OSS 对象时间
+5. 重新生成 `src/data/images-metadata.json`，并尽量保留已有记录中的 `videoSrc`、`isVisible`、`visibilityUpdatedAt` 等字段
+
+必需环境变量：
+
+```bash
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=myblog-photowall
+OSS_ACCESS_KEY_ID=your_access_key_id
+OSS_ACCESS_KEY_SECRET=your_access_key_secret
+# 可选
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+```
+
+注意：
+
+- 该脚本只重建 metadata，不修改现有上传 / 删除主流程。
+- 当前恢复依赖 `origin` 与 `thumbnails/full` 都存在；若某张图缺少 full 缩略图，会被跳过并在 OSS 侧补齐后重跑。
+
 ### 管理端能力
 
 `/admin/photos` 支持：
