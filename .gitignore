@@ -32,3 +32,4 @@ dist-ssr
 .env
 dist-server
 package-lock.json
+src/data/images-metadata.json
