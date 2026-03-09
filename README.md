@@ -21,13 +21,6 @@ npm run db:init    # 初始化数据库表结构
 npm run serve      # 启动生产服务器
 ```
 
-### 最近更新
-
-- `2026-03-06`：主分支切换到 **OSS 直传模式**，移除 OneDrive 同步入口。
-- 照片上传后会保留原图格式，并统一生成 `medium/tiny` 缩略图用于网格和预览。
-- 后台 `/admin/photos` 为当前主流程入口，上传/删除会由服务端维护 `src/data/images-metadata.json`。
-- `npm run generate-metadata` / `scripts/process-photos.cjs` 仅保留为历史手动回填工具，不是当前生产主流程。
-
 ---
 
 ## 项目结构
