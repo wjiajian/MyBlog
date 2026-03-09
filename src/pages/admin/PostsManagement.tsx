@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
   FileText,
   Calendar,
   Tag,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  CheckCircle,
 } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
 
@@ -25,6 +27,19 @@ interface Post {
   path: string;
 }
 
+interface ImportResult {
+  success?: boolean;
+  error?: string;
+  message?: string;
+  path?: string;
+  parsed?: {
+    title?: string;
+    type?: string;
+    categories?: string;
+    date?: string;
+  };
+}
+
 /**
  * 文章管理页面
  * 统一使用网站亮色主题风格
@@ -34,9 +49,12 @@ export const PostsManagement: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 加载文章列表
   const loadPosts = async () => {
@@ -54,7 +72,7 @@ export const PostsManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    loadPosts();
+    void loadPosts();
   }, []);
 
   // 删除文章
@@ -68,6 +86,7 @@ export const PostsManagement: React.FC = () => {
       if (data.success) {
         setPosts(posts.filter(p => p.path !== post.path));
         setDeleteConfirm(null);
+        setSuccess('文章删除成功');
       } else {
         setError(data.error || '删除失败');
       }
@@ -75,6 +94,43 @@ export const PostsManagement: React.FC = () => {
       setError('删除文章失败');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleImportMarkdown = async (file: File) => {
+    setIsImporting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await authFetch('/api/posts/import-markdown', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json() as ImportResult;
+
+      if (!response.ok || !data.success) {
+        setError(data.error || 'Markdown 导入失败');
+        return;
+      }
+
+      const parsedType = data.parsed?.type === 'life' ? '生活' : '技术';
+      const parsedCategory = data.parsed?.categories?.trim() || '未填写';
+      setSuccess(
+        `导入成功：已创建《${data.parsed?.title || file.name}》 · ${parsedType} · ${parsedCategory}`,
+      );
+      await loadPosts();
+    } catch {
+      setError('Markdown 导入失败');
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -87,22 +143,45 @@ export const PostsManagement: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">文章管理</h1>
           <p className="text-gray-500 mt-1">共 {posts.length} 篇文章</p>
         </div>
-        <Link
-          to="/admin/posts/new"
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl transition-colors shadow-lg shadow-blue-500/25"
-        >
-          <Plus size={20} />
-          新建文章
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-blue-300 hover:text-blue-600 text-gray-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+          >
+            {isImporting ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+            导入 Markdown
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".md,text/markdown"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                void handleImportMarkdown(file);
+              }
+            }}
+          />
+          <Link
+            to="/admin/posts/new"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl transition-colors shadow-lg shadow-blue-500/25"
+          >
+            <Plus size={20} />
+            新建文章
+          </Link>
+        </div>
       </div>
 
-      {/* 搜索栏 */}
-      <div className="mb-6">
+      <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        {/* 搜索栏 */}
         <div className="relative max-w-md">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -113,7 +192,22 @@ export const PostsManagement: React.FC = () => {
             className="w-full bg-white border border-gray-200 rounded-xl py-3 pl-12 pr-4 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
           />
         </div>
+        <p className="text-sm text-gray-400">
+          支持导入带 frontmatter 的 .md 文件，自动映射标题、日期、分类、摘要与正文。
+        </p>
       </div>
+
+      {/* 成功提示 */}
+      {success && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3"
+        >
+          <CheckCircle size={20} className="text-emerald-500" />
+          <span className="text-emerald-700">{success}</span>
+        </motion.div>
+      )}
 
       {/* 错误提示 */}
       {error && (
@@ -178,8 +272,8 @@ export const PostsManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-lg text-xs ${
-                        post.type === 'tech' 
-                          ? 'bg-purple-50 text-purple-600' 
+                        post.type === 'tech'
+                          ? 'bg-purple-50 text-purple-600'
                           : 'bg-green-50 text-green-600'
                       }`}>
                         {post.type === 'tech' ? '技术' : '生活'}
