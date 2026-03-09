@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -5,6 +6,8 @@ import process from 'node:process';
 import OSS from 'ali-oss';
 import exifr from 'exifr';
 import sharp from 'sharp';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -155,7 +158,9 @@ async function main() {
     listAllObjects(client, THUMB_TINY_PREFIX),
   ]);
 
-  const originByBaseName = new Map();
+  console.log(`Found objects -> origin: ${originObjects.length}, full: ${fullObjects.length}, medium: ${mediumObjects.length}, tiny: ${tinyObjects.length}`);
+
+ const originByBaseName = new Map();
   for (const object of originObjects) {
     if (!object.name || !PHOTO_EXTENSION_REGEX.test(object.name)) continue;
     const filename = stripPrefix(object.name, ORIGIN_PREFIX);
