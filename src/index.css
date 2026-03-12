@@ -215,6 +215,120 @@ body {
   background-color: rgba(0, 0, 0, 0.02) !important;
 }
 
+/* ====== Markdown 暗色主题样式覆盖 ====== */
+.markdown-body.dark-markdown {
+  --color-canvas-default: transparent !important;
+  --color-fg-default: #e5e7eb !important;
+  --color-fg-muted: rgba(229, 231, 235, 0.7) !important;
+  color: #e5e7eb !important;
+}
+
+.markdown-body.dark-markdown h1,
+.markdown-body.dark-markdown h2,
+.markdown-body.dark-markdown h3,
+.markdown-body.dark-markdown h4,
+.markdown-body.dark-markdown h5,
+.markdown-body.dark-markdown h6 {
+  color: #ffffff !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.markdown-body.dark-markdown a {
+  color: #93c5fd !important;
+}
+
+.markdown-body.dark-markdown code {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f9a8d4 !important;
+}
+
+.markdown-body.dark-markdown pre {
+  background-color: #111111 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.markdown-body.dark-markdown pre code {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+.markdown-body.dark-markdown pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.markdown-body.dark-markdown pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.markdown-body.dark-markdown .hljs {
+  background: #111111 !important;
+  color: #e5e7eb !important;
+}
+
+.markdown-body.dark-markdown .hljs-keyword,
+.markdown-body.dark-markdown .hljs-selector-tag,
+.markdown-body.dark-markdown .hljs-literal,
+.markdown-body.dark-markdown .hljs-section,
+.markdown-body.dark-markdown .hljs-link {
+  color: #fca5a5 !important;
+}
+
+.markdown-body.dark-markdown .hljs-string,
+.markdown-body.dark-markdown .hljs-title,
+.markdown-body.dark-markdown .hljs-name,
+.markdown-body.dark-markdown .hljs-type,
+.markdown-body.dark-markdown .hljs-attribute,
+.markdown-body.dark-markdown .hljs-symbol,
+.markdown-body.dark-markdown .hljs-bullet,
+.markdown-body.dark-markdown .hljs-addition,
+.markdown-body.dark-markdown .hljs-variable,
+.markdown-body.dark-markdown .hljs-template-tag,
+.markdown-body.dark-markdown .hljs-template-variable {
+  color: #93c5fd !important;
+}
+
+.markdown-body.dark-markdown .hljs-comment,
+.markdown-body.dark-markdown .hljs-quote,
+.markdown-body.dark-markdown .hljs-deletion,
+.markdown-body.dark-markdown .hljs-meta {
+  color: #9ca3af !important;
+}
+
+.markdown-body.dark-markdown .hljs-function,
+.markdown-body.dark-markdown .hljs-params {
+  color: #c4b5fd !important;
+}
+
+.markdown-body.dark-markdown .hljs-number {
+  color: #fcd34d !important;
+}
+
+.markdown-body.dark-markdown .hljs-built_in {
+  color: #fdba74 !important;
+}
+
+.markdown-body.dark-markdown pre:not(:has(.hljs)) code,
+.markdown-body.dark-markdown pre code.language-text,
+.markdown-body.dark-markdown pre code.language-plaintext {
+  color: #e5e7eb !important;
+}
+
+.markdown-body.dark-markdown blockquote {
+  border-left: 4px solid #60a5fa !important;
+  background-color: rgba(30, 58, 138, 0.2) !important;
+  color: #e5e7eb !important;
+}
+
+.markdown-body.dark-markdown table th,
+.markdown-body.dark-markdown table td {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.markdown-body.dark-markdown table tr:nth-child(2n) {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
 /* ====== Photo Wall 照片墙样式 ====== */
 .photowall-grid {
   /* 瀑布流布局优化 */
