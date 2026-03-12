@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { usePosts } from './hooks/usePosts';
@@ -14,10 +14,11 @@ import { parseMonthFromDate } from './utils/date';
 
 import { getAppTheme } from './utils/theme';
 import { useThemeMode } from './hooks/useThemeMode';
+import { openPostLink } from './utils/navigation';
+import { API_BASE_HINT } from './utils/api';
 
 function App() {
-  const { posts, isLoading } = usePosts();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { posts, isLoading, error, refresh } = usePosts();
   const [activeTab, setActiveTab] = useState<ContentType>('tech');
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeYear, setActiveYear] = useState<number | null>(null);
@@ -31,8 +32,6 @@ function App() {
   // 主题相关样式
   const theme = getAppTheme(darkMode);
   
-  const selectedPost = useMemo(() => posts.find(p => p.id === selectedId), [posts, selectedId]);
-
   // 处理分类变更
   const handleCategoryChange = (category: string | null) => {
     if (category) {
@@ -44,7 +43,10 @@ function App() {
 
   // 处理搜索选择
   const handleSearchSelect = (postId: string) => {
-    setSelectedId(postId);
+    const matchedPost = posts.find((post) => post.id === postId);
+    if (matchedPost) {
+      openPostLink(matchedPost.link);
+    }
   };
 
   // 根据 Tab 和分类筛选文章
@@ -229,6 +231,23 @@ function App() {
             <div className="flex items-center justify-center py-40">
               <Loader2 size={48} className="animate-spin text-gray-400" />
             </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <p className={`text-lg mb-3 ${theme.emptyText}`}>文章数据加载失败</p>
+              <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                请确认后端服务或 API 配置可用（{API_BASE_HINT}）
+              </p>
+              <button
+                onClick={refresh}
+                className={`px-5 py-2 rounded-xl border transition-colors cursor-pointer ${
+                  darkMode
+                    ? 'bg-gray-800/60 border-gray-700 text-gray-300 hover:bg-gray-700/60'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                重试加载
+              </button>
+            </div>
           ) : (
             <>
               {visibleYears.map((year, index) => {
@@ -277,13 +296,7 @@ function App() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.4, delay: postIndex * 0.05 }}
                         >
-                           <div style={{ opacity: selectedId === post.id ? 0 : 1 }}>
-                              <Album 
-                                post={post} 
-                                onExpand={() => setSelectedId(post.id)}
-                                darkMode={darkMode}
-                              />
-                           </div>
+                          <Album post={post} darkMode={darkMode} />
                         </motion.div>
                       );
                     })}
@@ -348,36 +361,6 @@ function App() {
         </main>
       </div>
 
-      {/* 选中相册的全屏遮罩 */}
-      {/* ====== 展开弹窗配置区域 ====== */}
-      <AnimatePresence>
-        {selectedId && selectedPost && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            {/* ====== 可配置项：背景遮罩 ====== */}
-            {/* bg-black/40: 背景透明度 (40%), 可调整为 bg-black/60 等 */}
-            {/* backdrop-blur-sm: 模糊程度 (sm/md/lg/xl), 越大越模糊 */}
-            {/* duration: 淡入淡出动画时长 (秒) */}
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              onClick={() => setSelectedId(null)}
-              className={`absolute inset-0 backdrop-blur-sm ${theme.overlay}`}
-            />
-            
-            {/* ====== 可配置项：展开卡片容器 ====== */}
-            {/* max-w-2xl: 最大宽度 (可调整为 max-w-xl/max-w-3xl/max-w-4xl/max-w-5xl) */}
-            <div className="relative z-60 pointer-events-auto w-full max-w-2xl">
-              <Album 
-                post={selectedPost} 
-                isExpanded={true} 
-                onClose={() => setSelectedId(null)}
-              />
-            </div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
