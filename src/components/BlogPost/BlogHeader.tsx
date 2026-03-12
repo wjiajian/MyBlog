@@ -1,7 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, List } from 'lucide-react';
+import { List } from 'lucide-react';
 import { ProgressiveImage } from '../ProgressiveImage';
 
 // ====== 可配置项：默认文章头图 ======
@@ -64,19 +63,11 @@ export const BlogHeader: React.FC<BlogHeaderProps> = ({
         </motion.div>
       </div>
 
-      {/* Back Button */}
-      <Link 
-        to="/" 
-        className="absolute top-8 left-8 text-gray-700 bg-white/80 hover:bg-white backdrop-blur-md p-3 rounded-full transition-all border border-gray-200 hover:scale-105 z-20 group shadow-sm"
-      >
-        <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
-      </Link>
-
       {/* Mobile TOC Toggle */}
       {showTocToggle && (
         <button
           onClick={onTocToggle}
-          className="absolute top-8 right-8 text-gray-700 bg-white/80 hover:bg-white backdrop-blur-md p-3 rounded-full transition-all border border-gray-200 hover:scale-105 z-20 lg:hidden shadow-sm"
+          className="absolute top-8 left-8 text-gray-700 bg-white/80 hover:bg-white backdrop-blur-md p-3 rounded-full transition-all border border-gray-200 hover:scale-105 z-20 lg:hidden shadow-sm"
         >
           <List size={24} />
         </button>

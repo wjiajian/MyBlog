@@ -1,7 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
   Github,
   Mail,
   BookOpen,
@@ -21,6 +19,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import "github-markdown-css/github-markdown-dark.css";
+import { Header } from "../components/Header";
 
 // 技能标签数据
 const focusAreas = [
@@ -85,16 +84,7 @@ export const About: React.FC = () => {
       <div className="fixed inset-0 bg-editions-gradient pointer-events-none z-0" />
 
       <div className="relative z-10">
-        {/* 返回按钮 */}
-        <div className="fixed top-8 left-8 z-50">
-          <Link
-            to="/"
-            className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border border-gray-200 shadow-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-          >
-            <ArrowLeft size={18} />
-            <span className="text-sm font-medium">返回首页</span>
-          </Link>
-        </div>
+        <Header />
 
         <main className="pt-32 pb-20 px-6 max-w-3xl mx-auto">
           <motion.div
