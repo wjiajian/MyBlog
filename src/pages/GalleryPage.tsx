@@ -214,6 +214,16 @@ export const GalleryPage: React.FC = () => {
             按 <kbd className={`px-2 py-1 rounded text-xs ${theme.kbd}`}>Esc</kbd> 关闭预览，
             使用 <kbd className={`px-2 py-1 rounded text-xs ${theme.kbd}`}>←</kbd> <kbd className={`px-2 py-1 rounded text-xs ${theme.kbd}`}>→</kbd> 切换图片
           </p>
+          <p className={`text-xs mt-3 ${theme.footerText}`}>
+            <a
+              href="https://icp.gov.moe/?keyword=20260255"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              萌ICP备20260255号
+            </a>
+          </p>
           {livePhotoCount > 0 && (
             <p className={`text-xs mt-2 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
               悬停在 <span className="inline-flex items-center gap-1"><Film size={10} /> LIVE</span> 标记的图片上可预览实况照片
