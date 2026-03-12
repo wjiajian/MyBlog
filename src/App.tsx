@@ -359,6 +359,21 @@ function App() {
           )}
 
         </main>
+
+        <footer className={`mt-16 border-t ${darkMode ? 'border-white/10' : 'border-gray-200'}`}>
+          <div className="max-w-[1600px] mx-auto px-6 py-6 text-center">
+            <a
+              href="https://icp.gov.moe/?keyword=20260255"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`text-xs transition-colors hover:underline ${
+                darkMode ? 'text-white/40 hover:text-white/60' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              萌ICP备20260255号
+            </a>
+          </div>
+        </footer>
       </div>
 
     </div>
