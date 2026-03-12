@@ -59,10 +59,77 @@ body {
 
 /* ====== Markdown 亮色主题样式覆盖 ====== */
 .markdown-body {
-  --color-canvas-default: transparent !important;
-  --color-fg-default: #1a1a1a !important;
-  --color-fg-muted: #666 !important;
-  color: #1a1a1a !important;
+  --md-color-canvas: transparent;
+  --md-fg-default: #1a1a1a;
+  --md-fg-muted: #666;
+  --md-heading: #1a1a1a;
+  --md-heading-border: rgba(0, 0, 0, 0.1);
+  --md-link: #0066cc;
+  --md-inline-code-bg: #f1f3f5;
+  --md-inline-code-fg: #d63384;
+  --md-pre-bg: #f6f8fa;
+  --md-pre-border: #e1e4e8;
+  --md-pre-scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --md-pre-scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+  --md-hljs-bg: #f6f8fa;
+  --md-hljs-fg: #24292e;
+  --md-hljs-keyword: #d73a49;
+  --md-hljs-string: #032f62;
+  --md-hljs-comment: #6a737d;
+  --md-hljs-function: #6f42c1;
+  --md-hljs-number: #005cc5;
+  --md-hljs-builtin: #e36209;
+  --md-plain-code: #24292e;
+  --md-quote-border: #0066cc;
+  --md-quote-bg: #e7f3ff;
+  --md-quote-fg: #1a1a1a;
+  --md-table-border: rgba(0, 0, 0, 0.1);
+  --md-table-row-alt: rgba(0, 0, 0, 0.02);
+  --md-preblock-bg: #f6f8fa;
+  --md-preblock-border: #e1e4e8;
+  --md-preblock-header-bg: rgba(241, 243, 245, 0.75);
+  --md-preblock-lang: #6b7280;
+  --md-preblock-copy: #9ca3af;
+  --md-preblock-copy-hover: #374151;
+  --color-canvas-default: var(--md-color-canvas) !important;
+  --color-fg-default: var(--md-fg-default) !important;
+  --color-fg-muted: var(--md-fg-muted) !important;
+  color: var(--md-fg-default) !important;
+}
+
+/* ====== Markdown 暗色主题变量 ====== */
+.markdown-body.dark-markdown {
+  --md-fg-default: #e5e7eb;
+  --md-fg-muted: rgba(229, 231, 235, 0.7);
+  --md-heading: #ffffff;
+  --md-heading-border: rgba(255, 255, 255, 0.12);
+  --md-link: #93c5fd;
+  --md-inline-code-bg: rgba(255, 255, 255, 0.08);
+  --md-inline-code-fg: #f9a8d4;
+  --md-pre-bg: #111111;
+  --md-pre-border: rgba(255, 255, 255, 0.12);
+  --md-pre-scrollbar-thumb: rgba(255, 255, 255, 0.22);
+  --md-pre-scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+  --md-hljs-bg: #111111;
+  --md-hljs-fg: #e5e7eb;
+  --md-hljs-keyword: #fca5a5;
+  --md-hljs-string: #93c5fd;
+  --md-hljs-comment: #9ca3af;
+  --md-hljs-function: #c4b5fd;
+  --md-hljs-number: #fcd34d;
+  --md-hljs-builtin: #fdba74;
+  --md-plain-code: #e5e7eb;
+  --md-quote-border: #60a5fa;
+  --md-quote-bg: rgba(30, 58, 138, 0.2);
+  --md-quote-fg: #e5e7eb;
+  --md-table-border: rgba(255, 255, 255, 0.16);
+  --md-table-row-alt: rgba(255, 255, 255, 0.03);
+  --md-preblock-bg: rgba(255, 255, 255, 0.05);
+  --md-preblock-border: rgba(255, 255, 255, 0.12);
+  --md-preblock-header-bg: rgba(255, 255, 255, 0.05);
+  --md-preblock-lang: rgba(255, 255, 255, 0.6);
+  --md-preblock-copy: rgba(255, 255, 255, 0.45);
+  --md-preblock-copy-hover: rgba(255, 255, 255, 0.85);
 }
 
 .markdown-body h1,
@@ -71,17 +138,17 @@ body {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  color: #1a1a1a !important;
-  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+  color: var(--md-heading) !important;
+  border-bottom-color: var(--md-heading-border) !important;
 }
 
 .markdown-body a {
-  color: #0066cc !important;
+  color: var(--md-link) !important;
 }
 
 .markdown-body code {
-  background-color: #f1f3f5 !important;
-  color: #d63384 !important;
+  background-color: var(--md-inline-code-bg) !important;
+  color: var(--md-inline-code-fg) !important;
   padding: 0.2em 0.4em !important;
   border-radius: 4px !important;
 }
@@ -89,8 +156,8 @@ body {
 /* ====== 可配置项：代码块样式 ====== */
 /* 浅灰色背景，保持语法高亮 */
 .markdown-body pre {
-  background-color: #f6f8fa !important;
-  border: 1px solid #e1e4e8 !important;
+  background-color: var(--md-pre-bg) !important;
+  border: 1px solid var(--md-pre-border) !important;
   border-radius: 8px !important;
   max-height: 500px;
   overflow-y: auto;
@@ -114,13 +181,13 @@ body {
 }
 
 .markdown-body pre::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--md-pre-scrollbar-thumb);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 .markdown-body pre::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--md-pre-scrollbar-thumb-hover);
 }
 
 .markdown-body pre::-webkit-scrollbar-corner {
@@ -130,13 +197,13 @@ body {
 /* Firefox 滚动条样式 */
 .markdown-body pre {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: var(--md-pre-scrollbar-thumb) transparent;
 }
 
 /* 语法高亮颜色 (hljs) */
 .markdown-body .hljs {
-  background: #f6f8fa !important;
-  color: #24292e !important;
+  background: var(--md-hljs-bg) !important;
+  color: var(--md-hljs-fg) !important;
 }
 
 .markdown-body .hljs-keyword,
@@ -144,7 +211,7 @@ body {
 .markdown-body .hljs-literal,
 .markdown-body .hljs-section,
 .markdown-body .hljs-link {
-  color: #d73a49 !important;
+  color: var(--md-hljs-keyword) !important;
 }
 
 .markdown-body .hljs-string,
@@ -158,41 +225,41 @@ body {
 .markdown-body .hljs-variable,
 .markdown-body .hljs-template-tag,
 .markdown-body .hljs-template-variable {
-  color: #032f62 !important;
+  color: var(--md-hljs-string) !important;
 }
 
 .markdown-body .hljs-comment,
 .markdown-body .hljs-quote,
 .markdown-body .hljs-deletion,
 .markdown-body .hljs-meta {
-  color: #6a737d !important;
+  color: var(--md-hljs-comment) !important;
 }
 
 .markdown-body .hljs-function,
 .markdown-body .hljs-params {
-  color: #6f42c1 !important;
+  color: var(--md-hljs-function) !important;
 }
 
 .markdown-body .hljs-number {
-  color: #005cc5 !important;
+  color: var(--md-hljs-number) !important;
 }
 
 .markdown-body .hljs-built_in {
-  color: #e36209 !important;
+  color: var(--md-hljs-builtin) !important;
 }
 
 /* 纯文本代码块 (无语法高亮) */
 .markdown-body pre:not(:has(.hljs)) code,
 .markdown-body pre code.language-text,
 .markdown-body pre code.language-plaintext {
-  color: #24292e !important;
+  color: var(--md-plain-code) !important;
 }
 
 /* ====== 可配置项：引用块样式 ====== */
 .markdown-body blockquote {
-  border-left: 4px solid #0066cc !important;
-  background-color: #e7f3ff !important;
-  color: #1a1a1a !important;
+  border-left: 4px solid var(--md-quote-border) !important;
+  background-color: var(--md-quote-bg) !important;
+  color: var(--md-quote-fg) !important;
   padding: 1rem 1.5rem !important;
   margin: 1rem 0 !important;
   border-radius: 0 8px 8px 0 !important;
@@ -204,7 +271,7 @@ body {
 
 .markdown-body table th,
 .markdown-body table td {
-  border-color: rgba(0, 0, 0, 0.1) !important;
+  border-color: var(--md-table-border) !important;
 }
 
 .markdown-body table tr {
@@ -212,7 +279,30 @@ body {
 }
 
 .markdown-body table tr:nth-child(2n) {
-  background-color: rgba(0, 0, 0, 0.02) !important;
+  background-color: var(--md-table-row-alt) !important;
+}
+
+/* ====== Markdown 代码块面板（与主题变量联动） ====== */
+.markdown-body .preblock {
+  border-color: var(--md-preblock-border);
+  background-color: var(--md-preblock-bg);
+}
+
+.markdown-body .preblock-header {
+  border-bottom: 1px solid var(--md-preblock-border);
+  background-color: var(--md-preblock-header-bg);
+}
+
+.markdown-body .preblock-language {
+  color: var(--md-preblock-lang);
+}
+
+.markdown-body .preblock-copy {
+  color: var(--md-preblock-copy);
+}
+
+.markdown-body .preblock-copy:hover {
+  color: var(--md-preblock-copy-hover);
 }
 
 /* ====== Photo Wall 照片墙样式 ====== */

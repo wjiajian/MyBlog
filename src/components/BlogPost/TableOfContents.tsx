@@ -7,6 +7,7 @@ interface TableOfContentsProps {
   toc: TocItem[];
   activeId: string;
   readProgress: number;
+  darkMode: boolean;
   isMobileOpen: boolean;
   onMobileClose: () => void;
 }
@@ -15,6 +16,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
   toc,
   activeId,
   readProgress,
+  darkMode,
   isMobileOpen,
   onMobileClose
 }) => {
@@ -30,8 +32,12 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
         className="hidden 2xl:block fixed top-24 w-56 z-20"
         style={{ left: 'calc(50% + 448px + 1.5rem)' }}
       >
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 max-h-[70vh] overflow-y-auto scrollbar-hide shadow-lg">
-          <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+        <div
+          className={`rounded-2xl p-5 max-h-[70vh] overflow-y-auto scrollbar-hide shadow-lg border ${
+            darkMode ? 'bg-[#111111]/95 border-white/10' : 'bg-white border-gray-200'
+          }`}
+        >
+          <h3 className={`font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2 ${darkMode ? 'text-white/80' : 'text-gray-900'}`}>
             <List size={16} />
             目录
           </h3>
@@ -56,8 +62,12 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
                   item.level === 3 ? 'pl-7 text-xs' : ''
                 } ${
                   activeId === item.id
-                    ? 'text-blue-700 bg-blue-50 border-l-2 border-blue-700 font-medium'
-                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                    ? (darkMode
+                      ? 'text-blue-300 bg-blue-500/10 border-l-2 border-blue-400 font-medium'
+                      : 'text-blue-700 bg-blue-50 border-l-2 border-blue-700 font-medium')
+                    : (darkMode
+                      ? 'text-white/70 hover:text-white hover:bg-white/5'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100')
                 }`}
               >
                 {item.text}
@@ -65,13 +75,13 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
             ))}
           </nav>
 
-          <hr className="my-4 border-gray-200" />
+          <hr className={`my-4 ${darkMode ? 'border-white/10' : 'border-gray-200'}`} />
 
           <div className="space-y-3">
             {/* 阅读进度 */}
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className={`flex items-center gap-2 text-sm ${darkMode ? 'text-white/60' : 'text-gray-600'}`}>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" className="text-gray-200" />
+                <circle cx="12" cy="12" r="10" className={darkMode ? 'text-white/20' : 'text-gray-200'} />
                 <circle 
                   cx="12" 
                   cy="12" 
@@ -88,7 +98,9 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
             {/* 回到顶部 */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+              className={`flex items-center gap-2 text-sm transition-colors ${
+                darkMode ? 'text-white/60 hover:text-blue-300' : 'text-gray-600 hover:text-blue-600'
+              }`}
             >
               <ArrowUp size={16} />
               <span>回到顶部</span>
@@ -108,9 +120,11 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            className="absolute right-0 top-0 h-full w-72 bg-[#141414] border-l border-white/10 p-6 overflow-y-auto"
+            className={`absolute right-0 top-0 h-full w-72 border-l p-6 overflow-y-auto ${
+              darkMode ? 'bg-[#141414] border-white/10' : 'bg-white border-gray-200'
+            }`}
           >
-            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <h3 className={`font-bold text-lg mb-4 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               <List size={20} />
               目录
             </h3>
@@ -136,8 +150,8 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
                     item.level === 3 ? 'pl-8 text-xs' : ''
                   } ${
                     activeId === item.id
-                      ? 'text-white font-medium'
-                      : 'text-gray-400 hover:text-white'
+                      ? (darkMode ? 'text-white font-medium' : 'text-gray-900 font-medium')
+                      : (darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900')
                   }`}
                 >
                   {item.text}
