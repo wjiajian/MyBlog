@@ -97,18 +97,41 @@ export const Navigation: React.FC<NavigationProps> = ({
     setIsSearchOpen(false);
     setSearchQuery('');
     setIsMobileMenuOpen(false);
+    const selectedPost = posts.find((post) => post.id === postId);
+
+    // 兜底：非首页或未提供回调时，直接跳转到文章页
+    if (!onSearchSelect) {
+      if (selectedPost?.link) {
+        navigate(selectedPost.link);
+      } else {
+        navigate('/');
+      }
+      return;
+    }
+
     if (location.pathname !== '/') {
       navigate('/');
     }
     setTimeout(() => {
-      onSearchSelect?.(postId);
+      onSearchSelect(postId);
     }, 100);
   };
 
   const handleCategorySelect = (category: string | null) => {
     setIsCategoryOpen(false);
     setIsMobileMenuOpen(false);
-    onCategoryChange?.(category);
+
+    // 兜底：未提供回调时，跳转到首页并带上分类查询参数
+    if (!onCategoryChange) {
+      if (category) {
+        navigate(`/?category=${encodeURIComponent(category)}`);
+      } else {
+        navigate('/');
+      }
+      return;
+    }
+
+    onCategoryChange(category);
   };
 
   const isActive = (path: string) => location.pathname === path;

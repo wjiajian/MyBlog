@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Sun, Moon } from 'lucide-react';
+import React from 'react';
+import { ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Header } from '../components/Header';
+import { useThemeMode } from '../hooks/useThemeMode';
 
 // 友链数据
 interface FriendLink {
@@ -24,15 +25,7 @@ const friends: FriendLink[] = [
 ];
 
 export const FriendsPage: React.FC = () => {
-  // 主题状态
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('blog-theme');
-    return saved === 'dark';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('blog-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+  const { darkMode } = useThemeMode();
 
   // 主题样式
   const theme = {
@@ -42,12 +35,6 @@ export const FriendsPage: React.FC = () => {
       : 'bg-white/80 border-gray-200 hover:bg-white',
     cardTitle: darkMode ? 'text-white' : 'text-gray-900',
     cardDesc: darkMode ? 'text-white/60' : 'text-gray-600',
-    backButton: darkMode 
-      ? 'bg-white/10 border-white/10 text-white/70 hover:text-white hover:bg-white/15' 
-      : 'bg-white/80 border-gray-200 text-gray-600 hover:text-gray-900',
-    themeButton: darkMode
-      ? 'bg-white/10 border-white/10 text-white/70 hover:text-white hover:bg-white/15'
-      : 'bg-white/80 border-gray-200 text-gray-600 hover:text-gray-900',
     subtitle: darkMode ? 'text-white/50' : 'text-gray-500',
   };
 
@@ -56,27 +43,7 @@ export const FriendsPage: React.FC = () => {
       <div className={`fixed inset-0 pointer-events-none z-0 ${darkMode ? '' : 'bg-editions-gradient'}`} />
       
       <div className="relative z-10">
-        {/* 返回按钮 */}
-        <div className="fixed top-8 left-8 z-50">
-          <Link
-            to="/"
-            className={`flex items-center gap-2 px-4 py-2 backdrop-blur-md rounded-xl border shadow-sm transition-colors cursor-pointer ${theme.backButton}`}
-          >
-            <ArrowLeft size={18} />
-            <span className="text-sm font-medium">返回首页</span>
-          </Link>
-        </div>
-
-        {/* 主题切换按钮 */}
-        <div className="fixed top-8 right-8 z-50">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`p-2.5 backdrop-blur-md rounded-xl border shadow-sm transition-colors cursor-pointer ${theme.themeButton}`}
-            title={darkMode ? '切换到亮色模式' : '切换到暗色模式'}
-          >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
+        <Header />
 
         <main className="pt-32 pb-20 px-6 max-w-4xl mx-auto">
           <motion.div
