@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Header } from '../components/Header';
-import { safeGetItem, safeSetItem } from '../utils/storage';
+import { useThemeMode } from '../hooks/useThemeMode';
 
 // 友链数据
 interface FriendLink {
@@ -25,15 +25,7 @@ const friends: FriendLink[] = [
 ];
 
 export const FriendsPage: React.FC = () => {
-  // 主题状态
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = safeGetItem('blog-theme');
-    return saved === 'dark';
-  });
-
-  useEffect(() => {
-    safeSetItem('blog-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+  const { darkMode } = useThemeMode();
 
   // 主题样式
   const theme = {
@@ -51,10 +43,7 @@ export const FriendsPage: React.FC = () => {
       <div className={`fixed inset-0 pointer-events-none z-0 ${darkMode ? '' : 'bg-editions-gradient'}`} />
       
       <div className="relative z-10">
-        <Header
-          darkMode={darkMode}
-          onToggleDarkMode={() => setDarkMode(!darkMode)}
-        />
+        <Header />
 
         <main className="pt-32 pb-20 px-6 max-w-4xl mx-auto">
           <motion.div
