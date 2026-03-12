@@ -10,7 +10,7 @@ import { CommentSection } from '../CommentSection';
 
 // ====== 自定义 Pre 组件 ======
 // 统一处理代码块外框、标题栏和复制功能
-const PreBlock: React.FC<{ children?: React.ReactNode; darkMode: boolean }> = ({ children, darkMode }) => {
+const PreBlock: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const preRef = React.useRef<HTMLPreElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -70,27 +70,17 @@ const PreBlock: React.FC<{ children?: React.ReactNode; darkMode: boolean }> = ({
   const displayName = languageNames[language] || language.toUpperCase();
 
   return (
-    <div
-      className={`relative group rounded-lg border mb-6 overflow-hidden ${
-        darkMode ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-[#f6f8fa]'
-      }`}
-    >
+    <div className="preblock relative group rounded-lg border mb-6 overflow-hidden">
       {/* 代码块头部 */}
-      <div
-        className={`flex justify-between items-center px-4 py-2 border-b ${
-          darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-100/50 border-gray-200'
-        }`}
-      >
-        <span className={`text-xs font-mono font-medium ${darkMode ? 'text-white/60' : 'text-gray-500'}`}>
+      <div className="preblock-header flex justify-between items-center px-4 py-2">
+        <span className="preblock-language text-xs font-mono font-medium">
           {displayName}
         </span>
         
         {!isPlainText && (
           <button
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 transition-colors ${
-              darkMode ? 'text-white/40 hover:text-white/80' : 'text-gray-400 hover:text-gray-700'
-            }`}
+            className="preblock-copy flex items-center gap-1.5 transition-colors"
             title="复制代码"
           >
             {copied ? (
@@ -145,7 +135,7 @@ export const BlogContent: React.FC<BlogContentProps> = ({ post, darkMode }) => {
             rehypePlugins={[rehypeHighlight, rehypeSlug]}
             components={{
               // 自定义代码块组件
-              pre: ({ children }) => <PreBlock darkMode={darkMode}>{children}</PreBlock>,
+              pre: ({ children }) => <PreBlock>{children}</PreBlock>,
               // 自定义图片组件：添加懒加载支持
               img: ({ src, alt, ...props }) => (
                 <img 
