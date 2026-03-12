@@ -20,6 +20,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import "github-markdown-css/github-markdown-dark.css";
 import { Header } from "../components/Header";
+import { useThemeMode } from "../hooks/useThemeMode";
 
 // 技能标签数据
 const focusAreas = [
@@ -62,6 +63,47 @@ const quoteText =
   "已识乾坤大，犹怜草木青";
 
 export const About: React.FC = () => {
+  const { darkMode } = useThemeMode();
+
+  const theme = {
+    page: darkMode ? "bg-[#0a0a0a] text-white" : "bg-[#f8f9fa] text-gray-900",
+    panel: darkMode
+      ? "bg-white/5 border-white/10"
+      : "bg-white/80 border-gray-200",
+    heading: darkMode ? "text-white" : "text-gray-900",
+    icon: darkMode ? "text-white/60" : "text-gray-600",
+    glow: darkMode ? "bg-white/20" : "bg-gray-300",
+    avatarBorder: darkMode ? "border-white/20" : "border-white",
+    focusCard: darkMode
+      ? "bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20"
+      : "bg-white border-gray-200 text-gray-700 hover:shadow-md hover:border-gray-300",
+    focusIcon: darkMode ? "text-white/60" : "text-gray-500",
+    techBadge: darkMode
+      ? "bg-white/10 text-white/80 hover:bg-white/15"
+      : "bg-gray-100 text-gray-700 hover:bg-gray-200",
+    interestLink: darkMode
+      ? "bg-white/5 hover:bg-white/10 hover:shadow-sm"
+      : "bg-gray-50 hover:bg-gray-100 hover:shadow-sm",
+    interestLinkIcon: darkMode
+      ? "text-white/70 group-hover:text-white"
+      : "text-gray-600 group-hover:text-blue-600",
+    interestLinkText: darkMode
+      ? "text-white/80 group-hover:text-white"
+      : "text-gray-700 group-hover:text-gray-900",
+    interestStatic: darkMode ? "bg-white/5" : "bg-gray-50",
+    interestStaticIcon: darkMode ? "text-white/60" : "text-gray-600",
+    interestStaticText: darkMode ? "text-white/75" : "text-gray-700",
+    emailCard: darkMode
+      ? "bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20"
+      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300",
+    emailIcon: darkMode ? "text-white/60" : "text-gray-600",
+    emailSubtext: darkMode
+      ? "text-white/50 group-hover:text-white/70"
+      : "text-gray-500 group-hover:text-gray-600",
+    quote: darkMode ? "text-white/50" : "text-gray-500",
+    quoteMark: darkMode ? "text-white/25" : "text-gray-300",
+  };
+
   // 动画变体
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -80,8 +122,8 @@ export const About: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
-      <div className="fixed inset-0 bg-editions-gradient pointer-events-none z-0" />
+    <div className={`min-h-screen ${theme.page}`}>
+      <div className={`fixed inset-0 pointer-events-none z-0 ${darkMode ? "" : "bg-editions-gradient"}`} />
 
       <div className="relative z-10">
         <Header />
@@ -98,7 +140,7 @@ export const About: React.FC = () => {
               <div className="relative w-36 h-36 mx-auto mb-6">
                 {/* 光晕动画 */}
                 <motion.div
-                  className="absolute inset-0 rounded-full bg-gray-300 blur-xl opacity-40"
+                  className={`absolute inset-0 rounded-full blur-xl opacity-40 ${theme.glow}`}
                   animate={{
                     scale: [1, 1.05, 1],
                     opacity: [0.3, 0.5, 0.3],
@@ -113,14 +155,14 @@ export const About: React.FC = () => {
                 <img 
                   src="/resources/touxiang.jpg" 
                   alt="JiaJian's Avatar"
-                  className="relative w-full h-full rounded-full object-cover shadow-lg border-4 border-white"
+                  className={`relative w-full h-full rounded-full object-cover shadow-lg border-4 ${theme.avatarBorder}`}
                 />
               </div>
 
               {/* 名字 */}
               <motion.h1
                 variants={itemVariants}
-                className="text-3xl font-bold text-gray-900 mb-2"
+                className={`text-3xl font-bold mb-2 ${theme.heading}`}
               >
                 Hi！这里是 JiaJian
               </motion.h1>
@@ -129,9 +171,9 @@ export const About: React.FC = () => {
             {/* 简介卡片 */}
             <motion.div
               variants={itemVariants}
-              className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-8 mb-8"
+              className={`backdrop-blur-md rounded-2xl border shadow-sm p-8 mb-8 ${theme.panel}`}
             >
-              <article className="markdown-body !bg-transparent !font-sans">
+              <article className={`markdown-body !bg-transparent !font-sans ${darkMode ? "dark-markdown" : ""}`}>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight, rehypeSlug]}
@@ -144,10 +186,10 @@ export const About: React.FC = () => {
             {/* 专注领域 */}
             <motion.div
               variants={itemVariants}
-              className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
+              className={`backdrop-blur-md rounded-2xl border shadow-sm p-6 mb-8 ${theme.panel}`}
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Target size={20} className="text-gray-600" /> 专注领域
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.heading}`}>
+                <Target size={20} className={theme.icon} /> 专注领域
               </h2>
               <div className="flex flex-wrap gap-3">
                 {focusAreas.map((area, index) => (
@@ -156,9 +198,9 @@ export const About: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-default"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border shadow-sm transition-all cursor-default ${theme.focusCard}`}
                   >
-                    <area.icon size={18} className="text-gray-500" />
+                    <area.icon size={18} className={theme.focusIcon} />
                     <span className="font-medium text-sm">{area.label}</span>
                   </motion.div>
                 ))}
@@ -168,10 +210,10 @@ export const About: React.FC = () => {
             {/* 技术栈 */}
             <motion.div
               variants={itemVariants}
-              className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
+              className={`backdrop-blur-md rounded-2xl border shadow-sm p-6 mb-8 ${theme.panel}`}
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Wrench size={20} className="text-gray-600" /> 技术栈
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.heading}`}>
+                <Wrench size={20} className={theme.icon} /> 技术栈
               </h2>
               <div className="flex flex-wrap gap-2">
                 {techStack.map((tech, index) => (
@@ -180,7 +222,7 @@ export const About: React.FC = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 + index * 0.05 }}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-mono hover:bg-gray-200 transition-colors cursor-default"
+                    className={`px-3 py-1.5 rounded-lg text-sm font-mono transition-colors cursor-default ${theme.techBadge}`}
                   >
                     {tech}
                   </motion.span>
@@ -191,10 +233,10 @@ export const About: React.FC = () => {
             {/* 兴趣爱好 */}
             <motion.div
               variants={itemVariants}
-              className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
+              className={`backdrop-blur-md rounded-2xl border shadow-sm p-6 mb-8 ${theme.panel}`}
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Heart size={20} className="text-gray-600" /> 兴趣爱好
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.heading}`}>
+                <Heart size={20} className={theme.icon} /> 兴趣爱好
               </h2>
               <div className="grid grid-cols-3 gap-3">
                 {interests.map((interest, index) => (
@@ -209,20 +251,20 @@ export const About: React.FC = () => {
                         href={interest.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer group"
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all cursor-pointer group ${theme.interestLink}`}
                       >
                         <interest.icon
                           size={24}
-                          className="text-gray-600 group-hover:text-blue-600 transition-colors"
+                          className={`transition-colors ${theme.interestLinkIcon}`}
                         />
-                        <span className="text-sm text-gray-700 group-hover:text-gray-900">
+                        <span className={`text-sm ${theme.interestLinkText}`}>
                           {interest.label}
                         </span>
                       </a>
                     ) : (
-                      <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 cursor-default">
-                        <interest.icon size={24} className="text-gray-600" />
-                        <span className="text-sm text-gray-700">
+                      <div className={`flex flex-col items-center gap-2 p-4 rounded-xl cursor-default ${theme.interestStatic}`}>
+                        <interest.icon size={24} className={theme.interestStaticIcon} />
+                        <span className={`text-sm ${theme.interestStaticText}`}>
                           {interest.label}
                         </span>
                       </div>
@@ -235,10 +277,10 @@ export const About: React.FC = () => {
             {/* 联系方式 */}
             <motion.div
               variants={itemVariants}
-              className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm p-6 mb-8"
+              className={`backdrop-blur-md rounded-2xl border shadow-sm p-6 mb-8 ${theme.panel}`}
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Send size={20} className="text-gray-600" /> 联系方式
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.heading}`}>
+                <Send size={20} className={theme.icon} /> 联系方式
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <a
@@ -257,12 +299,12 @@ export const About: React.FC = () => {
                 </a>
                 <a
                   href="mailto:jiajian2233@gmail.com"
-                  className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
+                  className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer group ${theme.emailCard}`}
                 >
-                  <Mail size={20} className="text-gray-600" />
+                  <Mail size={20} className={theme.emailIcon} />
                   <div>
                     <div className="font-medium text-sm">Email</div>
-                    <div className="text-xs text-gray-500 group-hover:text-gray-600">
+                    <div className={`text-xs ${theme.emailSubtext}`}>
                       jiajian2233@gmail.com
                     </div>
                   </div>
@@ -273,11 +315,11 @@ export const About: React.FC = () => {
             {/* 底部引用 */}
             <motion.div variants={itemVariants} className="text-center">
               <div className="inline-block relative">
-                <span className="absolute -left-4 -top-2 text-4xl text-gray-300 font-serif">
+                <span className={`absolute -left-4 -top-2 text-4xl font-serif ${theme.quoteMark}`}>
                   "
                 </span>
-                <p className="text-gray-500 italic text-sm px-6">{quoteText}</p>
-                <span className="absolute -right-4 -bottom-2 text-4xl text-gray-300 font-serif">
+                <p className={`italic text-sm px-6 ${theme.quote}`}>{quoteText}</p>
+                <span className={`absolute -right-4 -bottom-2 text-4xl font-serif ${theme.quoteMark}`}>
                   "
                 </span>
               </div>
