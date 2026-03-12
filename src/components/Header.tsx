@@ -1,22 +1,21 @@
 import React from 'react';
 import { Navigation } from './Navigation';
 import { Sun, Moon } from 'lucide-react';
+import { useThemeMode } from '../hooks/useThemeMode';
 
 interface HeaderProps {
   onCategoryChange?: (category: string | null) => void;
   onSearchSelect?: (postId: string) => void;
   currentCategory?: string | null;
-  darkMode?: boolean;
-  onToggleDarkMode?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onCategoryChange, 
   onSearchSelect,
-  currentCategory,
-  darkMode = false,
-  onToggleDarkMode
+  currentCategory
 }) => {
+  const { darkMode, toggleDarkMode } = useThemeMode();
+
   const navContainerClass = darkMode 
     ? 'bg-[#1a1a1a]/80 border-white/10' 
     : 'bg-white/80 border-gray-200';
@@ -34,23 +33,21 @@ export const Header: React.FC<HeaderProps> = ({
           darkMode={darkMode}
         />
         {/* 主题切换按钮 */}
-        {onToggleDarkMode && (
-          <button
-            onClick={onToggleDarkMode}
-            className={`p-2 rounded-lg transition-colors cursor-pointer ${
-              darkMode 
-                ? 'hover:bg-white/10 text-white/70 hover:text-white' 
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-            }`}
-            title={darkMode ? '切换到亮色主题' : '切换到暗色主题'}
-          >
-            {darkMode ? (
-              <Sun size={18} className="text-yellow-400" />
-            ) : (
-              <Moon size={18} />
-            )}
-          </button>
-        )}
+        <button
+          onClick={toggleDarkMode}
+          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            darkMode 
+              ? 'hover:bg-white/10 text-white/70 hover:text-white' 
+              : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+          }`}
+          title={darkMode ? '切换到亮色主题' : '切换到暗色主题'}
+        >
+          {darkMode ? (
+            <Sun size={18} className="text-yellow-400" />
+          ) : (
+            <Moon size={18} />
+          )}
+        </button>
       </div>
     </header>
   );

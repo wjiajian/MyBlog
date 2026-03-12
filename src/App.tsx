@@ -10,10 +10,10 @@ import { Timeline } from './components/Timeline';
 import type { ContentType } from './components/ContentTabs';
 
 
-import { safeGetItem, safeSetItem } from './utils/storage';
 import { parseMonthFromDate } from './utils/date';
 
 import { getAppTheme } from './utils/theme';
+import { useThemeMode } from './hooks/useThemeMode';
 
 function App() {
   const { posts, isLoading } = usePosts();
@@ -26,16 +26,7 @@ function App() {
   const [postsPerYear, setPostsPerYear] = useState<Record<number, number>>({});
   // 已加载的年份数量
   const [visibleYearsCount, setVisibleYearsCount] = useState(2);
-  // 主题状态：默认亮色
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = safeGetItem('blog-theme');
-    return saved === 'dark';
-  });
-
-  // 保存主题偏好到localStorage
-  useEffect(() => {
-    safeSetItem('blog-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+  const { darkMode } = useThemeMode();
 
   // 主题相关样式
   const theme = getAppTheme(darkMode);
@@ -189,8 +180,6 @@ function App() {
           onCategoryChange={handleCategoryChange}
           onSearchSelect={handleSearchSelect}
           currentCategory={currentCategory}
-          darkMode={darkMode}
-          onToggleDarkMode={() => setDarkMode(!darkMode)}
         />
 
         {/* 左侧时间线导航 */}

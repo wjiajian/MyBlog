@@ -7,13 +7,13 @@ import imagesMetadata from '../data/images-metadata.json';
 
 import type { ImageMetadata } from '../types';
 
-import { safeGetItem, safeSetItem } from '../utils/storage';
 import { resolvePhotoAssetPaths } from '../utils/photoUrl';
 
 import { getGalleryTheme } from '../utils/theme';
 
 import { useDebouncedCallback } from '../hooks/useDebounce';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useThemeMode } from '../hooks/useThemeMode';
 import { GallerySkeleton } from '../components/Skeleton';
 
 const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
@@ -23,16 +23,7 @@ export const GalleryPage: React.FC = () => {
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
   const [metadata, setMetadata] = useState<ImageMetadata[]>(imagesMetadata as ImageMetadata[]);
-  // 主题状态：默认亮色
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = safeGetItem('blog-theme');
-    return saved === 'dark'; // 默认亮色
-  });
-
-  // 保存主题偏好到localStorage
-  useEffect(() => {
-    safeSetItem('blog-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+  const { darkMode, toggleDarkMode } = useThemeMode();
 
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
@@ -146,7 +137,7 @@ export const GalleryPage: React.FC = () => {
             <div className="flex items-center gap-3">
               {/* 主题切换按钮 */}
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={toggleDarkMode}
                 className={`p-2 rounded-lg transition-colors cursor-pointer ${theme.controlBg} hover:opacity-80`}
                 title={darkMode ? '切换到亮色主题' : '切换到暗色主题'}
               >
