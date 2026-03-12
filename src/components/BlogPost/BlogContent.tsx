@@ -70,15 +70,17 @@ const PreBlock: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const displayName = languageNames[language] || language.toUpperCase();
 
   return (
-    <div className="relative group rounded-lg border border-gray-200 bg-[#f6f8fa] mb-6 overflow-hidden">
+    <div className="preblock relative group rounded-lg border mb-6 overflow-hidden">
       {/* 代码块头部 */}
-      <div className="flex justify-between items-center px-4 py-2 bg-gray-100/50 border-b border-gray-200">
-        <span className="text-xs font-mono text-gray-500 font-medium">{displayName}</span>
+      <div className="preblock-header flex justify-between items-center px-4 py-2">
+        <span className="preblock-language text-xs font-mono font-medium">
+          {displayName}
+        </span>
         
         {!isPlainText && (
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors"
+            className="preblock-copy flex items-center gap-1.5 transition-colors"
             title="复制代码"
           >
             {copied ? (
@@ -112,25 +114,28 @@ interface BlogContentProps {
     id: string;
     content?: string;
   };
+  darkMode: boolean;
 }
 
-export const BlogContent: React.FC<BlogContentProps> = ({ post }) => {
+export const BlogContent: React.FC<BlogContentProps> = ({ post, darkMode }) => {
   return (
     <motion.article 
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="w-full max-w-4xl bg-white border border-gray-200 p-6 md:p-10 lg:p-12 rounded-2xl shadow-lg min-h-[50vh]"
+      className={`w-full max-w-4xl border p-6 md:p-10 lg:p-12 rounded-2xl shadow-lg min-h-[50vh] ${
+        darkMode ? 'bg-[#111111] border-white/10' : 'bg-white border-gray-200'
+      }`}
     >
       {/* Markdown 样式在 index.css 中覆盖 */}
-      <div className="markdown-body !bg-transparent !font-sans">
+      <div className={`markdown-body !bg-transparent !font-sans ${darkMode ? 'dark-markdown' : ''}`}>
         {post.content ? (
           <ReactMarkdown 
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight, rehypeSlug]}
             components={{
               // 自定义代码块组件
-              pre: PreBlock,
+              pre: ({ children }) => <PreBlock>{children}</PreBlock>,
               // 自定义图片组件：添加懒加载支持
               img: ({ src, alt, ...props }) => (
                 <img 
@@ -146,14 +151,14 @@ export const BlogContent: React.FC<BlogContentProps> = ({ post }) => {
             {post.content}
           </ReactMarkdown>
         ) : (
-          <p className="text-gray-500 italic text-center py-10">
+          <p className={`italic text-center py-10 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
             Content placeholder. Add markdown content to posts.ts to see it here.
           </p>
         )}
       </div>
 
       {/* 评论区 */}
-      <CommentSection postId={post.id} />
+      <CommentSection postId={post.id} variant={darkMode ? 'dark' : 'light'} />
     </motion.article>
   );
 };

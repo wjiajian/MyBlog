@@ -8,8 +8,10 @@ import { TableOfContents } from './TableOfContents';
 import { extractToc } from './toc';
 import { BlogContent } from './BlogContent';
 import { Header } from '../Header';
+import { useThemeMode } from '../../hooks/useThemeMode';
 
 export const BlogPost: React.FC = () => {
+  const { darkMode } = useThemeMode();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   // 从 URL 路径解析 type (如 /tech/xxx 或 /life/xxx)
@@ -92,10 +94,10 @@ export const BlogPost: React.FC = () => {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex flex-col">
+      <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900'}`}>
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 size={32} className="animate-spin text-gray-400" />
+          <Loader2 size={32} className={`animate-spin ${darkMode ? 'text-white/40' : 'text-gray-400'}`} />
         </div>
       </div>
     );
@@ -104,12 +106,19 @@ export const BlogPost: React.FC = () => {
   // 错误或未找到
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex flex-col">
+      <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900'}`}>
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">{error || 'Post not found'}</h1>
-            <Link to="/" className="text-blue-600 hover:text-blue-800 transition-colors underline">Return Home</Link>
+            <Link
+              to="/"
+              className={`transition-colors underline ${
+                darkMode ? 'text-blue-300 hover:text-blue-200' : 'text-blue-600 hover:text-blue-800'
+              }`}
+            >
+              Return Home
+            </Link>
           </div>
         </div>
       </div>
@@ -117,24 +126,26 @@ export const BlogPost: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-20 selection:bg-blue-500/20">
+    <div className={`min-h-screen pb-20 selection:bg-blue-500/20 ${darkMode ? 'bg-[#0a0a0a]' : 'bg-[#f8f9fa]'}`}>
       <Header />
       <BlogHeader 
         post={post} 
         views={activeViews}
         viewsError={activeViewsError}
+        darkMode={darkMode}
         showTocToggle={toc.length > 0} 
         onTocToggle={() => setIsTocOpen(!isTocOpen)} 
       />
 
       <div className="relative -mt-20 z-10 px-4 lg:px-8">
         <div className="max-w-4xl mx-auto relative">
-          <BlogContent post={post} />
+          <BlogContent post={post} darkMode={darkMode} />
           
           <TableOfContents 
             toc={toc} 
             activeId={activeId} 
             readProgress={readProgress} 
+            darkMode={darkMode}
             isMobileOpen={isTocOpen} 
             onMobileClose={() => setIsTocOpen(false)} 
           />
