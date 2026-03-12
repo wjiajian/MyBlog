@@ -2,6 +2,7 @@ import React from 'react';
 import type { Post } from '../hooks/usePosts';
 import { ArrowUpRight } from 'lucide-react';
 import { ProgressiveImage } from './ProgressiveImage';
+import { NEW_TAB_LINK_PROPS, openPostLink } from '../utils/navigation';
 
 interface AlbumProps {
   post: Post;
@@ -28,8 +29,15 @@ export const Album: React.FC<AlbumProps> = ({
     <div className="flex flex-col">
       <div
         className="group relative z-10 w-full aspect-square rounded-2xl overflow-hidden shadow-xl border border-gray-200 cursor-pointer"
-        onClick={() => {
-          window.open(post.link, '_blank', 'noopener,noreferrer');
+        role="link"
+        tabIndex={0}
+        aria-label={`打开文章：${post.title}`}
+        onClick={() => openPostLink(post.link, { newTab: true })}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openPostLink(post.link, { newTab: true });
+          }
         }}
       >
         <div className="absolute inset-0">
@@ -58,8 +66,7 @@ export const Album: React.FC<AlbumProps> = ({
             <a
               href={post.link}
               onClick={(e) => e.stopPropagation()}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...NEW_TAB_LINK_PROPS}
               className="inline-flex items-center gap-1.5 text-white text-sm font-medium px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/30 transition-colors"
             >
               <span>查看详情</span>
@@ -69,7 +76,7 @@ export const Album: React.FC<AlbumProps> = ({
         </div>
       </div>
 
-      <a href={post.link} target="_blank" rel="noopener noreferrer" className="block">
+      <a href={post.link} {...NEW_TAB_LINK_PROPS} className="block">
         <h2
           className={`mt-4 text-lg font-semibold tracking-tight leading-snug line-clamp-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}
         >

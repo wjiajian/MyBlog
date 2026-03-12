@@ -14,6 +14,8 @@ import { parseMonthFromDate } from './utils/date';
 
 import { getAppTheme } from './utils/theme';
 import { useThemeMode } from './hooks/useThemeMode';
+import { openPostLink } from './utils/navigation';
+import { API_BASE_HINT } from './utils/api';
 
 function App() {
   const { posts, isLoading, error, refresh } = usePosts();
@@ -43,7 +45,7 @@ function App() {
   const handleSearchSelect = (postId: string) => {
     const matchedPost = posts.find((post) => post.id === postId);
     if (matchedPost) {
-      window.location.href = matchedPost.link;
+      openPostLink(matchedPost.link);
     }
   };
 
@@ -233,7 +235,7 @@ function App() {
             <div className="text-center py-20">
               <p className={`text-lg mb-3 ${theme.emptyText}`}>文章数据加载失败</p>
               <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                请确认后端服务已启动（http://localhost:3000）
+                请确认后端服务或 API 配置可用（{API_BASE_HINT}）
               </p>
               <button
                 onClick={refresh}
