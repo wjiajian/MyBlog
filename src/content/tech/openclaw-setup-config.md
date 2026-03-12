@@ -12,7 +12,7 @@ tags:
   - AI Agent
 ---
 
->Polish By GPT5.4
+>Polished by GPT5.4
 
 这篇文章只讲我现在正在用的一套 OpenClaw 方案，不讲“理想状态”。
 

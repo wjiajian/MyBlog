@@ -67,7 +67,7 @@ export const BlogHeader: React.FC<BlogHeaderProps> = ({
       {showTocToggle && (
         <button
           onClick={onTocToggle}
-          className="absolute top-8 left-8 text-gray-700 bg-white/80 hover:bg-white backdrop-blur-md p-3 rounded-full transition-all border border-gray-200 hover:scale-105 z-20 lg:hidden shadow-sm"
+          className="absolute top-24 left-4 sm:top-8 sm:left-8 text-gray-700 bg-white/80 hover:bg-white backdrop-blur-md p-3 rounded-full transition-all border border-gray-200 hover:scale-105 z-20 lg:hidden shadow-sm"
         >
           <List size={24} />
         </button>

@@ -92,9 +92,9 @@ export const BlogPost: React.FC = () => {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa]">
+      <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex flex-col">
         <Header />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <Loader2 size={32} className="animate-spin text-gray-400" />
         </div>
       </div>
@@ -104,9 +104,9 @@ export const BlogPost: React.FC = () => {
   // 错误或未找到
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
+      <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex flex-col">
         <Header />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">{error || 'Post not found'}</h1>
             <Link to="/" className="text-blue-600 hover:text-blue-800 transition-colors underline">Return Home</Link>
