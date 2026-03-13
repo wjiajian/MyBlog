@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
     // ====== 可配置项：主题感知头部 ======
     // 固定定位：不随页面滚动
     <header
-      className={`fixed top-0 left-0 w-full p-8 z-50 flex justify-end items-start pointer-events-none transition-transform duration-300 ease-out ${
+      className={`fixed top-0 left-0 w-full p-3 sm:p-5 md:p-8 z-50 flex justify-end items-start pointer-events-none transition-transform duration-300 ease-out ${
         isVisible ? 'translate-y-0' : '-translate-y-[120%]'
       }`}
     >
