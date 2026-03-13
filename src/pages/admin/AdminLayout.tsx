@@ -1,24 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   FileText, 
   Image, 
-  Home, 
-  LogOut, 
   Menu, 
-  X,
-  ChevronRight
 } from 'lucide-react';
 import { logout, getUsername } from '../../utils/auth';
+import { AdminSidebarPanel, type AdminNavItem } from '../../components/admin/AdminSidebarPanel';
 
-interface NavItem {
-  icon: React.ReactNode;
-  label: string;
-  path: string;
-}
-
-const navItems: NavItem[] = [
+const navItems: AdminNavItem[] = [
   { icon: <FileText size={20} />, label: '文章管理', path: '/admin/posts' },
   { icon: <Image size={20} />, label: '照片管理', path: '/admin/photos' },
 ];
@@ -81,78 +72,17 @@ export const AdminLayout: React.FC = () => {
           initial={false}
           animate={{ width: desktopSidebarWidth }}
           transition={{ duration: 0.3 }}
-          className="bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm"
+          className="fixed h-full z-40 shadow-sm"
         >
-          <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
-            {isDesktopSidebarOpen && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-lg font-bold text-gray-800"
-              >
-                管理后台
-              </motion.span>
-            )}
-            <button
-              onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-              aria-label={isDesktopSidebarOpen ? '收起侧边栏' : '展开侧边栏'}
-            >
-              {isDesktopSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-
-          <nav className="flex-1 py-4 px-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl mb-1 transition-all ${
-                  isActivePath(item.path)
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-                }`}
-              >
-                {item.icon}
-                {isDesktopSidebarOpen && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="font-medium"
-                  >
-                    {item.label}
-                  </motion.span>
-                )}
-                {isDesktopSidebarOpen && isActivePath(item.path) && (
-                  <ChevronRight size={16} className="ml-auto" />
-                )}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="p-3 border-t border-gray-100">
-            <a
-              href="/"
-              className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-all mb-1"
-            >
-              <Home size={20} />
-              {isDesktopSidebarOpen && <span className="font-medium">返回前台</span>}
-            </a>
-
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all"
-            >
-              <LogOut size={20} />
-              {isDesktopSidebarOpen && <span className="font-medium">退出登录</span>}
-            </button>
-
-            {isDesktopSidebarOpen && username && (
-              <div className="mt-3 px-3 py-2 text-xs text-gray-400">
-                当前用户: {username}
-              </div>
-            )}
-          </div>
+          <AdminSidebarPanel
+            mode="desktop"
+            collapsed={!isDesktopSidebarOpen}
+            navItems={navItems}
+            isActivePath={isActivePath}
+            username={username}
+            onLogout={handleLogout}
+            onDesktopToggle={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
+          />
         </motion.aside>
       )}
 
@@ -179,64 +109,17 @@ export const AdminLayout: React.FC = () => {
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 transition={{ duration: 0.25 }}
-                className="absolute left-0 top-0 h-full w-72 bg-white border-r border-gray-200 flex flex-col shadow-xl"
+                className="absolute left-0 top-0 h-full w-72 shadow-xl"
               >
-                <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
-                  <span className="text-lg font-bold text-gray-800">管理后台</span>
-                  <button
-                    onClick={() => setIsMobileSidebarOpen(false)}
-                    className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-                    aria-label="关闭侧边栏"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <nav className="flex-1 py-4 px-3">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={handleMobileNavigate}
-                      className={`flex items-center gap-3 px-3 py-3 rounded-xl mb-1 transition-all ${
-                        isActivePath(item.path)
-                          ? 'bg-blue-50 text-blue-600'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-                      }`}
-                    >
-                      {item.icon}
-                      <span className="font-medium">{item.label}</span>
-                      {isActivePath(item.path) && (
-                        <ChevronRight size={16} className="ml-auto" />
-                      )}
-                    </Link>
-                  ))}
-                </nav>
-
-                <div className="p-3 border-t border-gray-100">
-                  <a
-                    href="/"
-                    onClick={handleMobileNavigate}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-all mb-1"
-                  >
-                    <Home size={20} />
-                    <span className="font-medium">返回前台</span>
-                  </a>
-
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all"
-                  >
-                    <LogOut size={20} />
-                    <span className="font-medium">退出登录</span>
-                  </button>
-
-                  {username && (
-                    <div className="mt-3 px-3 py-2 text-xs text-gray-400">
-                      当前用户: {username}
-                    </div>
-                  )}
-                </div>
+                <AdminSidebarPanel
+                  mode="mobile"
+                  navItems={navItems}
+                  isActivePath={isActivePath}
+                  username={username}
+                  onLogout={handleLogout}
+                  onNavigate={handleMobileNavigate}
+                  onMobileClose={() => setIsMobileSidebarOpen(false)}
+                />
               </motion.aside>
             </div>
           )}
