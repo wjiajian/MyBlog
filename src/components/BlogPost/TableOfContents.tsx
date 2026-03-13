@@ -8,17 +8,13 @@ interface TableOfContentsProps {
   activeId: string;
   readProgress: number;
   darkMode: boolean;
-  isMobileOpen: boolean;
-  onMobileClose: () => void;
 }
 
 export const TableOfContents: React.FC<TableOfContentsProps> = ({
   toc,
   activeId,
   readProgress,
-  darkMode,
-  isMobileOpen,
-  onMobileClose
+  darkMode
 }) => {
   if (toc.length === 0) return null;
 
@@ -109,58 +105,6 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
         </div>
       </motion.aside>
 
-      {/* Mobile TOC Drawer */}
-      {isMobileOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 lg:hidden"
-        >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onMobileClose} />
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            className={`absolute right-0 top-0 h-full w-72 border-l p-6 overflow-y-auto ${
-              darkMode ? 'bg-[#141414] border-white/10' : 'bg-white border-gray-200'
-            }`}
-          >
-            <h3 className={`font-bold text-lg mb-4 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              <List size={20} />
-              目录
-            </h3>
-            <nav className="space-y-2">
-              {toc.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onMobileClose();
-                    setTimeout(() => {
-                      const element = document.getElementById(item.id);
-                      if (element) {
-                        const offsetTop = element.getBoundingClientRect().top + window.scrollY - 100;
-                        window.scrollTo({ top: offsetTop, behavior: 'smooth' });
-                      }
-                    }, 300);
-                  }}
-                  className={`block text-sm transition-colors py-2 ${
-                    item.level === 2 ? 'pl-4' : ''
-                  } ${
-                    item.level === 3 ? 'pl-8 text-xs' : ''
-                  } ${
-                    activeId === item.id
-                      ? (darkMode ? 'text-white font-medium' : 'text-gray-900 font-medium')
-                      : (darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900')
-                  }`}
-                >
-                  {item.text}
-                </a>
-              ))}
-            </nav>
-          </motion.div>
-        </motion.div>
-      )}
     </>
   );
 };

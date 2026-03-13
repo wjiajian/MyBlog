@@ -19,7 +19,6 @@ export const BlogPost: React.FC = () => {
   const type = location.pathname.startsWith('/life') ? 'life' : 'tech';
   const { post, isLoading, error } = usePost(type, id);
   const [activeId, setActiveId] = useState<string>('');
-  const [isTocOpen, setIsTocOpen] = useState(false);
   const [views, setViews] = useState<number | null>(null);
   const [viewsError, setViewsError] = useState<string | null>(null);
   const [viewsPostId, setViewsPostId] = useState<string | null>(null);
@@ -149,11 +148,9 @@ export const BlogPost: React.FC = () => {
         views={activeViews}
         viewsError={activeViewsError}
         darkMode={darkMode}
-        showTocToggle={toc.length > 0} 
-        onTocToggle={() => setIsTocOpen(!isTocOpen)} 
       />
 
-      <div className="relative -mt-20 z-10 px-4 lg:px-8">
+      <div className="relative -mt-8 sm:-mt-12 lg:-mt-20 z-10 px-3 sm:px-4 lg:px-8">
         <div className="max-w-4xl mx-auto relative">
           <BlogContent post={post} darkMode={darkMode} />
           
@@ -162,8 +159,6 @@ export const BlogPost: React.FC = () => {
             activeId={activeId} 
             readProgress={readProgress} 
             darkMode={darkMode}
-            isMobileOpen={isTocOpen} 
-            onMobileClose={() => setIsTocOpen(false)} 
           />
         </div>
       </div>
