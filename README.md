@@ -13,6 +13,28 @@ npm install
 npm run dev
 ```
 
+仅运行前端（`npm run dev`）时，首页文章会因缺少 `/api/posts` 而无法显示。  
+如果你在本地做样式/交互开发，不想先配 PostgreSQL，可使用“无数据库联调”：
+
+```bash
+# 终端 A：启动后端（无需数据库也可提供文章接口）
+npm run build:server
+npm run serve
+
+# 终端 B：启动前端
+npm run dev
+```
+
+无数据库联调说明：
+- 可用：`/api/posts`、`/api/posts/:type/:filename`（文章列表与详情）
+- 不可用（会返回 500）：`/api/pageview`、`/api/comments`、`/api/photos/metadata`
+
+需要完整功能（评论、浏览量、照片可见性）时，再配置 `.env` 的 `DATABASE_URL` 并执行：
+
+```bash
+npm run db:init
+```
+
 ### 生产部署
 
 ```bash

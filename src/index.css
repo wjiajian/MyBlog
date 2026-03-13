@@ -59,6 +59,7 @@ body {
 
 /* ====== Markdown 亮色主题样式覆盖 ====== */
 .markdown-body {
+  color-scheme: light;
   --md-color-canvas: transparent;
   --md-fg-default: #1a1a1a;
   --md-fg-muted: #666;
@@ -99,6 +100,7 @@ body {
 
 /* ====== Markdown 暗色主题变量 ====== */
 .markdown-body.dark-markdown {
+  color-scheme: dark;
   --md-fg-default: #e5e7eb;
   --md-fg-muted: rgba(229, 231, 235, 0.7);
   --md-heading: #ffffff;
@@ -142,8 +144,106 @@ body {
   border-bottom-color: var(--md-heading-border) !important;
 }
 
+.markdown-body h1 {
+  margin: 2rem 0 1rem !important;
+  font-size: 2rem !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+}
+
+.markdown-body h2 {
+  margin: 1.8rem 0 0.9rem !important;
+  font-size: 1.6rem !important;
+  line-height: 1.3 !important;
+  font-weight: 700 !important;
+}
+
+.markdown-body h3 {
+  margin: 1.5rem 0 0.75rem !important;
+  font-size: 1.3rem !important;
+  line-height: 1.4 !important;
+  font-weight: 650 !important;
+}
+
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin: 1.25rem 0 0.65rem !important;
+  line-height: 1.45 !important;
+}
+
+.markdown-body p {
+  margin-top: 0 !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.85 !important;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.6rem 0 1rem !important;
+  padding-left: 1.5rem !important;
+}
+
+.markdown-body ul {
+  list-style-type: disc !important;
+}
+
+.markdown-body ol {
+  list-style-type: decimal !important;
+}
+
+.markdown-body ul ul {
+  list-style-type: circle !important;
+}
+
+.markdown-body ul ul ul {
+  list-style-type: square !important;
+}
+
+.markdown-body ol ol {
+  list-style-type: lower-alpha !important;
+}
+
+.markdown-body ol ol ol {
+  list-style-type: lower-roman !important;
+}
+
+.markdown-body li {
+  display: list-item;
+  margin: 0.3rem 0 !important;
+  line-height: 1.8 !important;
+}
+
+.markdown-body li::marker {
+  color: var(--md-fg-muted);
+}
+
+.markdown-body li > p {
+  margin-top: 0.35rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.markdown-body .task-list-item {
+  list-style: none !important;
+}
+
+.markdown-body .task-list-item-checkbox {
+  margin: 0 0.5rem 0 -1.2rem;
+  vertical-align: middle;
+}
+
+.markdown-body hr {
+  margin: 1.8rem 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--md-heading-border) !important;
+  background: transparent !important;
+  height: 0 !important;
+}
+
 .markdown-body a {
   color: var(--md-link) !important;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
 }
 
 .markdown-body code {
@@ -280,6 +380,13 @@ body {
 
 .markdown-body table tr:nth-child(2n) {
   background-color: var(--md-table-row-alt) !important;
+}
+
+.markdown-body img {
+  display: block;
+  margin: 1.2rem auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--md-table-border);
 }
 
 /* ====== Markdown 代码块面板（与主题变量联动） ====== */

@@ -18,7 +18,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
-import "github-markdown-css/github-markdown-dark.css";
+import "github-markdown-css/github-markdown-light.css";
 import { Header } from "../components/Header";
 import { useThemeMode } from "../hooks/useThemeMode";
 

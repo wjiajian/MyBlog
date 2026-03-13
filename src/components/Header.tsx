@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Navigation } from './Navigation';
 import { Sun, Moon } from 'lucide-react';
 import { useThemeMode } from '../hooks/useThemeMode';
@@ -15,6 +15,43 @@ export const Header: React.FC<HeaderProps> = ({
   currentCategory
 }) => {
   const { darkMode, toggleDarkMode } = useThemeMode();
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+  const tickingRef = useRef(false);
+
+  useEffect(() => {
+    const HIDE_START_SCROLL_Y = 96;
+    const DIRECTION_TRIGGER_DELTA = 10;
+
+    const updateVisibility = () => {
+      const currentScrollY = Math.max(window.scrollY, 0);
+      const delta = currentScrollY - lastScrollYRef.current;
+
+      if (currentScrollY <= HIDE_START_SCROLL_Y) {
+        setIsVisible(true);
+      } else if (delta > DIRECTION_TRIGGER_DELTA) {
+        setIsVisible(false);
+      } else if (delta < -DIRECTION_TRIGGER_DELTA) {
+        setIsVisible(true);
+      }
+
+      lastScrollYRef.current = currentScrollY;
+      tickingRef.current = false;
+    };
+
+    const handleScroll = () => {
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(updateVisibility);
+    };
+
+    lastScrollYRef.current = Math.max(window.scrollY, 0);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const navContainerClass = darkMode 
     ? 'bg-[#1a1a1a]/80 border-white/10' 
@@ -23,7 +60,11 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     // ====== 可配置项：主题感知头部 ======
     // 固定定位：不随页面滚动
-    <header className="fixed top-0 left-0 w-full p-8 z-50 flex justify-end items-start pointer-events-none">
+    <header
+      className={`fixed top-0 left-0 w-full p-8 z-50 flex justify-end items-start pointer-events-none transition-transform duration-300 ease-out ${
+        isVisible ? 'translate-y-0' : '-translate-y-[120%]'
+      }`}
+    >
       {/* 右侧导航栏 */}
       <div className={`pointer-events-auto backdrop-blur-md px-2 py-1.5 rounded-xl border shadow-sm flex items-center gap-2 ${navContainerClass}`}>
         <Navigation 

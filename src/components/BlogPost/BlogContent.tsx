@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
-import 'github-markdown-css/github-markdown-dark.css';
+import 'github-markdown-css/github-markdown-light.css';
 import { motion } from 'framer-motion';
 import { Copy, Check } from 'lucide-react';
 import { CommentSection } from '../CommentSection';
