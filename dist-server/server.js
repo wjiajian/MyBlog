@@ -8,8 +8,6 @@ import { query } from './src/db/index.js';
 import authRoutes from './src/routes/auth.js';
 import postsRoutes from './src/routes/posts.js';
 import photosRoutes from './src/routes/photos.js';
-import oneDriveSyncRoutes from './src/routes/onedrive-sync.js';
-import { startOneDriveSyncScheduler } from './src/services/onedrive-sync/service.js';
 dotenv.config();
 const app = express();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -40,7 +38,6 @@ if (fs.existsSync(distPath)) {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/photos', photosRoutes);
-app.use('/api/onedrive-sync', oneDriveSyncRoutes);
 // 浏览量 API
 // 获取浏览量
 app.get('/api/pageview', async (req, res) => {
@@ -190,4 +187,3 @@ app.use((req, res) => {
 app.listen(port, '0.0.0.0', () => {
     console.log(`[server]: Server is running at http://0.0.0.0:${port}`);
 });
-startOneDriveSyncScheduler();
