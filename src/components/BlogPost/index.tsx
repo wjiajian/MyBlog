@@ -19,10 +19,12 @@ export const BlogPost: React.FC = () => {
   const type = location.pathname.startsWith('/life') ? 'life' : 'tech';
   const { post, isLoading, error } = usePost(type, id);
   const [activeId, setActiveId] = useState<string>('');
+  const [mobileTocOpenPath, setMobileTocOpenPath] = useState<string | null>(null);
   const [views, setViews] = useState<number | null>(null);
   const [viewsError, setViewsError] = useState<string | null>(null);
   const [viewsPostId, setViewsPostId] = useState<string | null>(null);
   const [readProgress, setReadProgress] = useState(0);
+  const isMobileTocOpen = mobileTocOpenPath === location.pathname;
 
   // 提取目录
   const toc = post?.content ? extractToc(post.content) : [];
@@ -159,6 +161,9 @@ export const BlogPost: React.FC = () => {
             activeId={activeId} 
             readProgress={readProgress} 
             darkMode={darkMode}
+            isMobileOpen={isMobileTocOpen}
+            onMobileOpen={() => setMobileTocOpenPath(location.pathname)}
+            onMobileClose={() => setMobileTocOpenPath(null)}
           />
         </div>
       </div>
