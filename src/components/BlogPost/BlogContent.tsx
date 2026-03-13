@@ -123,7 +123,7 @@ export const BlogContent: React.FC<BlogContentProps> = ({ post, darkMode }) => {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className={`w-full max-w-4xl border p-6 md:p-10 lg:p-12 rounded-2xl shadow-lg min-h-[50vh] ${
+      className={`w-full max-w-4xl border p-4 sm:p-6 md:p-10 lg:p-12 rounded-2xl shadow-lg min-h-[50vh] ${
         darkMode ? 'bg-[#111111] border-white/10' : 'bg-white border-gray-200'
       }`}
     >
