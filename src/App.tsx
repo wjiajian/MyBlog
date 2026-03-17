@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { usePosts } from './hooks/usePosts';
 import { Album } from './components/Album';
@@ -14,6 +14,7 @@ import { parseMonthFromDate } from './utils/date';
 
 import { getAppTheme } from './utils/theme';
 import { useThemeMode } from './hooks/useThemeMode';
+import { usePageTitle } from './hooks/usePageTitle';
 import { openPostLink } from './utils/navigation';
 import { API_BASE_HINT } from './utils/api';
 
@@ -28,6 +29,7 @@ function App() {
   // 已加载的年份数量
   const [visibleYearsCount, setVisibleYearsCount] = useState(2);
   const { darkMode } = useThemeMode();
+  usePageTitle('首页');
 
   // 主题相关样式
   const theme = getAppTheme(darkMode);
@@ -172,9 +174,17 @@ function App() {
     }
   };
 
+  const footerHeadingClass = `text-[1rem] font-medium tracking-wide ${
+    darkMode ? 'text-white/85' : 'text-gray-700'
+  }`;
+  const footerLinkClass = `inline-flex items-center gap-1.5 text-[0.92rem] leading-relaxed transition-colors ${
+    darkMode ? 'text-white/55 hover:text-white/85' : 'text-gray-600 hover:text-gray-900'
+  }`;
+  const footerMutedClass = darkMode ? 'text-white/50' : 'text-gray-600';
+
   return (
     // ====== 可配置项：主页背景 - 支持主题切换 ======
-    <div className={`min-h-screen overflow-x-hidden pb-32 selection:bg-blue-500/20 ${theme.page}`}>
+    <div className={`min-h-screen overflow-x-hidden pb-8 selection:bg-blue-500/20 ${theme.page}`}>
       <div className={`fixed inset-0 pointer-events-none z-0 ${darkMode ? '' : 'bg-editions-gradient'}`} />
       
       <div className="relative z-10">
@@ -360,18 +370,77 @@ function App() {
 
         </main>
 
-        <footer className={`mt-16 border-t ${darkMode ? 'border-white/10' : 'border-gray-200'}`}>
-          <div className="max-w-[1600px] mx-auto px-6 py-6 text-center">
-            <a
-              href="https://icp.gov.moe/?keyword=20260255"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`text-xs transition-colors hover:underline ${
-                darkMode ? 'text-white/40 hover:text-white/60' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              萌ICP备20260255号
-            </a>
+        <footer className={`mt-10 border-t ${darkMode ? 'border-white/10' : 'border-gray-200'}`}>
+          <div className="max-w-[1080px] mx-auto px-6 py-6 sm:py-7">
+            <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-3 md:justify-items-center md:gap-12">
+              <section className="mx-auto max-w-xs">
+                <h2 className={`text-[1.56rem] font-black tracking-tight leading-none ${darkMode ? 'text-white/92' : 'text-gray-900'}`}>
+                  JiaJian
+                </h2>
+                <p className={`mt-2.5 text-[1rem] italic leading-snug ${footerMutedClass}`}>
+                  已识乾坤大，犹怜草木青
+                </p>
+
+                <div className={`mt-4 space-y-1 text-[0.82rem] leading-relaxed ${footerMutedClass}`}>
+                  <p>&copy; 2025-2026</p>
+                  <p>
+                    Powered by <span className={darkMode ? 'text-white/75' : 'text-gray-700'}>Claude /</span> Gemini /{' '}
+                    <span className={darkMode ? 'text-white/75' : 'text-gray-700'}>Codex.</span>
+                  </p>
+                  <p>
+                    <a
+                      href="https://icp.gov.moe/?keyword=20260255"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transition-colors hover:underline"
+                    >
+                      萌ICP备20260255号
+                    </a>
+                  </p>
+                </div>
+              </section>
+
+              <nav className="mx-auto flex w-full max-w-xs flex-col items-center space-y-2.5">
+                <p className={footerHeadingClass}>更多</p>
+                <div className="flex flex-col items-center space-y-2">
+                  <Link
+                    to="/gallery"
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-1.5 text-[0.9rem] font-medium transition-colors ${
+                      darkMode
+                        ? 'border-cyan-400/35 text-cyan-300 hover:border-cyan-300/60 hover:text-cyan-200'
+                        : 'border-cyan-700/25 text-cyan-700 hover:border-cyan-700/45 hover:text-cyan-800'
+                    }`}
+                  >
+                    照片墙
+                  </Link>
+                  <Link to="/timeline" className={footerLinkClass}>时间线</Link>
+                  <Link to="/friends" className={footerLinkClass}>友链</Link>
+                </div>
+              </nav>
+
+              <nav className="mx-auto flex w-full max-w-xs flex-col items-center space-y-2.5">
+                <p className={footerHeadingClass}>联系</p>
+                <div className="flex flex-col items-center space-y-2">
+                  <Link to="/message" className={footerLinkClass}>写留言</Link>
+                  <a
+                    href="mailto:jiajian2233@gmail.com"
+                    className={footerLinkClass}
+                  >
+                    发邮件
+                    <span className="text-[0.82rem]">↗</span>
+                  </a>
+                  <a
+                    href="https://github.com/wjiajian"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={footerLinkClass}
+                  >
+                    GitHub
+                    <span className="text-[0.82rem]">↗</span>
+                  </a>
+                </div>
+              </nav>
+            </div>
           </div>
         </footer>
       </div>

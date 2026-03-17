@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock, Image, Users } from 'lucide-react';
+import { Home, FolderOpen, Search, User, X, ChevronDown, Menu, Clock, Users } from 'lucide-react';
 import { usePosts } from '../hooks/usePosts';
 
 interface NavigationProps {
@@ -249,15 +249,6 @@ export const Navigation: React.FC<NavigationProps> = ({
         <span className="text-sm font-medium">时间线</span>
       </Link>
 
-      {/* 照片墙 */}
-      <Link
-        to="/gallery"
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${theme.navItem(isActive('/gallery'))}`}
-      >
-        <Image size={18} className="text-blue-500" />
-        <span className="text-sm font-bold text-blue-500">照片墙</span>
-      </Link>
-
       {/* 友链 */}
       <Link
         to="/friends"
@@ -358,16 +349,6 @@ export const Navigation: React.FC<NavigationProps> = ({
             >
               <Clock size={18} />
               <span className="text-sm font-medium">时间线</span>
-            </Link>
-
-            {/* 照片墙 */}
-            <Link
-              to="/gallery"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 border-t transition-colors cursor-pointer ${theme.borderColor} ${theme.navItem(isActive('/gallery'))}`}
-            >
-              <Image size={18} className="text-blue-500" />
-              <span className="text-sm font-bold text-blue-500">照片墙</span>
             </Link>
 
             {/* 友链 */}

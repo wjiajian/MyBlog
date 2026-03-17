@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ProgressiveImage } from '../ProgressiveImage';
+import { getFrontendHeaderGradientToClass } from '../../utils/theme';
 
 // ====== 可配置项：默认文章头图 ======
 const DEFAULT_HEADER_IMAGE = '/resources/back_1.jpg';
@@ -35,7 +36,7 @@ export const BlogHeader: React.FC<BlogHeaderProps> = ({
       {/* 主题感知渐变遮罩 */}
       <div
         className={`absolute inset-0 bg-gradient-to-b from-black/35 via-transparent ${
-          darkMode ? 'to-[#0a0a0a]' : 'to-[#f8f9fa]'
+          getFrontendHeaderGradientToClass(darkMode)
         }`}
       />
       

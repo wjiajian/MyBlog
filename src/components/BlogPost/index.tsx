@@ -9,9 +9,10 @@ import { extractToc } from './toc';
 import { BlogContent } from './BlogContent';
 import { Header } from '../Header';
 import { useThemeMode } from '../../hooks/useThemeMode';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { getFrontendPageClass } from '../../utils/theme';
 
 export const BlogPost: React.FC = () => {
-  const defaultTitle = "Jiajian's Blog";
   const { darkMode } = useThemeMode();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -33,20 +34,7 @@ export const BlogPost: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // 同步浏览器标签标题：文章页显示文章标题，离开后恢复默认标题
-  useEffect(() => {
-    if (post?.title) {
-      document.title = post.title;
-      return;
-    }
-    document.title = defaultTitle;
-  }, [post?.title]);
-
-  useEffect(() => {
-    return () => {
-      document.title = defaultTitle;
-    };
-  }, []);
+  usePageTitle(post?.title);
 
   // 获取并增加浏览量
   useEffect(() => {
@@ -111,7 +99,7 @@ export const BlogPost: React.FC = () => {
   // 加载状态
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900'}`}>
+      <div className={`min-h-screen flex flex-col ${getFrontendPageClass(darkMode)}`}>
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 size={32} className={`animate-spin ${darkMode ? 'text-white/40' : 'text-gray-400'}`} />
@@ -123,7 +111,7 @@ export const BlogPost: React.FC = () => {
   // 错误或未找到
   if (error || !post) {
     return (
-      <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900'}`}>
+      <div className={`min-h-screen flex flex-col ${getFrontendPageClass(darkMode)}`}>
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -143,7 +131,7 @@ export const BlogPost: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen pb-20 selection:bg-blue-500/20 ${darkMode ? 'bg-[#0a0a0a]' : 'bg-[#f8f9fa]'}`}>
+    <div className={`min-h-screen pb-20 selection:bg-blue-500/20 ${getFrontendPageClass(darkMode, false)}`}>
       <Header />
       <BlogHeader 
         post={post} 

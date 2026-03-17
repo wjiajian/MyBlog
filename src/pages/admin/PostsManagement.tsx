@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 interface Post {
   filename: string;
@@ -45,6 +46,7 @@ interface ImportResult {
  * 统一使用网站亮色主题风格
  */
 export const PostsManagement: React.FC = () => {
+  usePageTitle('文章管理');
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);

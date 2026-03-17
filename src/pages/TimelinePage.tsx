@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { usePosts, type Post } from '../hooks/usePosts';
 import { Header } from '../components/Header';
 import { useThemeMode } from '../hooks/useThemeMode';
+import { usePageTitle } from '../hooks/usePageTitle';
+import { getFrontendPageClass } from '../utils/theme';
 
 // 预定义颜色池（Tailwind 颜色类）
 const lightColorPool = [
@@ -60,9 +62,10 @@ const parseDate = (dateStr: string): { month: number; day: number } => {
 export const TimelinePage: React.FC = () => {
   const { posts, isLoading } = usePosts();
   const { darkMode } = useThemeMode();
+  usePageTitle('时间线');
 
   const theme = {
-    page: darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900',
+    page: getFrontendPageClass(darkMode),
     title: darkMode ? 'text-white' : 'text-gray-900',
     stats: darkMode ? 'text-white/60' : 'text-gray-500',
     statsStrong: darkMode ? 'text-white/80' : 'text-gray-700',
