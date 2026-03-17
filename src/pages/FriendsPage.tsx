@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Header } from '../components/Header';
 import { useThemeMode } from '../hooks/useThemeMode';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { getFrontendPageClass } from '../utils/theme';
 
 // 友链数据
 interface FriendLink {
@@ -31,7 +32,7 @@ export const FriendsPage: React.FC = () => {
 
   // 主题样式
   const theme = {
-    page: darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900',
+    page: getFrontendPageClass(darkMode),
     card: darkMode 
       ? 'bg-white/5 border-white/10 hover:bg-white/10' 
       : 'bg-white/80 border-gray-200 hover:bg-white',

@@ -421,7 +421,7 @@ function App() {
               <nav className="mx-auto flex w-full max-w-xs flex-col items-center space-y-2.5">
                 <p className={footerHeadingClass}>联系</p>
                 <div className="flex flex-col items-center space-y-2">
-                  <Link to="/friends" className={footerLinkClass}>写留言</Link>
+                  <Link to="/message" className={footerLinkClass}>写留言</Link>
                   <a
                     href="mailto:jiajian2233@gmail.com"
                     className={footerLinkClass}
