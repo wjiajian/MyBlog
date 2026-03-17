@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
 import { resolvePhotoAssetPaths } from '../../utils/photoUrl';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 interface Photo {
   driveItemId?: string;
@@ -115,6 +116,7 @@ function splitFilesIntoBatches(files: File[]): File[][] {
  * 按年月列出照片，并支持单张照片展示开关。
  */
 export const PhotosManagement: React.FC = () => {
+  usePageTitle('照片管理');
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);

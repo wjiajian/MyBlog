@@ -2,12 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Image, Clock } from 'lucide-react';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 /**
  * 管理后台首页/仪表盘
  * 统一使用网站亮色主题风格
  */
 export const AdminDashboard: React.FC = () => {
+  usePageTitle('管理后台');
   const menuItems = [
     {
       icon: <FileText size={32} />,

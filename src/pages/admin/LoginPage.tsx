@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { login } from '../../utils/auth';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 /**
  * 管理员登录页面
  * 统一使用网站亮色主题风格
  */
 export const LoginPage: React.FC = () => {
+  usePageTitle('管理后台登录');
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

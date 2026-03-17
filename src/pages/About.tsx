@@ -21,6 +21,7 @@ import rehypeSlug from "rehype-slug";
 import "github-markdown-css/github-markdown-light.css";
 import { Header } from "../components/Header";
 import { useThemeMode } from "../hooks/useThemeMode";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 // 技能标签数据
 const focusAreas = [
@@ -64,6 +65,7 @@ const quoteText =
 
 export const About: React.FC = () => {
   const { darkMode } = useThemeMode();
+  usePageTitle("关于");
 
   const theme = {
     page: darkMode ? "bg-[#0a0a0a] text-white" : "bg-[#f8f9fa] text-gray-900",

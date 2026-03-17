@@ -3,6 +3,7 @@ import { ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Header } from '../components/Header';
 import { useThemeMode } from '../hooks/useThemeMode';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // 友链数据
 interface FriendLink {
@@ -26,6 +27,7 @@ const friends: FriendLink[] = [
 
 export const FriendsPage: React.FC = () => {
   const { darkMode } = useThemeMode();
+  usePageTitle('友情链接');
 
   // 主题样式
   const theme = {

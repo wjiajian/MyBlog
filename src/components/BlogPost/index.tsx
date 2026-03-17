@@ -9,9 +9,9 @@ import { extractToc } from './toc';
 import { BlogContent } from './BlogContent';
 import { Header } from '../Header';
 import { useThemeMode } from '../../hooks/useThemeMode';
+import { formatPageTitle } from '../../hooks/usePageTitle';
 
 export const BlogPost: React.FC = () => {
-  const defaultTitle = "Jiajian's Blog";
   const { darkMode } = useThemeMode();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -32,20 +32,10 @@ export const BlogPost: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // 同步浏览器标签标题：文章页显示文章标题，离开后恢复默认标题
+  // 同步浏览器标签标题：统一为 “页面名 | Jiajian's Blog”
   useEffect(() => {
-    if (post?.title) {
-      document.title = post.title;
-      return;
-    }
-    document.title = defaultTitle;
+    document.title = formatPageTitle(post?.title);
   }, [post?.title]);
-
-  useEffect(() => {
-    return () => {
-      document.title = defaultTitle;
-    };
-  }, []);
 
   // 获取并增加浏览量
   useEffect(() => {
