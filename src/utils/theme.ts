@@ -2,12 +2,26 @@
  * 应用程序的统一主题配置。
  */
 
+export const FRONTEND_DARK_BG_CLASS = 'bg-[#0a0a0a]';
+export const FRONTEND_LIGHT_BG_CLASS = 'bg-[#fefefb]';
+
+export const getFrontendPageClass = (darkMode: boolean, includeText = true) => {
+  if (darkMode) {
+    return includeText ? `${FRONTEND_DARK_BG_CLASS} text-white` : FRONTEND_DARK_BG_CLASS;
+  }
+  return includeText ? `${FRONTEND_LIGHT_BG_CLASS} text-gray-900` : FRONTEND_LIGHT_BG_CLASS;
+};
+
+export const getFrontendHeaderGradientToClass = (darkMode: boolean) => (
+  darkMode ? 'to-[#0a0a0a]' : 'to-[#fefefb]'
+);
+
 /**
  * 获取主应用程序布局的主题配置。
  * @param darkMode 是否启用暗黑模式
  */
 export const getAppTheme = (darkMode: boolean) => ({
-  page: darkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8f9fa] text-gray-900',
+  page: getFrontendPageClass(darkMode),
   yearTitle: darkMode ? 'text-white/30' : 'text-gray-300',
   yearBorder: darkMode ? 'border-white/10' : 'border-gray-200',
   tagline: darkMode ? 'bg-[#1a1a1a]/80 border-white/10' : 'bg-white/80 border-gray-200',

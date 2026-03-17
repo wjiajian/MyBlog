@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
+import {
   Save, 
   ArrowLeft, 
   Loader2,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import { authFetch } from '../../utils/auth';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 interface PostData {
   title: string;
@@ -32,6 +33,7 @@ export const PostEditor: React.FC = () => {
   const navigate = useNavigate();
   const { type, filename } = useParams();
   const isEditing = !!filename;
+  usePageTitle(isEditing ? '编辑文章' : '新建文章');
 
   const [postData, setPostData] = useState<PostData>({
     title: '',

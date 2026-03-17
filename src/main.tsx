@@ -8,6 +8,7 @@ import { About } from './pages/About.tsx'
 import { TimelinePage } from './pages/TimelinePage.tsx'
 import { GalleryPage } from './pages/GalleryPage.tsx'
 import { FriendsPage } from './pages/FriendsPage.tsx'
+import { MessagePage } from './pages/MessagePage.tsx'
 import { 
   LoginPage, 
   AdminLayout, 
@@ -17,6 +18,7 @@ import {
   PhotosManagement 
 } from './pages/admin'
 import { ProtectedRoute } from './components/admin/ProtectedRoute'
+import { FilmGrainOverlay } from './components/FilmGrainOverlay'
 import { ThemeProvider } from './contexts/ThemeContext'
 import './index.css'
 
@@ -24,6 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <BrowserRouter>
+         <FilmGrainOverlay />
          <Routes>
            {/* 前台路由 */}
            <Route path="/" element={<App />} />
@@ -33,6 +36,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
            <Route path="/timeline" element={<TimelinePage />} />
            <Route path="/gallery" element={<GalleryPage />} />
            <Route path="/friends" element={<FriendsPage />} />
+           <Route path="/message" element={<MessagePage />} />
            
            {/* 管理后台路由 */}
            <Route path="/admin/login" element={<LoginPage />} />

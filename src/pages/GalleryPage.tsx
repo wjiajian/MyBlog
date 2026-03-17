@@ -14,6 +14,7 @@ import { getGalleryTheme } from '../utils/theme';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useThemeMode } from '../hooks/useThemeMode';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { GallerySkeleton } from '../components/Skeleton';
 
 const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
@@ -24,6 +25,7 @@ export const GalleryPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [metadata, setMetadata] = useState<ImageMetadata[]>(imagesMetadata as ImageMetadata[]);
   const { darkMode, toggleDarkMode } = useThemeMode();
+  usePageTitle('照片墙');
 
   // 解析图片列表
   const images = useMemo<PhotoItem[]>(() => {
