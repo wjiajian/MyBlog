@@ -384,7 +384,7 @@ function App() {
                 <div className={`mt-4 space-y-1 text-[0.82rem] leading-relaxed ${footerMutedClass}`}>
                   <p>&copy; 2025-2026</p>
                   <p>
-                    Powered by <span className={darkMode ? 'text-white/75' : 'text-gray-700'}>Cladue /</span> Gemini /{' '}
+                    Powered by <span className={darkMode ? 'text-white/75' : 'text-gray-700'}>Claude /</span> Gemini /{' '}
                     <span className={darkMode ? 'text-white/75' : 'text-gray-700'}>Codex.</span>
                   </p>
                   <p>

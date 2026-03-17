@@ -9,7 +9,7 @@ import { extractToc } from './toc';
 import { BlogContent } from './BlogContent';
 import { Header } from '../Header';
 import { useThemeMode } from '../../hooks/useThemeMode';
-import { formatPageTitle } from '../../hooks/usePageTitle';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { getFrontendPageClass } from '../../utils/theme';
 
 export const BlogPost: React.FC = () => {
@@ -33,10 +33,7 @@ export const BlogPost: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // 同步浏览器标签标题：统一为 “页面名 | Jiajian's Blog”
-  useEffect(() => {
-    document.title = formatPageTitle(post?.title);
-  }, [post?.title]);
+  usePageTitle(post?.title);
 
   // 获取并增加浏览量
   useEffect(() => {

@@ -11,13 +11,13 @@ export const MessagePage: React.FC = () => {
 
   const theme = {
     page: getFrontendPageClass(darkMode),
-    subtitle: darkMode ? 'text-white/55' : 'text-gray-500',
-    panel: darkMode ? 'bg-white/6 border-white/12' : 'bg-white/82 border-gray-200',
-    title: darkMode ? 'text-white/92' : 'text-gray-900',
+    subtitle: darkMode ? 'text-white/50' : 'text-gray-500',
+    panel: darkMode ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200',
+    title: darkMode ? 'text-white/90' : 'text-gray-900',
     text: darkMode ? 'text-white/70' : 'text-gray-600',
-    muted: darkMode ? 'text-white/45' : 'text-gray-400',
-    fakeInput: darkMode ? 'bg-white/5 border-white/12' : 'bg-white border-gray-200',
-    badge: darkMode ? 'bg-white/12 text-white/80' : 'bg-gray-100 text-gray-700',
+    muted: darkMode ? 'text-white/40' : 'text-gray-400',
+    fakeInput: darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200',
+    badge: darkMode ? 'bg-white/10 text-white/80' : 'bg-gray-100 text-gray-700',
   };
 
   return (
