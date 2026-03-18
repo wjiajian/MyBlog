@@ -13,6 +13,51 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+:root {
+  --theme-wipe-duration: 720ms;
+  --theme-wipe-ease: cubic-bezier(0.72, 0.02, 0.2, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--theme-wipe-duration);
+  animation-timing-function: var(--theme-wipe-ease);
+  animation-fill-mode: both;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+  animation-name: theme-old-frame-fade;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  animation-name: theme-diagonal-wipe-right-to-left;
+}
+
+@keyframes theme-old-frame-fade {
+  from {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
+  }
+  to {
+    opacity: 0.92;
+    filter: saturate(0.92) brightness(0.96);
+  }
+}
+
+@keyframes theme-diagonal-wipe-right-to-left {
+  0% {
+    clip-path: polygon(112% -8%, 100% -8%, 100% 108%, 82% 108%);
+  }
+  35% {
+    clip-path: polygon(82% -8%, 100% -8%, 100% 108%, 52% 108%);
+  }
+  100% {
+    clip-path: polygon(-18% -8%, 100% -8%, 100% 108%, -48% 108%);
+  }
+}
+
 /* ====== 胶片质感噪声层（前台博客页面） ====== */
 .film-grain-overlay {
   position: fixed;
@@ -55,6 +100,11 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .film-grain-overlay {
     animation: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
 
