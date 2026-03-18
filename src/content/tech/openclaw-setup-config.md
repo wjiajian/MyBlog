@@ -5,7 +5,7 @@ date: 2026-03-12
 coverImage: /images/openclaw/openclaw_logo.png
 categories: 笔记
 type: tech
-title: "我现在怎么用 OpenClaw (一)"
+title: 我现在怎么用 OpenClaw (一)
 description: "记录我当前的 OpenClaw 用法：本地部署、双 Agent 分工、代码任务协议、worktree/job 落盘，以及钉钉接入的实践。"
 tags: 
   - OpenClaw
