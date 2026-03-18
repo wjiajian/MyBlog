@@ -1,117 +1,42 @@
-# CLAUDE.md
+# Repository Guidelines
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project Structure & Module Organization
+- `src/` contains the app and shared modules: `components/`, `pages/`, `hooks/`, `utils/`, `types/`, and content/data loaders.
+- Backend entrypoint is `server.ts`; API routes live in `src/routes/`, middleware in `src/middleware/`, and PostgreSQL access in `src/db/`.
+- Markdown posts are stored in `src/content/tech/` and `src/content/life/` with frontmatter metadata.
+- Static assets are in `public/` (images, photowall, avatars). Photo metadata is stored in `src/data/images-metadata.json` and is primarily maintained by the admin upload/delete flow in `src/routes/photos.ts`.
+- Build outputs are `dist/` and `dist-server/`; treat them as generated artifacts.
 
-## Development Commands
+## Build, Test, and Development Commands
+- `npm install`: install dependencies.
+- `npm run dev`: start Vite frontend dev server.
+- `npm run start`: run `server.ts` directly for backend development.
+- `npm run build`: TypeScript project build + frontend production bundle.
+- `npm run build:server`: compile backend to `dist-server/`.
+- `npm run serve`: run compiled backend (`dist-server/server.js`).
+- `npm run lint`: run ESLint across the repo.
+- `npm run db:init`: initialize PostgreSQL tables.
+- `npm run generate-metadata`: legacy/manual backfill tool for rebuilding photowall thumbnails + metadata from source images; not the primary production workflow.
 
-```bash
-# Start development server (Vite frontend only)
-npm run dev
+## Coding Style & Naming Conventions
+- Use TypeScript with ESM imports and keep modules focused (single responsibility).
+- Follow existing formatting: 2-space indentation, semicolons, and clear type annotations at boundaries.
+- Use `PascalCase` for React components/pages (`PhotoCommentSection.tsx`), `camelCase` for functions/variables, and `useXxx` for hooks.
+- Keep route/module names resource-oriented and consistent (`posts.ts`, `photos.ts`, `auth.ts`).
+- Run `npm run lint` before opening a PR.
 
-# Build for production (frontend + backend)
-npm run build
+## Testing Guidelines
+- No automated test framework is currently configured in `package.json`.
+- Minimum validation for each change: `npm run lint` + manual verification of affected UI/API flows.
+- If behavior changes, include reproducible verification steps in the PR description.
+- If adding tests, use `*.test.ts`/`*.test.tsx` naming and colocate with the feature or under `src/__tests__/`.
 
-# Build server only
-npm run build:server
+## Commit & Pull Request Guidelines
+- Prefer conventional-style commit prefixes already used in history: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`.
+- Keep commit subjects short and imperative; optional scope is encouraged (example: `fix(auth): harden token validation`).
+- PRs should include: purpose, changed paths, manual test evidence, screenshots/GIFs for UI changes, and linked issues/tasks.
 
-# Start production server (self-hosted)
-npm run serve
-
-# Start development server with backend (ts-node)
-npm run start
-
-# Run linter
-npm run lint
-
-# Initialize PostgreSQL database tables
-npm run db:init
-
-# Legacy/manual photo wall backfill (not the primary production workflow)
-npm run generate-metadata
-```
-
-## Project Architecture
-
-This is a React + TypeScript + Vite blog with an Express backend for self-hosted deployment (formerly Vercel serverless).
-
-### Core Data Flow
-
-**Posts Configuration**: `src/data/posts.ts` uses Vite's `import.meta.glob` to automatically scan and parse all Markdown files in `src/content/tech/` and `src/content/life/`. Frontmatter is parsed with `gray-matter`. The `posts` array is sorted by year and date, descending. No manual registration is required.
-
-**Content Loading**: Markdown files are imported via a custom Vite plugin (`markdownLoader` in `vite.config.ts`) that transforms `.md` files into exported string modules.
-
-**Theme System**: Factory functions in `src/utils/theme.ts` return Tailwind class objects based on `darkMode` boolean: `getAppTheme()`, `getGalleryTheme()`, `getNavTheme()`. This avoids CSS-in-JS complexity while maintaining consistency.
-
-**Comment System**: Two separate comment components exist:
-- `src/components/CommentSection.tsx` - light theme (for blog posts)
-- `src/components/PhotoCommentSection.tsx` - dark theme (for photo wall)
-
-Both use `/api/comments` Express route with PostgreSQL storage. Comments support nested replies via recursive rendering.
-
-### Backend Architecture
-
-**Server Entry**: `server.ts` is an Express server that:
-- Serves static files from `dist/` (frontend build output)
-- Provides `/api/pageview` and `/api/comments` endpoints
-- Implements SPA fallback route for client-side routing
-
-**Database**: PostgreSQL connection pool in `src/db/index.ts` using the `pg` library. Tables: `pageviews`, `comments`. Initialize with `npm run db:init`.
-
-**Dual TypeScript Configs**:
-- `tsconfig.json` - Frontend (Vite)
-- `tsconfig.server.json` - Backend (Node.js), outputs to `dist-server/`
-
-### Component Architecture
-
-**Modular Component Pattern**: Complex features split into sub-component directories:
-- `src/components/BlogPost/` - `BlogHeader`, `BlogContent`, `TableOfContents`
-- `src/components/PhotoWall/` - `PhotoGrid`, `Lightbox`, `Sidebar`
-
-**State Management**: React Hooks + localStorage only. No global state library. Theme preference persists via `safeGetItem/safeSetItem` utilities.
-
-**Lazy Loading**: Homepage implements progressive loading:
-- Year-based grouping with pagination (`postsPerYear` state)
-- "Load more" for additional posts within a year
-- "Load more years" for historical content
-
-### Photo Wall System
-
-The current primary photo wall workflow is the admin upload/delete flow in `src/routes/photos.ts`:
-1. Upload or delete photos from `/admin/photos`
-2. Server writes/removes OSS objects
-3. Server updates `src/data/images-metadata.json`
-
-`npm run generate-metadata` remains available only as a legacy/manual backfill tool for local `public/photowall/` assets. It can still:
-   - Convert HEIC to JPEG
-   - Extract EXIF creation date
-   - Generate full/medium/tiny thumbnails
-   - Rebuild `src/data/images-metadata.json`
-
-Frontend implements progressive loading: tiny blurred placeholder → medium thumbnail → full image on demand.
-
-## Code Patterns to Follow
-
-1. **Type Safety**: No `any` types. All interfaces defined in `src/types/` or inline.
-
-2. **Component Props**: Always define explicit interfaces:
-   ```tsx
-   interface ComponentProps {
-     postId: string;
-     onAction: () => void;
-   }
-   ```
-
-3. **Theme Consistency**: Use theme factory functions from `utils/theme.ts`:
-   ```tsx
-   const theme = getAppTheme(darkMode);
-   // Use theme.page, theme.overlay, etc.
-   ```
-
-4. **localStorage Safety**: Always use `safeGetItem()` and `safeSetItem()` from `src/utils/storage.ts` instead of native API. These handle SSR (`typeof window === 'undefined'`) and catch quota/policy errors.
-
-5. **Date Parsing**: Use `parseMonthFromDate()` and `parseDate()` from `src/utils/date.ts` for consistent date formatting.
-
-## Known Issues to Address
-
-- **Comment Component Duplication**: `CommentSection.tsx` and `PhotoCommentSection.tsx` are 90% identical except for theme styles. Consider unifying with a theme prop.
-- **localStorage Inconsistency**: Some files use native API instead of `safeGetItem/safeSetItem` utilities (check for direct `localStorage` calls before using).
+## Security & Configuration Tips
+- Do not commit secrets; copy `.env.example` to `.env` locally.
+- In production, set a strong `JWT_SECRET` and prefer `ADMIN_PASSWORD_HASH` over plaintext `ADMIN_PASSWORD`.
+- Review route/input validation carefully when touching file or auth-related endpoints.
