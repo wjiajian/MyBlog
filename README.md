@@ -238,9 +238,15 @@ Admin (/admin/photos) 上传图片
           │
           ▼
 POST /api/photos/upload
+  - 保存到临时目录并创建后台上传任务
+  - 单 worker 串行处理图片，降低 2C2G 服务器资源峰值
   - 保存原图到 OSS (origin)
-  - 统一生成 JPEG 的 medium/tiny 缩略图
+  - 统一生成 JPEG 的 full/medium/tiny 展示图
   - 更新运行时 `src/data/images-metadata.json`
+          │
+          ▼
+GET /api/photos/upload-jobs/:jobId
+  - 后台轮询任务进度
           │
           ▼
 Gallery / Admin 读取 /api/photos/metadata
@@ -259,10 +265,11 @@ DELETE /api/photos/:filename
 
 上传限制与建议：
 
-1. 管理端会自动分批上传：默认每批最多 `10` 张、每批总大小最多 `50MB`。
-2. 后端当前单文件大小限制为 `50MB`，且默认每个上传请求最多接收 `10` 个文件。
-3. `10` 张/批限制已改为前后端可配置（默认值保持一致），以避免规则漂移。
-4. 为了更稳定的上传体验，建议单张图片尽量控制在 `5MB` 以内。
+1. 管理端会自动分批上传：默认每批最多 `3` 张、每批总大小最多 `30MB`。
+2. 后端当前单文件大小限制为 `50MB`，默认每个上传请求最多接收 `3` 个文件、总大小最多 `60MB`。
+3. 服务端使用后台任务队列处理上传，同一时间只处理 `1` 张图片，避免批量大图同时进入 sharp/HEIC 解码。
+4. `3` 张/批限制已改为前后端可配置（默认值保持一致），以避免规则漂移。
+5. 为了更稳定的上传体验，建议单张图片尽量控制在 `5MB` 以内。
 
 OSS 对象路径约定：
 
@@ -465,14 +472,23 @@ OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com  # 可选
 # 单文件上传大小限制（后端 multer，默认 50MB）
 PHOTO_UPLOAD_MAX_MB=50
 
-# 每批最多上传文件数（后端请求限制，默认 10）
-PHOTO_UPLOAD_MAX_FILES_PER_BATCH=10
+# 每批最多上传文件数（后端请求限制，默认 3）
+PHOTO_UPLOAD_MAX_FILES_PER_BATCH=3
 
-# 前端自动分批上传每批最多文件数（默认 10，应与后端限制保持一致）
-VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH=10
+# 每批上传总大小限制（后端请求限制，默认 60MB）
+PHOTO_UPLOAD_MAX_BATCH_MB=60
 
-# 前端自动分批上传大小（每批总大小，默认 50MB）
-VITE_PHOTO_UPLOAD_BATCH_MB=50
+# 上传临时目录（默认使用系统临时目录下的 myblog-photo-uploads）
+# PHOTO_UPLOAD_TMP_DIR=/tmp/myblog-photo-uploads
+
+# sharp 图片处理并发（2C2G 建议保持 1）
+PHOTO_PROCESS_SHARP_CONCURRENCY=1
+
+# 前端自动分批上传每批最多文件数（默认 3，应与后端限制保持一致）
+VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH=3
+
+# 前端自动分批上传大小（每批总大小，默认 30MB）
+VITE_PHOTO_UPLOAD_BATCH_MB=30
 ```
 
 ### 4. Nginx 配置示例
@@ -567,8 +583,9 @@ CREATE TABLE photo_visibility (
 | GET | `/api/comments?postId=<postId>` | 获取文章评论列表 |
 | POST | `/api/comments` | 发表评论 |
 | GET | `/api/photos/metadata` | 获取可见照片列表 |
-| GET | `/api/photos/metadata?includeHidden=1` | 获取全部照片（含隐藏） |
-| POST | `/api/photos/upload` | 上传照片到 OSS（管理员） |
+| GET | `/api/photos/metadata?includeHidden=1` | 获取全部照片（含隐藏，管理员） |
+| POST | `/api/photos/upload` | 创建照片上传任务（管理员） |
+| GET | `/api/photos/upload-jobs/:jobId` | 查询照片上传任务进度（管理员） |
 | POST | `/api/photos/process` | 手动处理入口（管理员，兼容接口） |
 | PATCH | `/api/photos/visibility` | 设置单张照片是否展示（管理员） |
 | DELETE | `/api/photos/:filename` | 删除照片与 OSS 对象（管理员） |

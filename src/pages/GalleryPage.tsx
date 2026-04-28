@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { PhotoWall } from '../components/PhotoWall';
 import type { PhotoItem } from '../components/PhotoWall';
 import { ArrowLeft, Grid3X3, LayoutGrid, Rows3, Film, Sun, Moon } from 'lucide-react';
-import imagesMetadata from '../data/images-metadata.json';
 
 import type { ImageMetadata } from '../types';
 
@@ -23,7 +22,7 @@ export const GalleryPage: React.FC = () => {
   const isMobile = useIsMobile();
   const [columns, setColumns] = useState(4);
   const [isLoading, setIsLoading] = useState(true);
-  const [metadata, setMetadata] = useState<ImageMetadata[]>(imagesMetadata as ImageMetadata[]);
+  const [metadata, setMetadata] = useState<ImageMetadata[]>([]);
   const { darkMode, toggleDarkMode } = useThemeMode();
   usePageTitle('照片墙');
 
@@ -80,7 +79,7 @@ export const GalleryPage: React.FC = () => {
           setMetadata(data.photos as ImageMetadata[]);
         }
       } catch {
-        // 保留构建时元数据作为兜底，避免页面空白
+        // API 不可用时保持空列表，避免依赖未纳入 git 的运行时 metadata 文件
       } finally {
         if (!cancelled) {
           setIsLoading(false);

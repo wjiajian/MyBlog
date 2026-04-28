@@ -36,8 +36,24 @@ interface ApiResult {
   error?: string;
   message?: string;
   partial?: boolean;
+  jobId?: string;
+  status?: string;
+  total?: number;
+  job?: UploadJob;
   uploaded?: Array<{ filename: string; size: number; src: string }>;
   failed?: Array<{ filename: string; error: string }>;
+}
+
+interface UploadJob {
+  jobId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  total: number;
+  processed: number;
+  uploaded: Array<{ filename: string; size?: number; src?: string }>;
+  failed: Array<{ filename: string; error?: string }>;
+  currentFilename: string | null;
+  partial: boolean;
+  message: string;
 }
 
 interface MonthGroup {
@@ -49,15 +65,15 @@ interface MonthGroup {
 
 const PHOTO_ASSET_BASE_URL = import.meta.env.VITE_OSS_PHOTOWALL_BASE_URL as string | undefined;
 const UNKNOWN_MONTH_KEY = 'unknown';
-const parsedMaxFilesPerBatch = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH || '10', 10);
+const parsedMaxFilesPerBatch = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_MAX_FILES_PER_BATCH || '3', 10);
 const MAX_FILES_PER_UPLOAD_BATCH = Number.isFinite(parsedMaxFilesPerBatch) && parsedMaxFilesPerBatch > 0
   ? parsedMaxFilesPerBatch
-  : 10;
+  : 3;
 const RECOMMENDED_SINGLE_FILE_SIZE_MB = 5;
-const parsedUploadBatchLimitMb = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_BATCH_MB || '50', 10);
+const parsedUploadBatchLimitMb = Number.parseInt(import.meta.env.VITE_PHOTO_UPLOAD_BATCH_MB || '30', 10);
 const UPLOAD_BATCH_LIMIT_MB = Number.isFinite(parsedUploadBatchLimitMb) && parsedUploadBatchLimitMb > 0
   ? parsedUploadBatchLimitMb
-  : 50;
+  : 30;
 const MAX_BATCH_BYTES = UPLOAD_BATCH_LIMIT_MB * 1024 * 1024;
 
 function getPhotoKey(photo: Pick<Photo, 'filename' | 'driveItemId'>): string {
@@ -111,6 +127,12 @@ function splitFilesIntoBatches(files: File[]): File[][] {
   return batches;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 /**
  * 照片管理页面（OSS 模式）
  * 按年月列出照片，并支持单张照片展示开关。
@@ -149,7 +171,7 @@ export const PhotosManagement: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('/api/photos/metadata?includeHidden=1', { cache: 'no-store' });
+      const response = await authFetch('/api/photos/metadata?includeHidden=1', { cache: 'no-store' });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -224,9 +246,32 @@ export const PhotosManagement: React.FC = () => {
       let uploadedCount = 0;
       const failedItems: Array<{ filename: string; error: string }> = [];
 
+      const waitForUploadJob = async (jobId: string, batchIndex: number, batchTotal: number): Promise<UploadJob> => {
+        for (;;) {
+          const response = await authFetch(`/api/photos/upload-jobs/${encodeURIComponent(jobId)}`, {
+            cache: 'no-store',
+          });
+          const data = await parseApiResponse(response);
+
+          if (!response.ok || !data.success || !data.job) {
+            throw new Error(data.error || `第 ${batchIndex + 1} 批状态查询失败`);
+          }
+
+          const job = data.job;
+          const current = job.currentFilename ? `：${job.currentFilename}` : '';
+          setSuccess(`正在处理第 ${batchIndex + 1}/${batchTotal} 批，进度 ${job.processed}/${job.total}${current}`);
+
+          if (job.status === 'completed' || job.status === 'failed') {
+            return job;
+          }
+
+          await sleep(1500);
+        }
+      };
+
       for (let index = 0; index < batches.length; index += 1) {
         const batch = batches[index];
-        setSuccess(`正在上传第 ${index + 1}/${batches.length} 批（${batch.length} 张）...`);
+        setSuccess(`正在提交第 ${index + 1}/${batches.length} 批（${batch.length} 张）...`);
 
         const formData = new FormData();
         for (const file of batch) {
@@ -248,9 +293,23 @@ export const PhotosManagement: React.FC = () => {
           return;
         }
 
-        uploadedCount += data.uploaded?.length ?? batch.length;
-        if (Array.isArray(data.failed) && data.failed.length > 0) {
-          failedItems.push(...data.failed);
+        if (!data.jobId) {
+          setError(`第 ${index + 1} 批上传失败：未返回任务编号`);
+          return;
+        }
+
+        const job = await waitForUploadJob(data.jobId, index, batches.length);
+        uploadedCount += job.uploaded.length;
+        if (job.failed.length > 0) {
+          failedItems.push(...job.failed.map(item => ({
+            filename: item.filename,
+            error: item.error || '上传失败',
+          })));
+        }
+
+        if (job.status === 'failed' && job.uploaded.length === 0) {
+          setError(job.message || `第 ${index + 1} 批上传失败`);
+          return;
         }
       }
 
