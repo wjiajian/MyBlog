@@ -1,12 +1,13 @@
 import type { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
+import { getAuthConfig } from '../config/auth.js';
 
 interface AuthRequest extends Request {
   user?: { username: string };
 }
 
 const getJwtSecret = (): string => {
-  return process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+  return getAuthConfig().jwtSecret;
 };
 
 /**
@@ -25,8 +26,19 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as { username: string };
-    authReq.user = decoded;
+    const decoded = jwt.verify(token, getJwtSecret());
+    if (typeof decoded !== 'object' || decoded === null) {
+      res.status(401).json({ error: '无效或过期的令牌' });
+      return;
+    }
+
+    const username = (decoded as JwtPayload).username;
+    if (typeof username !== 'string') {
+      res.status(401).json({ error: '无效或过期的令牌' });
+      return;
+    }
+
+    authReq.user = { username };
     next();
   } catch {
     res.status(401).json({ error: '无效或过期的令牌' });

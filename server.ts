@@ -1,23 +1,70 @@
 
 import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import helmet from 'helmet';
 import { query }  from './src/db/index.js';
 import authRoutes from './src/routes/auth.js';
 import postsRoutes from './src/routes/posts.js';
 import photosRoutes from './src/routes/photos.js';
+import { assertAuthConfig } from './src/config/auth.js';
+import { createRateLimit } from './src/middleware/rateLimit.js';
+import { postExistsById } from './src/services/postFiles.js';
 
 dotenv.config();
+assertAuthConfig();
 
 const app: Express = express();
 const port = parseInt(process.env.PORT || '3000', 10);
+const pageviewRateLimit = createRateLimit({ windowMs: 60 * 1000, max: 120 });
+const commentsRateLimit = createRateLimit({ windowMs: 10 * 60 * 1000, max: 20 });
+
+function getAllowedCorsOrigins(): Set<string> {
+  const configured = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (configured.length > 0) {
+    return new Set(configured);
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return new Set<string>();
+  }
+
+  return new Set([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ]);
+}
+
+const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const allowedOrigins = getAllowedCorsOrigins();
+    if (allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(null, false);
+  },
+};
 
 // 中间件
-app.use(cors());
-app.use(express.json());
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '1mb' }));
 
 // 提供 dist 静态资源
 const __filename = fileURLToPath(import.meta.url);
@@ -66,7 +113,7 @@ app.get('/api/pageview', async (req: Request, res: Response) => {
 });
 
 // 增加浏览量
-app.post('/api/pageview', async (req: Request, res: Response) => {
+app.post('/api/pageview', pageviewRateLimit, async (req: Request, res: Response) => {
     const postId = req.query.id as string;
     if (!postId) {
         res.status(400).json({ error: 'Missing post id' });
@@ -156,19 +203,31 @@ app.get('/api/comments', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/comments', async (req: Request, res: Response) => {
+app.post('/api/comments', commentsRateLimit, async (req: Request, res: Response) => {
     const { postId, nickname, content, parentId } = req.body;
 
-    if (!postId || !nickname || !content) {
+    if (typeof postId !== 'string' || typeof nickname !== 'string' || typeof content !== 'string') {
         res.status(400).json({ error: '昵称和内容不能为空' });
         return;
     }
 
-    if (nickname.length < 1 || nickname.length > 50) {
+    const normalizedNickname = nickname.trim();
+    const normalizedContent = content.trim();
+    if (!postId.trim() || !normalizedNickname || !normalizedContent) {
+        res.status(400).json({ error: '昵称和内容不能为空' });
+        return;
+    }
+
+    if (!postExistsById(postId)) {
+        res.status(404).json({ error: '文章不存在' });
+        return;
+    }
+
+    if (normalizedNickname.length < 1 || normalizedNickname.length > 50) {
         res.status(400).json({ error: '昵称长度应在 1-50 字符之间' });
         return;
     }
-    if (content.length < 1 || content.length > 1000) {
+    if (normalizedContent.length < 1 || normalizedContent.length > 1000) {
         res.status(400).json({ error: '评论内容长度应在 1-1000 字符之间' });
         return;
     }
@@ -191,7 +250,7 @@ app.post('/api/comments', async (req: Request, res: Response) => {
             INSERT INTO comments (post_id, parent_id, nickname, content)
             VALUES ($1, $2, $3, $4)
             RETURNING id, post_id, parent_id, nickname, content, created_at
-        `, [postId, parentId || null, nickname.trim(), content.trim()]);
+        `, [postId, parentId || null, normalizedNickname, normalizedContent]);
 
         res.status(201).json({ success: true, comment: result.rows[0] });
 

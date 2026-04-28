@@ -3,21 +3,17 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { generateToken } from '../middleware/auth.js';
+import { getAuthConfig } from '../config/auth.js';
+import { createRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
-
-// 从环境变量读取管理员凭据（按请求读取，避免 dotenv 初始化顺序问题）
-const getAdminCredentials = () => ({
-  username: process.env.ADMIN_USERNAME || 'admin',
-  passwordHash: process.env.ADMIN_PASSWORD_HASH || '',
-  devPassword: process.env.ADMIN_PASSWORD || 'admin123',
-});
+const loginRateLimit = createRateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
 
 /**
  * POST /api/auth/login
  * 管理员登录
  */
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', loginRateLimit, async (req: Request, res: Response): Promise<void> => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -25,10 +21,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const { username: adminUsername, passwordHash, devPassword } = getAdminCredentials();
+  const authConfig = getAuthConfig();
 
   // 验证用户名
-  if (username !== adminUsername) {
+  if (username !== authConfig.adminUsername) {
     res.status(401).json({ error: '用户名或密码错误' });
     return;
   }
@@ -37,11 +33,11 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   // 如果未设置密码哈希，使用明文密码（仅供开发测试）
   let isValidPassword = false;
   
-  if (passwordHash) {
-    isValidPassword = await bcrypt.compare(password, passwordHash);
-  } else {
+  if (authConfig.adminPasswordHash) {
+    isValidPassword = await bcrypt.compare(password, authConfig.adminPasswordHash);
+  } else if (!authConfig.isProduction) {
     // 开发模式：允许使用默认密码 "admin123"
-    isValidPassword = password === devPassword;
+    isValidPassword = password === authConfig.adminPassword;
   }
 
   if (!isValidPassword) {
@@ -67,8 +63,7 @@ router.post('/verify', (req: Request, res: Response): void => {
   }
 
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getAuthConfig().jwtSecret);
     if (typeof decoded !== 'object' || decoded === null || !('username' in decoded)) {
       res.json({ valid: false, error: '令牌无效或已过期' });
       return;
